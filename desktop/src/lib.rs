@@ -952,6 +952,7 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
     tauri_specta::Builder::<tauri::Wry>::new()
         .error_handling(tauri_specta::ErrorHandlingMode::Throw)
         .commands(collect_commands![
+            diagnostics::diagnostics_show_logs,
             tabs_bootstrap,
             tabs_activate,
             tabs_reload,
@@ -961,6 +962,8 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             deck::accounts::profiles_create,
             deck::accounts::account_open,
             deck::accounts::account_delete,
+            deck::portable::deck_layout_export,
+            deck::portable::deck_layout_import,
             setting_get,
             setting_set,
             run_command,

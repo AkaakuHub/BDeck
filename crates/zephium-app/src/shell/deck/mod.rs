@@ -1,6 +1,7 @@
 pub(super) mod accounts;
 pub(super) mod composer;
 pub(super) mod deletion;
+mod portable;
 mod shortcuts;
 mod viewport;
 
@@ -25,6 +26,7 @@ pub(super) fn view_preferences(
 
 #[derive(Default)]
 pub(super) struct DeckRuntime {
+    pub(super) pending_import: Option<portable::PendingImport>,
     state: Option<zephium_core::deck::DeckState>,
     pub(super) scroll_offset: std::cell::Cell<f64>,
     item_profiles: std::collections::HashMap<ItemId, ProfileId>,
@@ -37,6 +39,7 @@ impl DeckRuntime {
             .and_then(|value| serde_json::from_str(&value).ok())
             .filter(|state: &zephium_core::deck::DeckState| state.valid());
         Self {
+            pending_import: None,
             state,
             item_profiles: std::collections::HashMap::new(),
             scroll_offset: std::cell::Cell::new(0.0),

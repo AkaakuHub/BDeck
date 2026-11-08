@@ -6,6 +6,7 @@
   import Switch from "$shared/ui/Switch";
   import Select from "$shared/ui/Select";
   import SegmentedControl from "$shared/ui/SegmentedControl";
+  import LayoutTransfer from "./LayoutTransfer.svelte";
   const active = $derived(deck.active());
 </script>
 
@@ -43,4 +44,5 @@
   </SettingsRow>
 </SettingsGroup>
 {/if}
+<LayoutTransfer />
 <style>.row-ratio { inline-size: 240px; max-inline-size: 100%; }</style>

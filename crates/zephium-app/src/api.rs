@@ -394,6 +394,8 @@ pub enum Command {
         key: String,
         value: String,
     },
+    ImportDeck(zephium_core::deck::portable::LayoutArchive),
+    DeckImported(zephium_core::ports::store::DeckImportOutcome),
     /// Permanently removes one inactive named profile through the durable
     /// cross-store deletion coordinator. The profile id comes only from
     /// privileged chrome and is revalidated against authoritative state.

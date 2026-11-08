@@ -6,9 +6,17 @@ import { test } from "node:test";
 import vm from "node:vm";
 
 const source = readFileSync(new URL("../src/compat/compat.js", import.meta.url), "utf8");
-const event = () => ({ addListener() {}, removeListener() {}, hasListener: () => false });
+const event = () => {
+  const listeners = new Set();
+  return {
+    addListener: (listener) => void listeners.add(listener),
+    removeListener: (listener) => void listeners.delete(listener),
+    hasListener: (listener) => listeners.has(listener),
+    dispatch: (...args) => [...listeners].map(listener => listener(...args)),
+  };
+};
 
-function context(kind) {
+function context(kind, nativeOffscreen = false) {
   const invalid = (name) => new Error(`Invalid call. The 'permissions' value is invalid, because '${name}' is not a valid permission.`);
   const chrome = {
     runtime: {
@@ -39,7 +47,7 @@ function context(kind) {
       },
       onMessage: event(),
       onConnect: event(),
-      getManifest: () => ({ name: "__MSG_name__", version: "1.2", permissions: ["tabs", "https://a.test/*"], options_page: "options.html" }),
+      getManifest: () => ({ name: "__MSG_name__", version: "1.2", permissions: ["tabs", "https://a.test/*"], options_page: "options.html", background: { service_worker: "background.js" } }),
       getURL: (path) => `chrome-extension://abcdefghijklmnopabcdefghijklmnop/${path}`,
     },
     i18n: { getMessage: (key) => (key === "name" ? "Probe" : "") },
@@ -57,6 +65,7 @@ function context(kind) {
         const index = options.addRules.findIndex((rule) => rule.custom);
         if (index >= 0) throw new Error(`The 'addRules' value is invalid, because an error with rule at index ${index}: bad header.`);
         this.applied = options.addRules.map((rule) => rule.id);
+        this.rules = options.addRules;
         return Promise.resolve();
       },
     },
@@ -85,6 +94,11 @@ function context(kind) {
     },
     webNavigation: { onCommitted: event() },
     tabs: { onUpdated: event(), onRemoved: event(), sendMessage() {}, query: () => Promise.resolve([{ id: 1 }]) },
+  };
+  if (nativeOffscreen) chrome.offscreen = {
+    createDocument: () => Promise.resolve(),
+    closeDocument: () => Promise.resolve(),
+    hasDocument: () => Promise.resolve(false),
   };
   const g = {
     chrome,
@@ -135,8 +149,8 @@ function context(kind) {
 }
 
 test("pages and workers get every API fix", async () => {
-  for (const kind of ["page", "worker"]) {
-    const { chrome, browser } = context(kind);
+  for (const [kind, nativeOffscreen] of [["page", false], ["worker", false], ["page", true], ["worker", true]]) {
+    const { chrome, browser } = context(kind, nativeOffscreen);
     assert.equal(browser, chrome, `${kind}: browser aliases chrome`);
     assert.equal(await chrome.permissions.contains({ permissions: ["privacy"] }), true, kind);
     assert.equal(await chrome.permissions.request({ permissions: ["privacy"] }), true, kind);
@@ -166,6 +180,14 @@ test("pages and workers get every API fix", async () => {
 
     await chrome.declarativeNetRequest.updateSessionRules({ addRules: [{ id: 1 }, { id: 2, custom: true }, { id: 3 }] });
     assert.equal(JSON.stringify(chrome.declarativeNetRequest.applied), JSON.stringify([1, 3]), kind);
+    const dnr = chrome.declarativeNetRequest;
+    await dnr.updateSessionRules({ addRules: [{ id: 4, action: {
+      type: dnr.RuleActionType.MODIFY_HEADERS,
+      requestHeaders: [{ header: "origin", operation: dnr.HeaderOperation.SET, value: "https://example.test" }],
+    }, condition: { resourceTypes: [dnr.ResourceType.XMLHTTPREQUEST] } }] });
+    assert.deepEqual(JSON.parse(JSON.stringify(dnr.rules)), [{ id: 4, action: {
+      type: "modifyHeaders", requestHeaders: [{ header: "origin", operation: "set", value: "https://example.test" }],
+    }, condition: { resourceTypes: ["xmlhttprequest"] } }], kind);
 
     assert.equal(JSON.stringify(await chrome.tabs.query({ windowType: "app" })), JSON.stringify([]), kind);
     assert.equal((await chrome.tabs.query({ active: true })).length, 1, kind);
@@ -239,4 +261,27 @@ test("content scripts keep the page's identity", () => {
   const g = context("content");
   assert.doesNotMatch(g.navigator.userAgent, / Chrome\//);
   assert.equal(typeof g.chrome.storage.managed, "object");
+});
+
+test("worker messages carry the manifest URL without changing page or content-script senders", () => {
+  const { chrome } = context("page");
+  const origin = chrome.runtime.getURL("").slice(0, -1);
+  const received = (_message, sender) => sender;
+  chrome.runtime.onMessage.addListener(received);
+  assert.equal(chrome.runtime.onMessage.hasListener(received), true);
+  const worker = { id: chrome.runtime.id, url: origin, origin, documentId: "worker-context" };
+  const delivered = chrome.runtime.onMessage.dispatch({}, worker)[0];
+  assert.equal(delivered.id, worker.id);
+  assert.equal(delivered.origin, worker.origin);
+  assert.equal(delivered.url, chrome.runtime.getURL("background.js"));
+  for (const sender of [
+    { ...worker, url: `${origin}/`, documentId: "root-page" },
+    { ...worker, tab: { id: 1 } },
+    { ...worker, id: "another-extension" },
+    { ...worker, url: "https://example.test" },
+    { ...worker, url: chrome.runtime.getURL("popup.html") },
+  ]) assert.equal(chrome.runtime.onMessage.dispatch({}, sender)[0], sender);
+  chrome.runtime.onMessage.removeListener(received);
+  assert.equal(chrome.runtime.onMessage.hasListener(received), false);
+  assert.deepEqual(chrome.runtime.onMessage.dispatch({}, worker), []);
 });
