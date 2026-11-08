@@ -630,6 +630,11 @@ impl Shell {
             Command::SetPagePermissionCardHost(available) => {
                 self.set_page_permission_card_host(available)
             }
+            Command::DeckDragPreview(rect) => {
+                if let Some(window) = self.windows.focused() {
+                    let _ = self.engine.set_resize_guide(window.id, rect);
+                }
+            }
             Command::SidebarResizeGuide(width) => {
                 if let Some(win) = self.windows.focused() {
                     let zone = width.filter(|width| width.is_finite()).map(|width| {

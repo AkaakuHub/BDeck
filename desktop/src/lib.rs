@@ -965,6 +965,7 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             setting_set,
             run_command,
             deck::composer::composer_open,
+            deck::drag::deck_drag_preview,
             deck::column_panel::column_panel_open,
             deck::column_panel::column_panel_get,
             deck::column_panel::column_panel_ready,

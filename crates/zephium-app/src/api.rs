@@ -291,6 +291,7 @@ pub enum Command {
     },
     /// Transient Windows resize feedback only; no width or layout mutation.
     SidebarResizeGuide(Option<f64>),
+    DeckDragPreview(Option<zephium_core::geometry::Rect>),
     /// Whether the expanded sidebar is on screen to show a page-permission
     /// prompt under its address field.
     SetPagePermissionCardHost(bool),

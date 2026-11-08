@@ -29,6 +29,7 @@ export const commands = {
 	settingSet: (key: string, value: string) => __TAURI_INVOKE<OperationAdmission>("setting_set", { key, value }),
 	runCommand: (id: string) => __TAURI_INVOKE<OperationAdmission>("run_command", { id }),
 	composerOpen: (account: string) => __TAURI_INVOKE<OperationAdmission>("composer_open", { account }),
+	deckDragPreview: (preview: [(number | null), (number | null), (number | null), (number | null)] | null) => __TAURI_INVOKE<boolean>("deck_drag_preview", { preview }),
 	columnPanelOpen: (view: PanelView, x: number | null, y: number | null) => __TAURI_INVOKE<null>("column_panel_open", { view, x, y }),
 	columnPanelGet: () => __TAURI_INVOKE<{
 	composer: boolean,
