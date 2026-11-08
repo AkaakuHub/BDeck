@@ -8,7 +8,7 @@ import vm from "node:vm";
 const source = readFileSync(new URL("../src/compat/compat.js", import.meta.url), "utf8");
 const event = () => ({ addListener() {}, removeListener() {}, hasListener: () => false });
 
-function context(kind) {
+function context(kind, nativeOffscreen = false) {
   const invalid = (name) => new Error(`Invalid call. The 'permissions' value is invalid, because '${name}' is not a valid permission.`);
   const chrome = {
     runtime: {
@@ -57,6 +57,7 @@ function context(kind) {
         const index = options.addRules.findIndex((rule) => rule.custom);
         if (index >= 0) throw new Error(`The 'addRules' value is invalid, because an error with rule at index ${index}: bad header.`);
         this.applied = options.addRules.map((rule) => rule.id);
+        this.rules = options.addRules;
         return Promise.resolve();
       },
     },
@@ -85,6 +86,11 @@ function context(kind) {
     },
     webNavigation: { onCommitted: event() },
     tabs: { onUpdated: event(), onRemoved: event(), sendMessage() {}, query: () => Promise.resolve([{ id: 1 }]) },
+  };
+  if (nativeOffscreen) chrome.offscreen = {
+    createDocument: () => Promise.resolve(),
+    closeDocument: () => Promise.resolve(),
+    hasDocument: () => Promise.resolve(false),
   };
   const g = {
     chrome,
@@ -135,8 +141,8 @@ function context(kind) {
 }
 
 test("pages and workers get every API fix", async () => {
-  for (const kind of ["page", "worker"]) {
-    const { chrome, browser } = context(kind);
+  for (const [kind, nativeOffscreen] of [["page", false], ["worker", false], ["page", true], ["worker", true]]) {
+    const { chrome, browser } = context(kind, nativeOffscreen);
     assert.equal(browser, chrome, `${kind}: browser aliases chrome`);
     assert.equal(await chrome.permissions.contains({ permissions: ["privacy"] }), true, kind);
     assert.equal(await chrome.permissions.request({ permissions: ["privacy"] }), true, kind);
@@ -166,6 +172,14 @@ test("pages and workers get every API fix", async () => {
 
     await chrome.declarativeNetRequest.updateSessionRules({ addRules: [{ id: 1 }, { id: 2, custom: true }, { id: 3 }] });
     assert.equal(JSON.stringify(chrome.declarativeNetRequest.applied), JSON.stringify([1, 3]), kind);
+    const dnr = chrome.declarativeNetRequest;
+    await dnr.updateSessionRules({ addRules: [{ id: 4, action: {
+      type: dnr.RuleActionType.MODIFY_HEADERS,
+      requestHeaders: [{ header: "origin", operation: dnr.HeaderOperation.SET, value: "https://example.test" }],
+    }, condition: { resourceTypes: [dnr.ResourceType.XMLHTTPREQUEST] } }] });
+    assert.deepEqual(JSON.parse(JSON.stringify(dnr.rules)), [{ id: 4, action: {
+      type: "modifyHeaders", requestHeaders: [{ header: "origin", operation: "set", value: "https://example.test" }],
+    }, condition: { resourceTypes: ["xmlhttprequest"] } }], kind);
 
     assert.equal(JSON.stringify(await chrome.tabs.query({ windowType: "app" })), JSON.stringify([]), kind);
     assert.equal((await chrome.tabs.query({ active: true })).length, 1, kind);

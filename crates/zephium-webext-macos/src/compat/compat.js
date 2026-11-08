@@ -593,6 +593,11 @@
   // one setting a header it doesn't know. Chrome would apply the rest.
   const netRequest = !isContent && namespace("declarativeNetRequest");
   if (netRequest) {
+    constants(netRequest, {
+      HeaderOperation: { APPEND: "append", SET: "set", REMOVE: "remove" },
+      ResourceType: { MAIN_FRAME: "main_frame", SUB_FRAME: "sub_frame", STYLESHEET: "stylesheet", SCRIPT: "script", IMAGE: "image", FONT: "font", OBJECT: "object", XMLHTTPREQUEST: "xmlhttprequest", PING: "ping", CSP_REPORT: "csp_report", MEDIA: "media", WEBSOCKET: "websocket", WEBTRANSPORT: "webtransport", WEBBUNDLE: "webbundle", OTHER: "other" },
+      RuleActionType: { ALLOW: "allow", ALLOW_ALL_REQUESTS: "allowAllRequests", BLOCK: "block", MODIFY_HEADERS: "modifyHeaders", REDIRECT: "redirect", UPGRADE_SCHEME: "upgradeScheme" },
+    });
     const rejected = /rule at index (\d+)/;
     for (const method of ["updateSessionRules", "updateDynamicRules"]) {
       const original = netRequest[method];
@@ -801,14 +806,13 @@
   }
 
   // ---- Offscreen documents and the clipboard -------------------------------
-  if (!isContent && !chromeApi.offscreen) {
+  if (!isContent) {
     const reasons = [
       "TESTING", "AUDIO_PLAYBACK", "IFRAME_SCRIPTING", "DOM_SCRAPING", "BLOBS", "DOM_PARSER", "USER_MEDIA",
       "DISPLAY_MEDIA", "WEB_RTC", "CLIPBOARD", "LOCAL_STORAGE", "WORKERS", "BATTERY_STATUS", "MATCH_MEDIA",
       "GEOLOCATION",
     ];
-    pin(chromeApi, "offscreen", {
-      Reason: Object.freeze(Object.fromEntries(reasons.map((reason) => [reason, reason]))),
+    if (!chromeApi.offscreen) pin(chromeApi, "offscreen", {
       createDocument: (parameters, callback) =>
         withCallback(
           native("offscreen.create", { url: String((parameters && parameters.url) || "") }).then(() => undefined),
@@ -823,6 +827,21 @@
         ),
       hasDocument: (callback) => withCallback(native("offscreen.has", {}).then(Boolean), callback),
     });
+    constants(chromeApi.offscreen, { Reason: Object.fromEntries(reasons.map((reason) => [reason, reason])) });
+    if (Z.report) {
+      const offscreen = chromeApi.offscreen;
+      for (const method of ["hasDocument", "createDocument", "closeDocument"]) {
+        const original = offscreen[method];
+        pin(offscreen, method, function (...args) {
+          const callback = typeof args.at(-1) === "function" ? args.pop() : undefined;
+          const pending = Promise.resolve().then(() => original.apply(offscreen, args)).catch((error) => {
+            Z.report("error", `offscreen.${method}: ${error.message}`);
+            throw error;
+          });
+          return withCallback(pending, callback);
+        });
+      }
+    }
   }
   // Chrome lets extensions with clipboard permissions use the clipboard from
   // any of their pages, focused or not; WebKit requires a user gesture, which
