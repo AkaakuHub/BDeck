@@ -1606,7 +1606,7 @@ fn run_command(
         || !(deck::commands::admits_scroll(&id)
             || matches!(
                 id.as_str(),
-                "browser.settings" | "browser.return" | "composer.open" | "composer.close"
+                "browser.settings" | "browser.return" | "composer.open" | "composer.close" | "tab.close"
             ))
         || shutdown_started(&app)
     {

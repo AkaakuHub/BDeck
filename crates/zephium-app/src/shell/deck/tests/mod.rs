@@ -220,7 +220,8 @@ fn extension_options_from_each_account_return_to_the_original_column() {
         assert_eq!(shell.pane_tree(), Some(Pane::Leaf(page)));
         assert_eq!(shell.browser_page, None);
         assert_eq!(shell.items.tab(page).unwrap().content, zephium_core::item::TabContent::ExtensionOwned);
-        let _ = shell.close(page);
+        let closed = shell.operation_run_command("tab.close");
+        assert_ne!(closed.outcome, OperationOutcome::Rejected);
         assert_eq!(shell.windows.focused().unwrap().active, Some(column));
         assert!(!shell.web_extensions.pages.contains_key(&page));
         assert!(shell.items.tab(page).is_none());
