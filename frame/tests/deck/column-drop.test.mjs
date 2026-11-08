@@ -10,7 +10,7 @@ test("dropping over the lower part creates a lower row with an indicator inside 
   const target = columnDrop(frames, columns, "b", { x: 400, y: 700 }, bounds);
   assert.equal(target.row, 1);
   assert.equal(target.before, null);
-  assert.deepEqual(target.preview, [56, 424, 2, 376]);
+  assert.deepEqual(target.preview, [56, 424, 960, 376]);
 });
 
 test("a carried column is excluded when finding the insertion position", () => {

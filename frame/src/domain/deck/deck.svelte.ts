@@ -228,6 +228,11 @@ function columnAction(id: string, action: "reload" | "back" | "forward") {
   if (action === "forward") void commands.tabsForward(id);
 }
 
+function setRowRatio(rowRatio: number) {
+  const next = activeState((deck) => ({ ...deck, row_ratio: rowRatio }));
+  if (next) void save(next);
+}
+
 async function setColumnRow(id: string, row: 0 | 1) {
   return updateColumn(id, (column) => ({ ...column, row }));
 }
@@ -291,5 +296,5 @@ export const deck = {
     return account?.identity?.display_name ?? (deckState?.accounts[0]?.id === id ? "main" : "アカウント");
   },
   save, setAppearance, addColumn, updateColumn, removeColumn, duplicateColumn, moveColumn, reorderColumn,
-  toggleSuspended, columnAction, setColumnRow, createAccount, openComposer,
+  toggleSuspended, columnAction, setRowRatio, setColumnRow, createAccount, openComposer,
 };

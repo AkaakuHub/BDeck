@@ -37,7 +37,8 @@
       const scroll = layout.scroll();
       if (!scroll || !drag.item || scroll.offset === null || scroll.max_offset === null) return;
       const delta = drag.at.x < 88 ? -28 : drag.at.x > window.innerWidth - 32 ? 28 : 0;
-      if (delta) void commands.runCommand(`deck.scroll=${Math.max(0, Math.min(scroll.max_offset, scroll.offset + delta))}`);
+      const offset = Math.max(0, Math.min(scroll.max_offset, scroll.offset + delta));
+      if (offset !== scroll.offset) void commands.runCommand(`deck.scroll=${offset}`);
     }, 60);
     return () => clearInterval(timer);
   });
@@ -53,7 +54,7 @@
       {@const account = deck.state()?.accounts.find((item) => item.id === column.account)}
       <header class="column-header" data-tauri-drag-region="deep" style:left={`${frame.x}px`} style:top={`${frame.y}px`} style:width={`${frame.width}px`} style:height={`${frame.height}px`}>
         <button class="column-grip" data-tauri-drag-region="false" aria-label={`${targetName(column.target)}を移動`} title="カラムを移動"
-          onpointerdown={(event) => drag.begin(event, column.id)} onpointermove={drag.move} onpointerup={drag.end}
+          onpointerdown={(event) => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); drag.begin(event, column.id); }} onpointermove={drag.move} onpointerup={drag.end}
           onpointercancel={drag.cancel} onlostpointercapture={() => drag.cancel()}
           onkeydown={(event) => { if (event.altKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) { event.preventDefault(); void deck.moveColumn(column.id, event.key === "ArrowLeft" ? -1 : 1); } }}>
           <Icon icon={GripVerticalIcon} size={14} />
