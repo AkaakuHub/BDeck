@@ -12,6 +12,7 @@
   let { extension }: { extension: WebExtensionView } = $props();
   let removing = $state(false);
   let editingSites = $state(false);
+  let updating = $derived(webext.isPreparing() && webext.preparingId() === extension.id);
   let entries = $derived<MenuEntry[]>([
     ...(extension.has_options ? [{ kind: "item" as const, id: "options", label: "設定", disabled: !extension.enabled || extension.state !== "running" }] : []),
     ...(extension.site_scoped ? [
@@ -43,8 +44,9 @@
     </div>
   </div>
   {#if extension.error}<p role="alert" class="error">{extension.error}</p>{/if}
-  {#if extension.state === "starting" || extension.state === "failed" || extension.held_update}
-    <div class="actions">
+  {#if extension.state === "starting" || extension.state === "failed" || extension.held_update || updating}
+    <div class="actions" aria-live="polite">
+      {#if updating}<Button pending={true}>更新を確認中…</Button>{/if}
       {#if extension.state === "starting"}<span role="status">起動中</span>{/if}
       {#if extension.state === "failed"}<Button disabled={webext.working()} onclick={() => void webext.retry(extension)}>再試行</Button>{/if}
       {#if extension.held_update}<Button disabled={webext.working()} onclick={() => void webext.reviewUpdate(extension.id)}>{extension.held_update}への更新を確認</Button>{/if}
