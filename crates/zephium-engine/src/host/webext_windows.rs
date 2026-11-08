@@ -2,6 +2,8 @@
 use crate::platform::imp::extensions as native;
 #[path = "webext_windows_popup.rs"]
 mod popup;
+#[path = "webext_windows_storage.rs"]
+mod storage;
 
 use super::resources::{NativeResourceClass, NativeResourceLease};
 use serde_json::{json, Value};
@@ -414,6 +416,9 @@ impl super::EngineHost {
     pub(crate) fn load_web_extension(&mut self, profile: ProfileId, load: WebExtensionLoad) {
         let install = load.install;
         let result = self.load_windows_extension(profile, load);
+        if result.is_err() {
+            self.extension_storage.unload(profile, install);
+        }
         self.sink.emit(EngineEvent::WebExtensionSettled {
             profile,
             install,
@@ -482,10 +487,24 @@ impl super::EngineHost {
         }
         let runtime = ExtensionRuntimeInstance::new(profile, load.install, generation);
         let action = Rc::new(RefCell::new(Action::default()));
+        let storage = if load
+            .permissions
+            .iter()
+            .any(|permission| permission == "storage")
+        {
+            Some(self.extension_storage.load(profile, &load)?)
+        } else {
+            None
+        };
         // Profile objects are tied to their originating controller. Keep the
         // management controller alive for the entire native install lifetime.
-        let bridge = match self.extension_view(profile, &load.extension_id, action.clone(), runtime)
-        {
+        let bridge = match self.extension_view(
+            profile,
+            &load.extension_id,
+            action.clone(),
+            runtime,
+            storage,
+        ) {
             Ok(bridge) => bridge,
             Err(error) => {
                 if self
@@ -587,6 +606,7 @@ impl super::EngineHost {
     }
 
     pub(crate) fn unload_web_extension(&mut self, profile: ProfileId, install: ExtensionInstallId) {
+        self.extension_storage.unload(profile, install);
         if self.windows_extensions.popup.as_ref().is_some_and(|popup| {
             popup.runtime.profile() == profile && popup.runtime.install_id() == install
         }) {
@@ -608,6 +628,9 @@ impl super::EngineHost {
     }
 
     pub(crate) fn remove_web_extension(&mut self, profile: ProfileId, load: WebExtensionLoad) {
+        if let Err(error) = self.extension_storage.erase(&load) {
+            eprintln!("extensions: shared storage removal failed: {error}");
+        }
         self.close_windows_extension_popup();
         let mut native_change_started = false;
         let result = (|| -> Result<(), String> {
@@ -644,6 +667,7 @@ impl super::EngineHost {
                 &load.extension_id,
                 Rc::new(RefCell::new(Action::default())),
                 runtime,
+                None,
             )?;
             let result = (|| {
                 let native_profile =
@@ -692,6 +716,7 @@ impl super::EngineHost {
         extension: &str,
         action: Rc<RefCell<Action>>,
         runtime: ExtensionRuntimeInstance,
+        storage: Option<zephium_webext::storage::broker::Client>,
     ) -> Result<ExtensionView, String> {
         let resource = self
             .native_resources
@@ -716,6 +741,7 @@ impl super::EngineHost {
             zephium_webext::windows::HOST_DIRECTORY
         );
         let expected = url.clone();
+        let storage_dispatch = self.main_dispatch.clone();
         let navigation_url = url.clone();
         let builder = wry::WebViewBuilder::new()
             .with_environment(environment)
@@ -747,13 +773,22 @@ impl super::EngineHost {
             .with_ipc_handler(move |message| {
                 if !callback_alive.get()
                     || message.uri().to_string() != expected
-                    || message.body().len() > 32768
+                    || message.body().len() > 32 * 1024 * 1024
                 {
                     return;
                 }
                 let Ok(value) = serde_json::from_str::<Value>(message.body()) else {
                     return;
                 };
+                if value["kind"] == "storage" {
+                    if let Some(client) = &storage {
+                        storage::execute(client, runtime, value, storage_dispatch.clone());
+                    }
+                    return;
+                }
+                if message.body().len() > 32768 {
+                    return;
+                }
                 if value["kind"] == "ready" {
                     sink.emit(EngineEvent::ExtensionActionsInvalidated { profile });
                     return;

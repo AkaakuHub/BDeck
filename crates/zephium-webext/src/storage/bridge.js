@@ -9,6 +9,7 @@
   const retained = [api, runtime, storage];
   g[Symbol.for("zephium.storage")] = retained;
   const native = config.sharedStorage === "native";
+  const connectionAttempts = config.sharedStorage === "extensionPage" ? 600 : 40;
   const worker = typeof ServiceWorkerGlobalScope !== "undefined" && g instanceof ServiceWorkerGlobalScope;
   const origin = runtime.getURL("/");
   const content = !worker && !(typeof location !== "undefined" && location.href.startsWith(origin));
@@ -43,7 +44,12 @@
           const fail = error => {
             if (port !== opened) return;
             clearInterval(hello);
-            port = null; connection = null;
+            port = null;
+            if (!ready && config.sharedStorage === "extensionPage" && attempts < connectionAttempts) {
+              setTimeout(start, 25);
+              return;
+            }
+            connection = null;
             const reason = new Error(error || "Extension storage connection closed");
             if (!ready) reject(reason);
             for (const request of pending.values()) { clearTimeout(request.timeout); request.reject(reason); }
@@ -62,7 +68,7 @@
             else request.resolve(message.value);
           });
           const greet = () => {
-            if (++attempts > 40) { fail("Extension storage connection timed out"); try { opened.disconnect(); } catch {} return; }
+            if (++attempts > connectionAttempts) { fail("Extension storage connection timed out"); try { opened.disconnect(); } catch {} return; }
             try { opened.postMessage({type:"hello"}); } catch (error) { fail(String(error)); }
           };
           hello = setInterval(greet, 25); greet();
@@ -133,6 +139,29 @@
     pin(storage, name, area);
   }
   pin(api, "storage", storage);
+  const scripting = api.scripting;
+  if (scripting && typeof config.storageScript === "string") {
+    const prepare = details => details.world === "MAIN" || !Array.isArray(details.js)
+      ? details : {...details, js:[config.storageScript, ...details.js.filter(path => path !== config.storageScript)]};
+    for (const name of ["registerContentScripts", "updateContentScripts"]) {
+      const original = scripting[name];
+      if (typeof original !== "function") continue;
+      pin(scripting, name, function(scripts, done) {
+        return callback(Reflect.apply(original, this, [scripts.map(prepare)]), done);
+      });
+    }
+    const execute = scripting.executeScript;
+    if (typeof execute === "function") pin(scripting, "executeScript", function(details, done) {
+      if (details.world === "MAIN") return Reflect.apply(execute, this, [details, done]);
+      if (Array.isArray(details.files)) return callback(Reflect.apply(execute, this,
+        [{...details, files:[config.storageScript, ...details.files.filter(path => path !== config.storageScript)]}]), done);
+      const bootstrap = {target:details.target, files:[config.storageScript]};
+      if (details.world !== undefined) bootstrap.world = details.world;
+      if (details.injectImmediately !== undefined) bootstrap.injectImmediately = details.injectImmediately;
+      return callback(Promise.resolve(Reflect.apply(execute, this, [bootstrap]))
+        .then(() => Reflect.apply(execute, this, [details])), done);
+    });
+  }
   if (native && background) runtime.onConnect.addListener(proxy => {
     if (proxy.name !== channel || proxy.sender?.id !== runtime.id) return;
     const untrusted = typeof proxy.sender.url !== "string" || !proxy.sender.url.startsWith(origin);

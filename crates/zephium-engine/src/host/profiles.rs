@@ -812,8 +812,9 @@ impl EngineHost {
         #[cfg(target_os = "macos")]
         {
             self.webext.retire_profile(profile);
-            self.extension_storage.retire_profile(profile);
         }
+        #[cfg(any(target_os = "macos", target_os = "windows"))]
+        self.extension_storage.retire_profile(profile);
 
         // WebKit removes a named store only once nothing holds it.
         #[cfg(target_os = "macos")]

@@ -259,6 +259,8 @@ pub(crate) fn install(
     PAGE_PERMISSION_TERMINAL_INVARIANT_FAILED.with(|failed| failed.set(false));
     #[cfg(target_os = "macos")]
     PAGE_PERMISSION_TERMINAL_FAILURE_REPORTED.with(|reported| reported.set(false));
+    #[cfg(target_os = "windows")]
+    let storage_dispatch = main_dispatch.clone();
     HOST.with(|cell| {
         let mut host = cell
             .try_borrow_mut()
@@ -320,6 +322,15 @@ pub(crate) fn install(
             extension_storage: super::extension_storage::Storage::new(
                 data_root.join("extension-storage"),
                 Arc::new(zephium_webext_macos::notify_storage_changed),
+            ),
+            #[cfg(target_os = "windows")]
+            extension_storage: super::extension_storage::Storage::new(
+                data_root.join("extension-storage"),
+                Arc::new(move |change| {
+                    let _ = storage_dispatch(Box::new(move || {
+                        best_effort_with(move |host| host.notify_windows_extension_storage(change));
+                    }));
+                }),
             ),
             #[cfg(target_os = "windows")]
             windows_extensions: Default::default(),

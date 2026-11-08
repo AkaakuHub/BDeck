@@ -16,7 +16,7 @@ pub(crate) mod downloads;
 #[cfg(target_os = "macos")]
 mod extension_action;
 mod extension_browser_surface;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 mod extension_storage;
 mod favicon;
 #[cfg(target_os = "macos")]
@@ -438,7 +438,7 @@ pub(crate) struct EngineHost {
     macos_ephemeral_data_stores: HashMap<ProfileId, crate::platform::imp::WebsiteDataStore>,
     #[cfg(target_os = "macos")]
     webext: webext::WebextHost,
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     extension_storage: extension_storage::Storage,
     #[cfg(target_os = "windows")]
     windows_extensions: webext_windows::WindowsExtensions,

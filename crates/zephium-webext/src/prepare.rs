@@ -63,6 +63,12 @@ const NAMESPACES: &[&str] = &[
 /// `storage.<area>.onChanged` is recorded as `storage.onChanged`.
 const STORAGE_AREAS: &[&str] = &["local", "sync", "session", "managed"];
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SharedStorage {
+    Native,
+    ExtensionPage,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompatLayer {
     /// Shared JavaScript body, appended after the generated configuration.
@@ -74,7 +80,7 @@ pub struct CompatLayer {
     pub permissions: Vec<String>,
     /// Report extensions' own errors and warnings to the browser.
     pub diagnostics: bool,
-    pub shared_storage: bool,
+    pub shared_storage: Option<SharedStorage>,
 }
 
 impl CompatLayer {
@@ -84,12 +90,12 @@ impl CompatLayer {
             file_name: "compat.js".to_owned(),
             permissions: Vec::new(),
             diagnostics: false,
-            shared_storage: false,
+            shared_storage: None,
         }
     }
 
     pub fn with_shared_storage(mut self) -> Self {
-        self.shared_storage = true;
+        self.shared_storage = Some(SharedStorage::Native);
         self
     }
 
@@ -160,7 +166,7 @@ pub fn prepare(dir: &Path, compat: &CompatLayer) -> Result<PrepareReport, Prepar
         .cloned()
         .collect();
     let rewritten = edit_manifest(&original, manifest.raw(), &resource, &added_permissions)?;
-    let storage_background = if compat.shared_storage {
+    let storage_background = if compat.shared_storage.is_some() {
         shared_storage::background(&manifest, rewritten, &resource)?
     } else {
         shared_storage::Background::plain(rewritten)
@@ -191,11 +197,16 @@ pub fn prepare(dir: &Path, compat: &CompatLayer) -> Result<PrepareReport, Prepar
     if compat.diagnostics {
         config["diagnostics"] = json!(true);
     }
-    if compat.shared_storage {
-        config["sharedStorage"] = json!("native");
+    if compat.shared_storage.is_some() {
+        config["storageScript"] = json!(url);
+        config["sharedStorage"] = json!(match compat.shared_storage {
+            Some(SharedStorage::Native) => "native",
+            Some(SharedStorage::ExtensionPage) => "extensionPage",
+            None => unreachable!(),
+        });
     }
     let mut body = format!("var __zephiumConfig = {config};\n{}", compat.script);
-    if compat.shared_storage {
+    if compat.shared_storage.is_some() {
         body.push_str(crate::storage::BRIDGE_SCRIPT);
     }
     fs::create_dir(&compat_dir)?;

@@ -1,5 +1,4 @@
 //! Manifest host-access narrowing for native WebView2 packages.
-//! This never implements extension APIs; Chromium enforces the resulting grants.
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::{fs, path::Path};
@@ -8,6 +7,7 @@ pub const HOST_DIRECTORY: &str = "zephium-windows-host";
 const READY_FILE: &str = "zephium-windows-prepared.txt";
 const OBSERVER: &str = include_str!("windows/action-observer.js");
 const WORKER_COMPAT: &str = include_str!("windows/worker-compat.js");
+const STORAGE_HOST: &str = include_str!("windows/storage-host.js");
 const HOST_SCRIPT: &str = include_str!("windows/action-host.js");
 pub const POPUP_TARGET_SCRIPT: &str = include_str!("windows/popup-target.js");
 pub const POPUP_SIZE_SCRIPT: &str = include_str!("windows/popup-size.js");
@@ -21,36 +21,24 @@ pub fn prepare(dir: &Path, sites: Option<&[String]>) -> Result<(), String> {
     if let Some(sites) = sites {
         narrow_hosts(&mut raw, sites)?;
     }
-    let owned = dir.join(HOST_DIRECTORY);
-    fs::create_dir(&owned).map_err(|e| e.to_string())?;
-    fs::write(
-        owned.join("observer.js"),
-        format!("{WORKER_COMPAT}\n{OBSERVER}"),
-    )
-    .map_err(|e| e.to_string())?;
-    fs::write(owned.join("host.js"), HOST_SCRIPT).map_err(|e| e.to_string())?;
-    fs::write(
-        owned.join("host.html"),
-        "<!doctype html><meta charset=utf-8><script src=host.js></script>",
-    )
-    .map_err(|e| e.to_string())?;
-    if let Some(crate::manifest::Background::ServiceWorker { path, module }) = manifest.background()
-    {
-        let worker = dir.join(path.split(['?', '#']).next().ok_or("Invalid worker path")?);
-        let source = fs::read(&worker).map_err(|e| e.to_string())?;
-        fs::write(
-            worker,
-            crate::prepare::inject_worker(
-                &source,
-                module,
-                &format!("/{HOST_DIRECTORY}/observer.js"),
-            ),
-        )
-        .map_err(|e| e.to_string())?;
-    }
     fs::write(
         dir.join("manifest.json"),
         serde_json::to_vec_pretty(&raw).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    let mut compat = crate::prepare::CompatLayer::new(format!("{WORKER_COMPAT}\n{OBSERVER}"));
+    compat.shared_storage = Some(crate::prepare::SharedStorage::ExtensionPage);
+    crate::prepare::prepare(dir, &compat).map_err(|e| e.to_string())?;
+    let owned = dir.join(HOST_DIRECTORY);
+    fs::create_dir(&owned).map_err(|e| e.to_string())?;
+    fs::write(
+        owned.join("host.js"),
+        format!("{STORAGE_HOST}\n{HOST_SCRIPT}"),
+    )
+    .map_err(|e| e.to_string())?;
+    fs::write(
+        owned.join("host.html"),
+        "<!doctype html><meta charset=utf-8><script src=host.js></script>",
     )
     .map_err(|e| e.to_string())?;
     fs::write(dir.join(READY_FILE), access_revision(sites)).map_err(|e| e.to_string())
@@ -66,6 +54,8 @@ pub fn access_revision(sites: Option<&[String]>) -> String {
     hash.update(OBSERVER);
     hash.update(WORKER_COMPAT);
     hash.update(HOST_SCRIPT);
+    hash.update(STORAGE_HOST);
+    hash.update(crate::storage::BRIDGE_SCRIPT);
     hash.update(serde_json::to_vec(&sites).expect("string lists serialize"));
     format!("windows-{:x}", hash.finalize())[..40].to_owned()
 }
@@ -272,6 +262,6 @@ mod tests {
         assert_eq!(raw["host_permissions"], json!(["*://*.example.com/*"]));
         assert!(fs::read_to_string(dir.join("worker.js"))
             .unwrap()
-            .contains("observer.js"));
+            .contains("compat.js"));
     }
 }

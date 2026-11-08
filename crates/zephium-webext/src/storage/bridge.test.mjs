@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 const script = await readFile(new URL('./bridge.js', import.meta.url), 'utf8');
+const windowsScript = await readFile(new URL('../windows/storage-host.js', import.meta.url), 'utf8');
 const extension = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const origin = `chrome-extension://${extension}/`;
 const tick = () => new Promise(resolve => setImmediate(resolve));
@@ -32,7 +33,7 @@ function backend(handler = () => ({theme:'dark'})) {
     return client;
   }, changed(changes, contentScripts = true) { for (const port of ports) port.postMessage({type:'changed',area:'local',changes,contentScripts}); }};
 }
-function context(server, {worker=false, url=origin+'page.html', background=null} = {}) {
+function context(server, {worker=false, url=origin+'page.html', background=null, transport='native', failedConnections=0, scripting} = {}) {
   let disposed = false;
   const timers = new Set(), opened = new Set();
   const runtime = {id:extension, getURL:path => origin+path.replace(/^\//,''), onConnect:event()};
@@ -40,12 +41,12 @@ function context(server, {worker=false, url=origin+'page.html', background=null}
   runtime.connectNative = name => { assert.equal(name, 'app.zephium.storage'); const port = server.connect(); opened.add(port); return port; };
   runtime.connect = ({name}) => {
     const [client, host] = pair(); host.name = name; host.sender = {id:extension, url}; opened.add(client);
-    queueMicrotask(() => background.runtime.onConnect.emit(host));
+    queueMicrotask(() => { if (failedConnections-- > 0) client.disconnect(); else background.runtime.onConnect.emit(host); });
     return client;
   };
   const area = () => ({get() { throw new Error('Profile-local storage was called'); }});
-  const chrome = {runtime, storage:{local:area(),sync:area(),session:area()}};
-  const scope = {chrome, __zephiumConfig:{sharedStorage:'native'}, location:{href:url}, console,
+  const chrome = {runtime, scripting, storage:{local:area(),sync:area(),session:area()}};
+  const scope = {chrome, __zephiumConfig:{sharedStorage:transport,storageScript:'/zephium-compat/compat.js'}, location:{href:url}, console,
     setTimeout(fn, delay) { if (disposed) return 0; const handle = setTimeout(() => { timers.delete(handle); if (!disposed) fn(); },delay); timers.add(handle); return handle; },
     clearTimeout(handle) { clearTimeout(handle); timers.delete(handle); },
     setInterval(fn, delay) { const handle = setInterval(fn,delay); timers.add(handle); return handle; },
@@ -155,4 +156,86 @@ test('the bounded queue rejects overflow while admitted requests still settle', 
   assert.match(results[512].reason.message, /queue is full/);
   assert.equal(server.requests.length, 512);
   assert.equal(await page.chrome.storage.local.get('after'), 'after');
+});
+
+function windowsHost(server) {
+  const messages = event(), port = server.connect();
+  port.onMessage.addListener(data => messages.emit({data:{...data, kind:'storage'}}));
+  const runtime = {id:extension, getURL:path => origin+path.replace(/^\//,''), onConnect:event()};
+  const scope = {chrome:{runtime, webview:{
+    addEventListener(name, listener) { assert.equal(name,'message'); messages.addListener(listener); },
+    postMessage(value) { port.postMessage(JSON.parse(value)); },
+  }}, setTimeout, clearTimeout};
+  vm.runInNewContext(windowsScript, scope);
+  return {runtime, dispose() { port.disconnect(); }};
+}
+
+test('Windows extension pages in separate profiles share settings and changes through the same broker', async t => {
+  let items = {};
+  const server = backend(message => {
+    if (message.operation.method === 'set') { Object.assign(items, message.operation.items); return null; }
+    return structuredClone(items);
+  });
+  const firstHost = windowsHost(server), secondHost = windowsHost(server);
+  const first = context(server,{transport:'extensionPage',background:firstHost});
+  const second = context(server,{transport:'extensionPage',background:secondHost,worker:true,url:origin+'worker.js'});
+  t.after(() => { first.dispose(); second.dispose(); firstHost.dispose(); secondHost.dispose(); });
+  const changed = [];
+  second.chrome.storage.onChanged.addListener(value => changed.push(value));
+  await first.chrome.storage.local.set({theme:'dark'});
+  assert.deepEqual(await second.chrome.storage.local.get(),{theme:'dark'});
+  server.changed({theme:{newValue:'dark'}});
+  await tick(); await tick();
+  assert.equal(changed.length,1);
+  assert.deepEqual(changed[0],{theme:{newValue:'dark'}});
+  assert.equal(server.requests.every(request => request.contentScript === false),true);
+});
+
+test('Windows host derives content-script access from the port sender and filters private notifications', async t => {
+  const server = backend(); const host = windowsHost(server);
+  const page = context(server,{transport:'extensionPage',background:host,url:'https://x.com/home'});
+  t.after(() => {page.dispose();host.dispose();});
+  const changes = [];
+  page.chrome.storage.onChanged.addListener(value => changes.push(value));
+  await page.chrome.storage.local.get();
+  assert.equal(server.requests[0].contentScript,true);
+  server.changed({secret:{newValue:1}},false); await tick(); await tick();
+  assert.equal(changes.length,0);
+  server.changed({theme:{newValue:'dark'}},true); await tick(); await tick();
+  assert.equal(changes.length,1);
+});
+
+test('Windows storage waits for the owned host during extension startup without reading profile-local storage', async t => {
+  const server = backend(), host = windowsHost(server);
+  const page = context(server,{transport:'extensionPage',background:host,failedConnections:2});
+  t.after(() => {page.dispose();host.dispose();});
+  assert.deepEqual(await page.chrome.storage.local.get(),{theme:'dark'});
+  assert.equal(server.requests.length,1);
+});
+
+test('programmatically injected scripts use shared storage before extension code runs', async t => {
+  const calls = [], scripting = {executeScript: async details => { calls.push(details); return [{result:'extension result'}]; }};
+  const page = context(backend(),{scripting}); t.after(() => page.dispose());
+  const target = {tabId:1};
+  const result = await scripting.executeScript({target,files:['content.js']});
+  assert.deepEqual(Array.from(calls[0].files),['/zephium-compat/compat.js','content.js']);
+  assert.deepEqual(result,[{result:'extension result'}]);
+  calls.length = 0;
+  const func = () => 'value';
+  await scripting.executeScript({target,func,args:[1]});
+  assert.equal(calls.length,2);
+  assert.deepEqual(calls[0].target,target);
+  assert.equal(calls[1].func,func);
+  assert.deepEqual(calls[1].args,[1]);
+});
+
+test('dynamic registrations retain native page-world scripts and prepare only extension-isolated scripts', async t => {
+  const calls = [], scripting = {registerContentScripts:async scripts => {calls.push(scripts);}, updateContentScripts:async scripts => {calls.push(scripts);}};
+  const page = context(backend(),{scripting}); t.after(() => page.dispose());
+  const main = {id:'page',world:'MAIN',js:['page.js']};
+  await scripting.registerContentScripts([{id:'content',js:['content.js']},main]);
+  assert.deepEqual(Array.from(calls[0][0].js),['/zephium-compat/compat.js','content.js']);
+  assert.equal(calls[0][1],main);
+  await scripting.updateContentScripts([{id:'content',matches:['https://x.com/*']}]);
+  assert.equal(calls[1][0].js,undefined);
 });
