@@ -655,6 +655,9 @@ impl Shell {
         if let Some(active) = window.active {
             if self.item_in_scope(active, window.profile, window.space) {
                 protected.insert(active);
+                if self.deck.profile_for_item(active).is_some() {
+                    protected.extend(self.pane_tree().into_iter().flat_map(|pane| pane.tabs()));
+                }
                 if let Some(tree) = &window.splits {
                     if tree.contains(active)
                         && self.pane_in_scope(tree, window.profile, window.space)

@@ -137,6 +137,8 @@ impl EngineHost {
             return;
         }
         let event_permit = EventPermit::bound(&event_token);
+        #[cfg(target_os = "windows")]
+        let event_permit = event_permit.with_extensions(self.windows_extensions.navigation_grants(partition.profile()));
         // Restored and explicitly opened tabs need the same live profile grant
         // as native child adoption, before either fresh or spare construction.
         if !event_permit.allows_navigation(url) {
@@ -349,6 +351,10 @@ impl EngineHost {
         purpose: NativeViewPurpose,
     ) -> Option<ObservedView> {
         let report_failure = purpose.reports_failure();
+        #[cfg(target_os = "windows")]
+        let event_permit = event_permit.with_extensions(
+            self.windows_extensions.navigation_grants(partition.profile()),
+        );
         let target_resource_class = purpose.resource_class();
         let logical_id = id.get();
         let reservation_failure_permit = event_permit.clone();
@@ -720,6 +726,8 @@ impl EngineHost {
         #[cfg(target_os = "windows")]
         let mut cached_environment = self.environments.get(&partition.profile()).cloned();
         #[cfg(target_os = "windows")]
+        let mut extension_startup = None;
+        #[cfg(target_os = "windows")]
         let construction_environment: Rc<RefCell<Option<ICoreWebView2Environment>>> =
             Rc::new(RefCell::new(None));
         #[cfg(target_os = "windows")]
@@ -824,6 +832,7 @@ impl EngineHost {
                     return None;
                 }
                 cached_environment = self.environments.get(&profile).cloned();
+                extension_startup = Some(self.windows_extension_startup(profile, &path).ok()?);
             }
             let api_path = match crate::platform::windows::webview2_user_data_path(&path) {
                 Ok(api_path) => api_path,
@@ -1319,6 +1328,11 @@ impl EngineHost {
             }
             builder = builder
                 .with_controller_initialization_hook(|_, core| crate::reputation::configure(core));
+            if let Some(startup) = extension_startup {
+                builder = builder.with_browser_extension_startup_gate(move |environment, core| {
+                    startup.authenticate(environment, core)
+                });
+            }
         }
 
         #[cfg(target_os = "macos")]
@@ -2319,6 +2333,8 @@ impl EngineHost {
             #[cfg(target_os = "windows")]
             request_witness,
             #[cfg(target_os = "windows")]
+            extension_window: Cell::new(None),
+            #[cfg(target_os = "windows")]
             windows_final_discard: None,
             #[cfg(target_os = "windows")]
             discard_deadline: None,
@@ -2408,8 +2424,13 @@ impl EngineHost {
         {
             return Err(WindowsProfileEnvironmentFailure::Busy);
         }
+        let startup = self.windows_extension_startup(profile, &path)
+            .map_err(|_| WindowsProfileEnvironmentFailure::Mismatch)?;
         let existing_environment = self.environments.get(&profile).cloned();
         if let Some(environment) = &existing_environment {
+            if !startup.initialized.get() {
+                return Err(WindowsProfileEnvironmentFailure::Mismatch);
+            }
             crate::platform::imp::attest_environment(environment, &path)
                 .map_err(|_| WindowsProfileEnvironmentFailure::Mismatch)?;
             return Ok(());
@@ -2480,6 +2501,7 @@ impl EngineHost {
             };
             builder
                 .with_controller_initialization_hook(|_, core| crate::reputation::configure(core))
+                .with_browser_extension_startup_gate(move |environment, core| startup.authenticate(environment, core))
         };
 
         let mut built = builder.build_as_child(&parent);

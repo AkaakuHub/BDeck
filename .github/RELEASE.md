@@ -21,3 +21,5 @@ git push origin v1.0.4
 全ビルドが成功すると、3つのインストーラーと`SHA256SUMS`をDraft Releaseに保存します。公開はGitHubのReleases画面から行います。公開済みの同じタグの成果物は上書きしません。失敗した実行はActions画面から再実行できます。
 
 現在、macOSはアドホック署名で公証なし、Windowsは発行元署名なしです。Apple DeveloperやWindows署名サービスの秘密情報は必要ありません。自動更新の配信は行いません。
+
+macOSの1Passwordデスクトップ連携は、アドホック署名の配布物では利用できません。[1Passwordが認める証明書での署名と追加ブラウザの登録](https://support.1password.com/additional-browsers/)が別途必要です。

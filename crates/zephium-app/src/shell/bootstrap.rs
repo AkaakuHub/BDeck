@@ -29,6 +29,9 @@ impl Shell {
             self.project_browser_page();
             self.forget_offered_items();
             self.project_items();
+            if let Some(target) = self.web_extension_target(None) {
+                self.project_extension_actions(target.profile);
+            }
             return;
         }
         let pending_deletions = match self.store.pending_profile_deletions() {

@@ -7,7 +7,6 @@ mod diagnostics;
 mod external_links;
 mod material;
 mod memory_pressure;
-#[cfg(target_os = "macos")]
 mod platform;
 #[cfg(target_os = "windows")]
 mod privileged_runtime_windows;
@@ -953,6 +952,7 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
     tauri_specta::Builder::<tauri::Wry>::new()
         .error_handling(tauri_specta::ErrorHandlingMode::Throw)
         .commands(collect_commands![
+            diagnostics::diagnostics_show_logs,
             tabs_bootstrap,
             tabs_activate,
             tabs_reload,
@@ -962,10 +962,13 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             deck::accounts::profiles_create,
             deck::accounts::account_open,
             deck::accounts::account_delete,
+            deck::portable::deck_layout_export,
+            deck::portable::deck_layout_import,
             setting_get,
             setting_set,
             run_command,
             deck::composer::composer_open,
+            deck::drag::deck_drag_preview,
             deck::column_panel::column_panel_open,
             deck::column_panel::column_panel_get,
             deck::column_panel::column_panel_ready,
@@ -1606,7 +1609,7 @@ fn run_command(
         || !(deck::commands::admits_scroll(&id)
             || matches!(
                 id.as_str(),
-                "browser.settings" | "browser.return" | "composer.open" | "composer.close"
+                "browser.settings" | "browser.return" | "composer.open" | "composer.close" | "tab.close"
             ))
         || shutdown_started(&app)
     {
