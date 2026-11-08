@@ -461,10 +461,8 @@ impl EngineHost {
             }
             for id in woken {
                 self.cancel_suspend_guard(id);
-                self.refresh_missed_styles(id);
             }
         }
-        self.refresh_visible_generic_styles();
         true
     }
 
@@ -479,7 +477,7 @@ impl EngineHost {
         }
     }
 
-    #[cfg(target_os = "windows")]
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     pub(crate) fn set_resize_guide(&mut self, window: WindowId, zone: Option<Rect>) {
         if let Some(stage) = self.ensure_stage(window) {
             stage.set_resize_guide(zone);

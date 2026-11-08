@@ -915,7 +915,6 @@ impl EngineHost {
                     crate::platform::imp::resume(view);
                 }
                 self.dormant.remove(&id);
-                self.refresh_missed_styles(id);
             }
             self.suspend_failed.retain(|id| next.contains(id));
             let cancelled: Vec<_> = self
@@ -999,7 +998,6 @@ impl EngineHost {
         // callback arrives or the view closes. A timeout releases a batch slot
         // but cannot authorize overlapping TrySuspend/evaluation requests.
         self.suspend_uncertain.insert(id);
-        self.refresh_missed_styles(id);
         self.pump_suspends();
     }
 
@@ -1106,7 +1104,6 @@ impl EngineHost {
                 self.suspend_failed.insert(id);
             }
         }
-        self.refresh_missed_styles(id);
         self.pump_suspends();
     }
 

@@ -33,7 +33,12 @@ impl Sink {
 #[derive(Clone)]
 pub(super) struct EventPermit {
     state: Arc<Mutex<EventPermitState>>,
+    #[cfg(target_os = "windows")]
+    extensions: Option<ExtensionNavigationGrants>,
 }
+
+#[cfg(target_os = "windows")]
+pub(super) type ExtensionNavigationGrants = Arc<Mutex<std::collections::HashSet<String>>>;
 
 enum EventPermitState {
     #[cfg(any(not(all(unix, not(target_os = "macos"))), test))]
@@ -49,18 +54,42 @@ impl EventPermit {
     pub(super) fn inactive() -> Self {
         Self {
             state: Arc::new(Mutex::new(EventPermitState::Inactive)),
+            #[cfg(target_os = "windows")]
+            extensions: None,
         }
     }
 
     pub(super) fn bound(token: &Arc<AtomicBool>) -> Self {
         Self {
             state: Arc::new(Mutex::new(EventPermitState::Bound(Arc::downgrade(token)))),
+            #[cfg(target_os = "windows")]
+            extensions: None,
         }
+    }
+
+    #[cfg(target_os = "windows")]
+    pub(super) fn with_extensions(mut self, grants: ExtensionNavigationGrants) -> Self {
+        self.extensions = Some(grants);
+        self
+    }
+
+    #[cfg(target_os = "windows")]
+    pub(super) fn allows_extension_document_close(&self, target: &str) -> bool {
+        self.active_token().is_some()
+            && url::Url::parse(target).ok().is_some_and(|url| {
+                zephium_core::navigation::extension_document_id(&url).is_some()
+                    && self.allows_target(target)
+            })
     }
 
     pub(super) fn allows_target(&self, target: &str) -> bool {
         if navigation::is_allowed_str(target) {
             return true;
+        }
+        #[cfg(target_os = "windows")]
+        if let (Some(grants), Ok(url)) = (&self.extensions, url::Url::parse(target)) {
+            return navigation::extension_document_id(&url)
+                .is_some_and(|id| grants.lock().is_ok_and(|grants| grants.contains(id)));
         }
         false
     }
@@ -212,6 +241,7 @@ pub(super) fn queue_navigation_completion(
         {
             host.complete_title_attribution(id, &queued_permit, &queued_navigation, epoch);
             host.emit_navigation_ready(id, &queued_permit, &queued_navigation, epoch);
+
         }
     });
 }
@@ -240,3 +270,4 @@ pub(super) fn queue_navigation_failure(
         );
     });
 }
+

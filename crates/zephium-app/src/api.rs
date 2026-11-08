@@ -291,6 +291,7 @@ pub enum Command {
     },
     /// Transient Windows resize feedback only; no width or layout mutation.
     SidebarResizeGuide(Option<f64>),
+    DeckDragPreview(Option<zephium_core::geometry::Rect>),
     /// Whether the expanded sidebar is on screen to show a page-permission
     /// prompt under its address field.
     SetPagePermissionCardHost(bool),
@@ -393,6 +394,8 @@ pub enum Command {
         key: String,
         value: String,
     },
+    ImportDeck(zephium_core::deck::portable::LayoutArchive),
+    DeckImported(zephium_core::ports::store::DeckImportOutcome),
     /// Permanently removes one inactive named profile through the durable
     /// cross-store deletion coordinator. The profile id comes only from
     /// privileged chrome and is revalidated against authoritative state.

@@ -381,6 +381,19 @@ impl Shell {
                     return;
                 }
                 let command = *command;
+                if self.deck.pending_import.is_some() {
+                    let mut completion = operation_result(OperationOutcome::Rejected, OperationReason::StorePending);
+                    completion.operation_id = operation_id;
+                    (self.emit)(Projection::OperationProcessed(completion));
+                    return;
+                }
+                if let Command::ImportDeck(archive) = &command {
+                    if let Some(mut completion) = self.begin_deck_import(archive, operation_id.clone()) {
+                        completion.operation_id = operation_id;
+                        (self.emit)(Projection::OperationProcessed(completion));
+                    }
+                    return;
+                }
                 if let Command::RespondToPagePermissionPrompt {
                     profile,
                     item,
@@ -556,6 +569,11 @@ impl Shell {
             Command::SetWindowSize(size) => match self.windows.focused_mut() {
                 Some(win) => {
                     win.size = size;
+                    let effects = self.ensure_visible_deck_views();
+                    if !effects.is_empty() {
+                        self.apply(effects);
+                        self.project_items();
+                    }
                     // macOS resizes natively via autoresizing masks; Windows
                     // and Linux have no equivalent, the shell must relayout.
                     let _ = self.relayout();
@@ -624,6 +642,11 @@ impl Shell {
             }
             Command::SetPagePermissionCardHost(available) => {
                 self.set_page_permission_card_host(available)
+            }
+            Command::DeckDragPreview(rect) => {
+                if let Some(window) = self.windows.focused() {
+                    let _ = self.engine.set_resize_guide(window.id, rect);
+                }
             }
             Command::SidebarResizeGuide(width) => {
                 if let Some(win) = self.windows.focused() {
@@ -733,7 +756,8 @@ impl Shell {
             }
             // These mutations are accepted only through `Command::Operation`
             // so every foreground request has one truthful terminal identity.
-            Command::DeleteProfile(_) => {}
+            Command::DeleteProfile(_) | Command::ImportDeck(_) => {}
+            Command::DeckImported(outcome) => self.finish_deck_import(outcome),
             Command::TabMetadata {
                 profile,
                 ids,
