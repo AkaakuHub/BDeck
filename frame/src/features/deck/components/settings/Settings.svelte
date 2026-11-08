@@ -25,6 +25,9 @@
 </script>
 
 <section class="settings-shell" aria-label={title}>
+  {#if surface.section() === "extensions"}
+    {#await extensionsPage() then Page}<Page />{:catch}<p role="alert">拡張機能の画面を開けませんでした。</p>{/await}
+  {:else}
   <div class="settings-content">
     <div class="settings-page">
       <header class="settings-page-heading" data-tauri-drag-region="deep">
@@ -32,9 +35,10 @@
         <IconButton icon={Cancel01Icon} label={`${title}を閉じる`} buttonSize={30} onclick={() => void surface.close()} />
       </header>
       {#if surface.failed() || deck.failed()}<p class="settings-feedback" role="alert">変更を反映できませんでした。</p>{/if}
-      {#if surface.section() === "accounts"}<AccountsPage />{:else if surface.section() === "extensions"}{#await extensionsPage() then Page}<Page />{:catch}<p role="alert">拡張機能の画面を開けませんでした。</p>{/await}{:else}<AppearancePage />{/if}
+      {#if surface.section() === "accounts"}<AccountsPage />{:else}<AppearancePage />{/if}
     </div>
   </div>
+  {/if}
 </section>
 
 <style>

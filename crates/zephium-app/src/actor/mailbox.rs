@@ -967,6 +967,7 @@ fn command_is_critical(command: &Command) -> bool {
             | Command::SetMemoryPressure(_)
             | Command::SidebarResizeGuide(None)
             | Command::ProfileDeletionReady(_)
+            | Command::DeckImported(_)
             | Command::PagePermissionCatalogLoaded { .. }
             | Command::PagePermissionCatalogMutated { .. }
             | Command::PagePermissionTimeout { .. }

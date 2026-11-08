@@ -1194,6 +1194,33 @@ impl ContentStage {
     /// pane's page slides aside on its layer, never resized, so nothing lays
     /// out until the drop; the drop is the one layout. A new target shows only
     /// once the pointer has rested on it, so passing over a page moves nothing.
+    pub fn set_resize_guide(&self, zone: Option<Rect>) {
+        let Some(zone) = zone else {
+            if let Some(view) = self.ivars().indicator.borrow_mut().take() {
+                view.removeFromSuperview();
+            }
+            return;
+        };
+        // SAFETY: the stage remains attached to its native content host.
+        let Some(parent) = (unsafe { self.superview() }) else { return; };
+        let frame = self.convertRect_fromView(NSRect::new(
+            NSPoint::new(zone.x, parent.bounds().size.height - zone.y - zone.height),
+            NSSize::new(zone.width, zone.height),
+        ), Some(&parent));
+        self.preview_view(&self.ivars().indicator, frame, Self::guide);
+    }
+
+    fn guide(&self, view: &NSView) {
+        let Some(layer) = view.layer() else { return; };
+        let paint = block2::RcBlock::new(|| {
+            let accent = NSColor::controlAccentColor();
+            layer.setBackgroundColor(Some(&accent.colorWithAlphaComponent(0.28).CGColor()));
+            layer.setBorderColor(Some(&accent.CGColor()));
+        });
+        self.effectiveAppearance().performAsCurrentDrawingAppearance(&paint);
+        layer.setBorderWidth(1.0);
+    }
+
     pub fn set_drop_indicator(&self, preview: Option<DropPreview>) {
         if self.ivars().stage_retry_terminal.get() {
             return;

@@ -68,8 +68,8 @@
   {#if view.composer}
     <div class="composer-account"><AccountPicker accounts={view.accounts} value={view.account} disabled={pending} onchange={(value) => void action({ kind: "account", value })} /></div>
   {:else}
-  <form onsubmit={(event) => { event.preventDefault(); if (adding) void action({ kind: "create", value: { ...draft, row: view?.two_rows ? draft.row : 0 } }); }}>
-    <ColumnFields accounts={view.accounts} account={adding ? draft.account : view.account} width={adding ? draft.width : view.width} row={adding ? draft.row : view.row} twoRows={view.two_rows} {adding} kind={draft.kind} text={draft.text} onchange={fields} />
+  <form onsubmit={(event) => { event.preventDefault(); if (adding) void action({ kind: "create", value: { ...draft, row: draft.row } }); }}>
+    <ColumnFields accounts={view.accounts} account={adding ? draft.account : view.account} width={adding ? draft.width : view.width} row={adding ? draft.row : view.row} {adding} kind={draft.kind} text={draft.text} onchange={fields} />
     {#if adding}<footer><Button type="submit" disabled={pending || !draft.account || ((draft.kind === "search" || draft.kind === "list") && !draft.text.trim())}>追加</Button></footer>{:else}
     <footer>
       <IconButton icon={ArrowLeft02Icon} label="前へ移動" disabled={view.index === 0 || pending} onclick={() => void action({ kind: "previous" })} />

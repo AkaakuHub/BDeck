@@ -161,7 +161,22 @@ pub enum AppSettingReadback {
     Unavailable,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DeckImportOutcome {
+    Applied,
+    Rejected,
+    Unavailable,
+}
+
 pub trait Store {
+    fn import_deck(
+        &self,
+        _session: SessionState,
+        _deck: crate::deck::DeckState,
+        done: Box<dyn FnOnce(DeckImportOutcome) + Send>,
+    ) {
+        done(DeckImportOutcome::Rejected);
+    }
     /// Every saved profile avatar, read once at startup. Profiles without a
     /// row are drawn with [`crate::profiles::ProfileAvatar::initial`].
     fn load_profile_avatars(&self) -> Vec<(ProfileId, crate::profiles::ProfileAvatar)> {
