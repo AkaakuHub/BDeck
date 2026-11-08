@@ -1630,7 +1630,7 @@ impl Hub {
             return Ok(());
         }
         self.validate_session_transition(&prepared.registry)?;
-        self.commit_prepared_session(prepared, None)
+        self.commit_prepared_session(prepared, None, None)
     }
 
     pub(super) fn prepare_session(&self, s: &SessionState) -> rusqlite::Result<PreparedSession> {
@@ -1703,6 +1703,7 @@ impl Hub {
         &mut self,
         prepared: PreparedSession,
         authorize_deletion: Option<ProfileId>,
+        deck: Option<&str>,
     ) -> rusqlite::Result<()> {
         let PreparedSession {
             state,
@@ -1781,6 +1782,15 @@ impl Hub {
              ON CONFLICT(id) DO UPDATE SET schema_version = ?1, data = ?2",
             params![SESSION_SCHEMA_VERSION, snapshot],
         )?;
+        if let Some(deck) = deck {
+            if tx.execute(
+                "UPDATE settings SET value = ?1 WHERE key = 'deck.state'",
+                [deck],
+            )? != 1
+            {
+                return Err(invalid_data("deck state disappeared during layout import"));
+            }
+        }
         tx.commit()?;
         self.pending_session_backup = None;
         if inserted_backup {
