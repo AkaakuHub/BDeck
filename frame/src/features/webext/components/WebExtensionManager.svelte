@@ -61,7 +61,7 @@
   .failure { margin: 0 0 12px; font-size: var(--text-label); color: var(--color-danger); }
   .heading { display: flex; align-items: flex-end; gap: 8px; margin: 4px 0 8px; padding-inline: 10px; font-size: var(--text-label); font-weight: 550; letter-spacing: 0.01em; color: var(--color-muted); }
   .count { font-weight: 400; color: var(--color-faint); }
-  .group { margin: 0; padding: 0; list-style: none; border: 1px solid var(--color-border); border-radius: var(--radius-panel); background: var(--color-raised); }
+  .group { margin: 0; padding: 0; list-style: none; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-raised); }
   .empty { padding: 24px; color: var(--color-muted); }
   form { display: grid; gap: 10px; }
   label { font-size: var(--text-label); font-weight: 500; }

@@ -9,12 +9,12 @@
   import SiteAccessEditor from "./SiteAccessEditor.svelte";
   import Switch from "$shared/ui/Switch";
   import ExtensionIdentity from "./ExtensionIdentity.svelte";
+  import ExtensionPageActions from "./ExtensionPageActions.svelte";
   let { extension }: { extension: WebExtensionView } = $props();
   let removing = $state(false);
   let editingSites = $state(false);
   let updating = $derived(webext.isPreparing() && webext.preparingId() === extension.id);
   let entries = $derived<MenuEntry[]>([
-    ...(extension.has_options ? [{ kind: "item" as const, id: "options", label: "設定", disabled: !extension.enabled || extension.state !== "running" }] : []),
     ...(extension.site_scoped ? [
       { kind: "heading" as const, label: "サイトへのアクセス" },
       { kind: "item" as const, id: "all", label: "許可したすべてのサイト", checked: extension.access === "all" },
@@ -26,8 +26,7 @@
     { kind: "item", id: "remove", label: "削除", danger: true },
   ]);
   function select(id: string) {
-    if (id === "options") void webext.openOptions(extension.id);
-    else if (id === "all" || id === "click") void webext.setAccess(extension.id, id, []);
+    if (id === "all" || id === "click") void webext.setAccess(extension.id, id, []);
     else if (id === "sites") editingSites = true;
     else if (id === "update") void webext.reviewUpdate(extension.id);
     else if (id === "remove") removing = true;
@@ -37,6 +36,7 @@
   <div class="row" class:off={!extension.enabled}>
     <ExtensionIdentity compact name={extension.name} icon={extension.icon} version={extension.version} />
     <div class="controls">
+      <ExtensionPageActions {extension} />
       <Switch label={`${extension.name}を有効にする`} checked={extension.enabled} disabled={webext.working()} onchange={(enabled) => void webext.setEnabled(extension.id, enabled)} />
       <Menu label={`${extension.name}の操作`} {entries} disabled={webext.working()} triggerClass="extension-more" align="end" onselect={select} returnFocus={() => !editingSites}>
         {#snippet trigger()}<Icon icon={MoreHorizontalIcon} size={18} />{/snippet}
