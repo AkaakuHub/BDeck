@@ -55,12 +55,13 @@ pub(super) fn mutation_result(native: NativeWork) -> OperationDisposition {
 }
 
 impl Shell {
-    pub(super) fn commit(&mut self, effects: Vec<Effect>) -> NativeWork {
+    pub(super) fn commit(&mut self, mut effects: Vec<Effect>) -> NativeWork {
         // Every ordinary committed mutation may change focus, view
         // residency, or split topology. A captured divider path cannot cross
         // that boundary; resize/sidebar geometry updates deliberately bypass
         // `commit` and remain draggable through path-based recomputation.
         self.drop_divider();
+        effects.extend(self.ensure_visible_deck_views());
         let mut native = self.apply(effects);
         self.schedule_persist();
         // Visibility has to land before dormancy. WebView2 only accepts a

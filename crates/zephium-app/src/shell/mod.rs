@@ -556,6 +556,11 @@ impl Shell {
             Command::SetWindowSize(size) => match self.windows.focused_mut() {
                 Some(win) => {
                     win.size = size;
+                    let effects = self.ensure_visible_deck_views();
+                    if !effects.is_empty() {
+                        self.apply(effects);
+                        self.project_items();
+                    }
                     // macOS resizes natively via autoresizing masks; Windows
                     // and Linux have no equivalent, the shell must relayout.
                     let _ = self.relayout();

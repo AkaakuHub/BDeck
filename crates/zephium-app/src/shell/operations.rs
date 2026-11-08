@@ -684,14 +684,8 @@ impl Shell {
                     );
                 };
                 self.deck.scroll_offset.set(offset);
-                if self.relayout() == NativeDispatch::Rejected {
-                    operation_result(
-                        OperationOutcome::NativeAdmissionFailed,
-                        OperationReason::NativeDispatchRejected,
-                    )
-                } else {
-                    operation_result(OperationOutcome::Applied, OperationReason::MutationApplied)
-                }
+                let native = self.commit(Vec::new());
+                mutation_result(native)
             }
             "account.status" => {
                 self.project_account_sessions();

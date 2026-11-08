@@ -115,6 +115,7 @@ impl Shell {
                             viewport
                                 .columns
                                 .into_iter()
+                                .filter(|(_, rect)| rect.x < region.width && rect.x + rect.width > 0.0)
                                 .filter_map(|(id, rect)| {
                                     ItemId::parse(&id.to_string()).map(|id| (id, rect))
                                 })
@@ -328,6 +329,10 @@ impl Shell {
         }?;
         if !self.item_in_scope(active, win.profile, win.space) {
             return None;
+        }
+        if self.deck.profile_for_item(active).is_some() {
+            let region = self.content_region();
+            return self.visible_deck_panes(Rect::new(0.0, 0.0, region.width, region.height));
         }
         if let Some(tree) = win.splits.clone() {
             if tree.contains(active)

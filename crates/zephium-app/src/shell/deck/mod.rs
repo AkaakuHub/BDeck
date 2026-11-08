@@ -2,6 +2,7 @@ pub(super) mod accounts;
 pub(super) mod composer;
 pub(super) mod deletion;
 mod shortcuts;
+mod viewport;
 
 use super::*;
 
@@ -63,7 +64,6 @@ impl DeckRuntime {
                 let url = column.target.url()?;
                 Some((item, account.profile, url))
             })
-            .take(MAX_VISIBLE_PANES)
             .collect()
     }
 
@@ -103,83 +103,6 @@ impl DeckRuntime {
         })
     }
 
-    fn pane_for(&self, state: &zephium_core::deck::DeckState) -> Option<Pane> {
-        let deck = state.decks.iter().find(|deck| deck.id == state.active)?;
-        let columns = deck
-            .columns
-            .iter()
-            .filter(|column| !column.suspended)
-            .take(MAX_VISIBLE_PANES)
-            .filter_map(|column| {
-                ItemId::parse(&column.id.to_string()).map(|item| (item, column.row, column.width))
-            })
-            .collect::<Vec<_>>();
-        if columns.is_empty() {
-            return None;
-        }
-        match deck.layout {
-            zephium_core::deck::DeckLayout::Horizontal => Self::row_pane(
-                columns
-                    .iter()
-                    .map(|(item, _, width)| (*item, *width))
-                    .collect(),
-            ),
-            zephium_core::deck::DeckLayout::TwoRows => {
-                let first = columns
-                    .iter()
-                    .filter(|(_, row, _)| *row == 0)
-                    .map(|(item, _, width)| (*item, *width))
-                    .collect::<Vec<_>>();
-                let second = columns
-                    .iter()
-                    .filter(|(_, row, _)| *row == 1)
-                    .map(|(item, _, width)| (*item, *width))
-                    .collect::<Vec<_>>();
-                match (first.is_empty(), second.is_empty()) {
-                    (true, false) => Self::row_pane(second),
-                    (false, true) => Self::row_pane(first),
-                    (false, false) => {
-                        let ratio = f64::from(deck.row_ratio) / 100.0;
-                        let first = Self::row_pane(first)?;
-                        let second = Self::row_pane(second)?;
-                        Some(Pane::Branch {
-                            axis: Axis::Col,
-                            ratio,
-                            a: Box::new(first),
-                            b: Box::new(second),
-                        })
-                    }
-                    (true, true) => None,
-                }
-            }
-        }
-    }
-
-    fn row_pane(items: Vec<(ItemId, u16)>) -> Option<Pane> {
-        let mut iter = items.into_iter();
-        let (first, first_width) = iter.next()?;
-        Some(
-            iter.enumerate()
-                .fold(
-                    (Pane::Leaf(first), f64::from(first_width)),
-                    |(pane, width), (_, (item, item_width))| {
-                        let next_width = f64::from(item_width);
-                        let ratio = width / (width + next_width);
-                        (
-                            Pane::Branch {
-                                axis: Axis::Row,
-                                ratio,
-                                a: Box::new(pane),
-                                b: Box::new(Pane::Leaf(item)),
-                            },
-                            width + next_width,
-                        )
-                    },
-                )
-                .0,
-        )
-    }
-
     fn set_state(&mut self, state: zephium_core::deck::DeckState) {
         self.state = Some(state);
     }
@@ -208,60 +131,6 @@ impl Shell {
             .or_else(|| self.composer.profile_for_item(item))
             .or_else(|| self.accounts.profile_for_item(item))
             .or_else(|| self.deck.profile_for_item(item))
-    }
-
-    pub(super) fn reveal_deck_column(&self, item: ItemId) {
-        let region = self.content_region();
-        let Some(viewport) = self.deck_viewport(Rect::new(0.0, 0.0, region.width, region.height))
-        else {
-            return;
-        };
-        let Some((_, rect)) = viewport
-            .columns
-            .iter()
-            .find(|(id, _)| id.to_string() == item.to_string())
-        else {
-            return;
-        };
-        let delta = if rect.width >= region.width || rect.x < 0.0 {
-            rect.x
-        } else if rect.x + rect.width > region.width {
-            rect.x + rect.width - region.width
-        } else {
-            0.0
-        };
-        if delta != 0.0 {
-            self.deck
-                .scroll_offset
-                .set((viewport.offset + delta).clamp(0.0, viewport.max_offset));
-            let _ = self.relayout();
-        }
-    }
-
-    pub(super) fn deck_viewport(
-        &self,
-        region: Rect,
-    ) -> Option<zephium_core::deck::layout::ColumnViewport> {
-        let state = self.deck.state()?;
-        let mut deck = state
-            .decks
-            .iter()
-            .find(|deck| deck.id == state.active)?
-            .clone();
-        deck.columns = deck
-            .columns
-            .into_iter()
-            .filter(|column| !column.suspended)
-            .take(MAX_VISIBLE_PANES)
-            .collect();
-        let viewport = zephium_core::deck::layout::column_viewport(
-            &deck,
-            region,
-            self.deck.scroll_offset.get(),
-            1.0,
-        );
-        self.deck.scroll_offset.set(viewport.offset);
-        Some(viewport)
     }
 
     pub(super) fn can_apply_deck(&self, state: &zephium_core::deck::DeckState) -> bool {
@@ -327,14 +196,11 @@ impl Shell {
                     .is_some_and(|current| current.as_str() != url)
             {
                 effects.extend(self.items.navigate(*item, url));
-            } else {
-                effects.extend(self.items.ensure_view(*item));
             }
             self.touch(*item);
         }
-        let pane = self.deck.pane_for(&state);
         if let Some(window) = self.windows.focused_mut() {
-            window.splits = pane;
+            window.splits = None;
         }
         self.deck.set_state(state);
         if let Some(item) = self
