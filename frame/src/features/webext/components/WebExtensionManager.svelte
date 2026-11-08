@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ArrowLeft02Icon, Download01Icon } from "@hugeicons/core-free-icons";
   import { onMount, tick } from "svelte";
+  import { commands } from "$shared/ipc/bindings";
   import { webext } from "$domain/webext";
   import { surface } from "$domain/surface";
   import Button from "$shared/ui/Button";
@@ -21,6 +22,7 @@
     <IconButton icon={ArrowLeft02Icon} label="カラムに戻る" onclick={() => void surface.close()} />
     <span class="toolbar-current">拡張機能</span>
     <span class="spacer"></span>
+    <Button size="compact" variant="ghost" onclick={() => void commands.diagnosticsShowLogs()}>ログを開く</Button>
     <Menu label="ファイルから追加" disabled={webext.working()} triggerClass="toolbar-action" align="end"
       entries={[{kind:"item",id:"package",label:"CRX・ZIPから追加"},{kind:"item",id:"folder",label:"フォルダーから追加"}]}
       onselect={(id) => void webext.chooseFile(id === "folder")}>

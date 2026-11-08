@@ -135,7 +135,7 @@ pub(crate) fn column_panel_action(
         PanelAction::Width(width) => (zephium_core::deck::MIN_COLUMN_WIDTH
             ..=zephium_core::deck::MAX_COLUMN_WIDTH)
             .contains(width),
-        PanelAction::Row(row) => view.two_rows && *row <= 1,
+        PanelAction::Row(row) => *row <= 1,
         _ => true,
     };
     if !valid {

@@ -27,7 +27,9 @@
   // against Chrome's text.
   const native = (api, fields) =>
     runtime.sendNativeMessage("app.zephium.webext", Object.assign({ api }, fields)).catch((error) => {
-      throw new Error(String((error && error.message) || error).replace(/^Invalid call to runtime\.sendNativeMessage\(\)\. /, ""));
+      const message = String((error && error.message) || error).replace(/^Invalid call to runtime\.sendNativeMessage\(\)\. /, "");
+      if (api !== "log" && Z.report) Z.report("error", `${api}: ${message}`);
+      throw new Error(message);
     });
 
   // A new worker means the previous one is gone, along with whatever it had
@@ -217,6 +219,51 @@
       },
     );
   };
+
+  const wrapListeners = (event, invoke) => {
+    if (!event || typeof event.addListener !== "function") return;
+    kept.push(event);
+    const wrappers = new WeakMap();
+    const add = event.addListener;
+    const remove = event.removeListener;
+    const has = event.hasListener;
+    pin(event, "addListener", function (listener, ...rest) {
+      if (typeof listener !== "function") return add.call(this, listener, ...rest);
+      let wrapper = wrappers.get(listener);
+      if (!wrapper) {
+        wrapper = function (...args) {
+          return invoke(listener, this, args);
+        };
+        wrappers.set(listener, wrapper);
+      }
+      return add.call(this, wrapper, ...rest);
+    });
+    pin(event, "removeListener", function (listener) {
+      return remove.call(this, wrappers.get(listener) || listener);
+    });
+    pin(event, "hasListener", function (listener) {
+      return has.call(this, wrappers.get(listener) || listener);
+    });
+  };
+
+  // WebKit reports service-worker senders as a bare extension origin. Restore
+  // the manifest path only for that native, same-extension sender.
+  if (!isContent) {
+    const background = runtime.getManifest().background;
+    const worker = background && background.service_worker;
+    if (typeof worker === "string") {
+      const root = runtime.getURL("").replace(/\/$/, "");
+      const workerUrl = runtime.getURL(worker);
+      namespace("runtime");
+      wrapListeners(runtime.onMessage, (listener, receiver, args) => {
+        const sender = args[1];
+        if (sender && sender.id === runtime.id && !sender.tab && sender.url === root) {
+          args[1] = { ...sender, url: workerUrl };
+        }
+        return listener.apply(receiver, args);
+      });
+    }
+  }
 
   const makeEvent = () => {
     const listeners = new Set();
@@ -591,6 +638,11 @@
   // one setting a header it doesn't know. Chrome would apply the rest.
   const netRequest = !isContent && namespace("declarativeNetRequest");
   if (netRequest) {
+    constants(netRequest, {
+      HeaderOperation: { APPEND: "append", SET: "set", REMOVE: "remove" },
+      ResourceType: { MAIN_FRAME: "main_frame", SUB_FRAME: "sub_frame", STYLESHEET: "stylesheet", SCRIPT: "script", IMAGE: "image", FONT: "font", OBJECT: "object", XMLHTTPREQUEST: "xmlhttprequest", PING: "ping", CSP_REPORT: "csp_report", MEDIA: "media", WEBSOCKET: "websocket", WEBTRANSPORT: "webtransport", WEBBUNDLE: "webbundle", OTHER: "other" },
+      RuleActionType: { ALLOW: "allow", ALLOW_ALL_REQUESTS: "allowAllRequests", BLOCK: "block", MODIFY_HEADERS: "modifyHeaders", REDIRECT: "redirect", UPGRADE_SCHEME: "upgradeScheme" },
+    });
     const rejected = /rule at index (\d+)/;
     for (const method of ["updateSessionRules", "updateDynamicRules"]) {
       const original = netRequest[method];
@@ -607,7 +659,10 @@
           return result.catch((error) => {
             const index = Number((rejected.exec(String(error && error.message)) || [])[1]);
             const rules = Array.isArray(current.addRules) ? current.addRules : [];
-            if (!(index < rules.length) || attempts <= 0) throw error;
+            if (!(index < rules.length) || attempts <= 0) {
+              if (Z.report) Z.report("error", `declarativeNetRequest.${method}: ${error.message}`);
+              throw error;
+            }
             if (Z.report) Z.report("warning", `skipped a network rule WebKit can't apply: ${error.message}`);
             current = Object.assign({}, current, { addRules: rules.filter((_, i) => i !== index) });
             return run(attempts - 1);
@@ -721,7 +776,7 @@
   // Development builds started with ZEPHIUM_WEBEXT_TRACE=1 record the names of
   // messages and ports the worker handles, never their content. Listeners
   // are wrapped at startup, when extensions register them.
-  if (isWorker && Z.report) {
+  if (!isContent && Z.report) {
     let tracing = false;
     native("trace", {})
       .then((enabled) => (tracing = enabled === true))
@@ -744,32 +799,10 @@
       setTimeout(() => (lastReported = ""), 0);
       Z.report("info", text);
     };
-    const traced = (event, describe) => {
-      if (!event || typeof event.addListener !== "function") return;
-      kept.push(event);
-      const wrappers = new WeakMap();
-      const add = event.addListener;
-      const remove = event.removeListener;
-      const has = event.hasListener;
-      pin(event, "addListener", function (listener, ...rest) {
-        if (typeof listener !== "function") return add.call(this, listener, ...rest);
-        let wrapper = wrappers.get(listener);
-        if (!wrapper) {
-          wrapper = function (...args) {
-            if (tracing) reportOnce(describe(...args));
-            return listener.apply(this, args);
-          };
-          wrappers.set(listener, wrapper);
-        }
-        return add.call(this, wrapper, ...rest);
-      });
-      pin(event, "removeListener", function (listener) {
-        return remove.call(this, wrappers.get(listener) || listener);
-      });
-      pin(event, "hasListener", function (listener) {
-        return has.call(this, wrappers.get(listener) || listener);
-      });
-    };
+    const traced = (event, describe) => wrapListeners(event, (listener, receiver, args) => {
+      if (tracing) reportOnce(describe(...args));
+      return listener.apply(receiver, args);
+    });
     namespace("runtime");
     traced(runtime.onMessage, (message, sender) => `message ${label(message)} from ${origin(sender)}`);
     const watched = new WeakSet();
@@ -796,14 +829,13 @@
   }
 
   // ---- Offscreen documents and the clipboard -------------------------------
-  if (!isContent && !chromeApi.offscreen) {
+  if (!isContent) {
     const reasons = [
       "TESTING", "AUDIO_PLAYBACK", "IFRAME_SCRIPTING", "DOM_SCRAPING", "BLOBS", "DOM_PARSER", "USER_MEDIA",
       "DISPLAY_MEDIA", "WEB_RTC", "CLIPBOARD", "LOCAL_STORAGE", "WORKERS", "BATTERY_STATUS", "MATCH_MEDIA",
       "GEOLOCATION",
     ];
-    pin(chromeApi, "offscreen", {
-      Reason: Object.freeze(Object.fromEntries(reasons.map((reason) => [reason, reason]))),
+    if (!chromeApi.offscreen) pin(chromeApi, "offscreen", {
       createDocument: (parameters, callback) =>
         withCallback(
           native("offscreen.create", { url: String((parameters && parameters.url) || "") }).then(() => undefined),
@@ -818,6 +850,21 @@
         ),
       hasDocument: (callback) => withCallback(native("offscreen.has", {}).then(Boolean), callback),
     });
+    constants(chromeApi.offscreen, { Reason: Object.fromEntries(reasons.map((reason) => [reason, reason])) });
+    if (Z.report) {
+      const offscreen = chromeApi.offscreen;
+      for (const method of ["hasDocument", "createDocument", "closeDocument"]) {
+        const original = offscreen[method];
+        pin(offscreen, method, function (...args) {
+          const callback = typeof args.at(-1) === "function" ? args.pop() : undefined;
+          const pending = Promise.resolve().then(() => original.apply(offscreen, args)).catch((error) => {
+            Z.report("error", `offscreen.${method}: ${error.message}`);
+            throw error;
+          });
+          return withCallback(pending, callback);
+        });
+      }
+    }
   }
   // Chrome lets extensions with clipboard permissions use the clipboard from
   // any of their pages, focused or not; WebKit requires a user gesture, which

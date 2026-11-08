@@ -71,9 +71,13 @@ impl Shell {
         // The durable session is loaded by Bootstrap. Before that ordered
         // point, an empty in-memory shell is not authoritative: persisting it
         // during an immediate quit would erase a valid previous session.
-        if !self.bootstrapped {
+        if !self.bootstrapped || self.deck.pending_import.is_some() {
             return;
         }
+        self.store.save_session(self.session_snapshot());
+    }
+
+    pub(super) fn session_snapshot(&self) -> session::SessionState {
         let (space, active, splits) = self.persisted_scope();
         let transient: std::collections::HashSet<_> = self
             .composer
@@ -94,6 +98,6 @@ impl Shell {
             &self.recently_closed,
         );
         state.items.retain(|item| !transient.contains(&item.id));
-        self.store.save_session(state);
+        state
     }
 }

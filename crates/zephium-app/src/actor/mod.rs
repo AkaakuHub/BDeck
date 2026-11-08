@@ -818,6 +818,7 @@ fn tracked_operation_command(command: &Command) -> bool {
             | Command::SetSitePermission { .. }
             | Command::OpenUrl { .. }
             | Command::SetAppSetting { .. }
+            | Command::ImportDeck(_)
             | Command::OpenComposer(_)
             | Command::OpenAccount(_)
             | Command::DeleteProfile(_)

@@ -4,9 +4,9 @@
   import { DEFAULT_COLUMN_WIDTH, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH } from "$domain/deck";
   import ColumnKindPicker from "./columns/ColumnKindPicker.svelte";
   import ResettableRange from "./controls/ResettableRange.svelte";
-  import Select from "$shared/ui/Select";
-  let { accounts, account, width, row, twoRows, adding = false, kind = "home", text = "", onchange }: {
-    accounts: AccountOption[]; account: string; width: number; row: number; twoRows: boolean; adding?: boolean;
+  import Button from "$shared/ui/Button";
+  let { accounts, account, width, row, adding = false, kind = "home", text = "", onchange }: {
+    accounts: AccountOption[]; account: string; width: number; row: number; adding?: boolean;
     kind?: ColumnDraft["kind"]; text?: string; onchange: (update: Partial<ColumnDraft>) => void;
   } = $props();
 </script>
@@ -17,7 +17,7 @@
   {/if}
   <div class="account-field"><span>アカウント</span><AccountPicker {accounts} value={account} onchange={(account) => onchange({ account })} /></div>
   <ResettableRange label="幅" value={width} defaultValue={DEFAULT_COLUMN_WIDTH} min={MIN_COLUMN_WIDTH} max={MAX_COLUMN_WIDTH} step={10} unit="px" onchange={(width) => onchange({ width })} />
-  {#if twoRows}<Select label="段" value={String(row)} options={[{ value: "0", label: "上段" }, { value: "1", label: "下段" }]} onchange={(row) => onchange({ row: Number(row) })} />{/if}
+  <Button variant="ghost" onclick={() => onchange({ row: row === 0 ? 1 : 0 })}>{row === 0 ? (adding ? "下段に追加" : "下段へ移動") : (adding ? "上段に追加" : "上段へ移動")}</Button>
 </div>
 <style>
   .fields { display: grid; gap: 14px; min-width: 0; }

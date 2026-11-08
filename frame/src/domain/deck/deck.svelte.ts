@@ -8,6 +8,7 @@ import { events } from "$shared/ipc/native-events";
 import { surface } from "$domain/surface";
 import { profiles } from "$domain/profiles";
 import { commands } from "$shared/ipc/bindings";
+import { normalizeColumnRows, repositionColumn } from "./columns";
 import {
   DECK_SETTING, DEFAULT_ROW_RATIO, DEFAULT_COLUMN_WIDTH, DECK_APPEARANCE_SETTING,
   type ColumnTarget, type Deck, type DeckColumn, type DeckState,
@@ -87,6 +88,7 @@ function defaultState(): DeckState | null {
 }
 
 async function save(next: DeckState): Promise<boolean> {
+  next = { ...next, decks: next.decks.map(normalizeColumnRows) };
   try {
     const result = await runOperation(() => commands.settingSet(DECK_SETTING, JSON.stringify(next)));
     if (!accepted(result)) {
@@ -199,20 +201,11 @@ async function duplicateColumn(column: DeckColumn) {
   return next ? save(next) : false;
 }
 
-async function reorderColumn(id: string, before: string | null) {
-  const current = activeDeck?.columns;
-  const position = current?.findIndex((column) => column.id === id) ?? -1;
-  if (!current || position < 0 || id === before) return;
-  if ((current[position + 1]?.id ?? null) === before) return;
-  const next = activeState((deck) => {
-    const column = deck.columns.find((column) => column.id === id);
-    const destination = deck.columns.find((column) => column.id === before);
-    if (!column || (before !== null && !destination) || id === before) return deck;
-    const columns = deck.columns.filter((column) => column.id !== id);
-    const index = before === null ? columns.length : columns.findIndex((column) => column.id === before);
-    columns.splice(index, 0, { ...column, row: destination?.row ?? columns.at(-1)?.row ?? column.row });
-    return { ...deck, columns };
-  });
+async function reorderColumn(id: string, before: string | null, row?: 0 | 1) {
+  if (!activeDeck) return false;
+  const moved = repositionColumn(activeDeck, id, before, row);
+  if (!moved) return false;
+  const next = activeState(() => moved);
   return next ? save(next) : false;
 }
 
@@ -233,17 +226,6 @@ function columnAction(id: string, action: "reload" | "back" | "forward") {
   if (action === "reload") void commands.tabsReload(id);
   if (action === "back") void commands.tabsBack(id);
   if (action === "forward") void commands.tabsForward(id);
-}
-
-function setLayout(layout: Deck["layout"]) {
-  const next = activeState((deck) => {
-    const columns = deck.columns.map((column, index) => ({
-      ...column,
-      row: layout === "two_rows" && index >= Math.ceil(deck.columns.length / 2) ? 1 : 0,
-    }));
-    return { ...deck, layout, columns };
-  });
-  if (next) void save(next);
 }
 
 function setRowRatio(rowRatio: number) {
@@ -314,5 +296,5 @@ export const deck = {
     return account?.identity?.display_name ?? (deckState?.accounts[0]?.id === id ? "main" : "アカウント");
   },
   save, setAppearance, addColumn, updateColumn, removeColumn, duplicateColumn, moveColumn, reorderColumn,
-  toggleSuspended, columnAction, setLayout, setRowRatio, setColumnRow, createAccount, openComposer,
+  toggleSuspended, columnAction, setRowRatio, setColumnRow, createAccount, openComposer,
 };

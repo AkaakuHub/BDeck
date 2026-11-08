@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { deck, MIN_ROW_RATIO, MAX_ROW_RATIO, DEFAULT_ROW_RATIO } from "$domain/deck";
+  import { deck, DEFAULT_ROW_RATIO, MIN_ROW_RATIO, MAX_ROW_RATIO } from "$domain/deck";
   import ResettableRange from "../../controls/ResettableRange.svelte";
   import SettingsGroup from "$shared/ui/SettingsGroup";
   import SettingsRow from "$shared/ui/SettingsRow";
   import Switch from "$shared/ui/Switch";
   import Select from "$shared/ui/Select";
   import SegmentedControl from "$shared/ui/SegmentedControl";
+  import LayoutTransfer from "./LayoutTransfer.svelte";
   const active = $derived(deck.active());
 </script>
 
@@ -35,13 +36,13 @@
   </SettingsRow>
 </SettingsGroup>
 
-{#if active}
-<SettingsGroup title="カラムの配置">
-  <SettingsRow title="配置"><SegmentedControl label="カラムの配置" size="compact" value={active.layout} options={[{ value: "horizontal", label: "横並び" }, { value: "two_rows", label: "2段", disabled: active.columns.length < 2 }]} onchange={(value) => { if (value === "horizontal" || value === "two_rows") deck.setLayout(value); }} /></SettingsRow>
-  {#if active.layout === "two_rows"}<SettingsRow title="上段の高さ"><div class="row-ratio"><ResettableRange label="上段の高さ" labelHidden value={active.row_ratio} defaultValue={DEFAULT_ROW_RATIO} min={MIN_ROW_RATIO} max={MAX_ROW_RATIO} unit="%" onchange={(value) => deck.setRowRatio(value)} /></div></SettingsRow>{/if}
+
+{#if active?.layout === "two_rows"}
+<SettingsGroup title="カラムの高さ">
+  <SettingsRow title="上段の割合">
+    <div class="row-ratio"><ResettableRange label="上段の割合" labelHidden value={active.row_ratio} defaultValue={DEFAULT_ROW_RATIO} min={MIN_ROW_RATIO} max={MAX_ROW_RATIO} unit="%" onchange={(value) => deck.setRowRatio(value)} /></div>
+  </SettingsRow>
 </SettingsGroup>
 {/if}
-
-<style>
-  .row-ratio { inline-size: 240px; max-inline-size: 100%; }
-</style>
+<LayoutTransfer />
+<style>.row-ratio { inline-size: 240px; max-inline-size: 100%; }</style>

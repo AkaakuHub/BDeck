@@ -1,5 +1,6 @@
 use zephium_core::extensions::ExtensionBrowserRequestId;
 mod support;
+mod portable;
 use super::*;
 use support::Fixture;
 use zephium_core::ids::DeckAccountId;
@@ -293,4 +294,17 @@ fn reloading_chrome_replays_extension_actions_without_recreating_views() {
     assert!(fixture.events.lock().unwrap().iter().any(|event| matches!(event,
         Projection::ExtensionActions(view) if view.profile_id == ProfileId::from(2).to_string()
     )));
+}
+
+#[test]
+fn columns_beyond_the_browser_split_limit_remain_accessible_without_loading_every_page() {
+    let mut fixture = Fixture::new(14);
+    assert!(fixture.shell.items.tab(ItemId::from(114)).is_some());
+    assert!(!fixture.shell.items.tab(ItemId::from(114)).unwrap().has_view());
+    assert!(fixture.engine.views.lock().unwrap().len() < 8);
+    let _ = fixture.shell.operation_run_command("deck.scroll=100000");
+    assert!(fixture.shell.items.tab(ItemId::from(114)).unwrap().has_view());
+    assert!(fixture.shell.pane_tree().unwrap().contains(ItemId::from(114)));
+    assert!(fixture.engine.views.lock().unwrap().len() < 14);
+    assert_eq!(fixture.shell.deck.profile_for_item(ItemId::from(114)), Some(ProfileId::from(14)));
 }

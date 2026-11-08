@@ -111,3 +111,9 @@ pub(crate) fn reveal() -> bool {
         false
     }
 }
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) fn diagnostics_show_logs(caller: tauri::WebviewWindow) -> bool {
+    crate::authorize(&caller, crate::CallerPolicy::Main, "diagnostics_show_logs") && reveal()
+}
