@@ -119,23 +119,7 @@ pub(crate) fn column_panel_close(caller: WebviewWindow) -> Result<(), String> {
     ) {
         return Err("unavailable".into());
     }
-    let composer = caller
-        .app_handle()
-        .state::<Panel>()
-        .view
-        .lock()
-        .ok()
-        .and_then(|view| view.as_ref().map(|view| view.composer))
-        == Some(true);
-    if composer {
-        let shell = caller.app_handle().state::<zephium_app::Handle>();
-        let _ = crate::dispatch_operation(
-            caller.app_handle(),
-            &shell,
-            zephium_app::Command::Run("composer.close".into()),
-        );
-    }
-    caller.hide().map_err(|error| error.to_string())
+    window::close(caller.app_handle())
 }
 
 #[tauri::command]

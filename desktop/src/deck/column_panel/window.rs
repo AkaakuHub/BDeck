@@ -112,6 +112,28 @@ pub(super) fn open(
     Ok(())
 }
 
+pub(super) fn close(app: &tauri::AppHandle) -> Result<(), String> {
+    let composer = app
+        .state::<Panel>()
+        .view
+        .lock()
+        .ok()
+        .and_then(|view| view.as_ref().map(|view| view.composer))
+        == Some(true);
+    if composer {
+        let shell = app.state::<zephium_app::Handle>();
+        let _ = crate::dispatch_operation(
+            app,
+            &shell,
+            zephium_app::Command::Run("composer.close".into()),
+        );
+    }
+    app.get_webview_window(LABEL)
+        .ok_or("unavailable")?
+        .hide()
+        .map_err(|error| error.to_string())
+}
+
 pub(super) fn resize(app: &tauri::AppHandle, height: f64) -> Result<(), String> {
     if !height.is_finite() || !(100.0..=700.0).contains(&height) {
         return Err("invalid panel height".into());
@@ -232,7 +254,7 @@ fn build(
     window.on_window_event(move |event| match event {
         tauri::WindowEvent::CloseRequested { api, .. } => {
             api.prevent_close();
-            let _ = observed.hide();
+            let _ = close(observed.app_handle());
         }
         tauri::WindowEvent::Focused(false)
             if parent.is_focused().unwrap_or(false) || !application_active() =>
