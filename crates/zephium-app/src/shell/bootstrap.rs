@@ -292,6 +292,7 @@ impl Shell {
         self.bootstrapped = true;
         self.project_profiles();
         self.apply_deferred_web_extensions();
+        self.prepare_composers();
         let waiting = std::mem::take(&mut self.pending_external);
         self.open_external(waiting);
         if pages {

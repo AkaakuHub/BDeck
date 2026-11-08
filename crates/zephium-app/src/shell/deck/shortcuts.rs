@@ -67,10 +67,15 @@ impl Shell {
             {
                 let _ = self.operation_close_composer();
             }
-            "composer.focus"
-                if self.composer.active_item() == Some(item) && !self.settings_visible() =>
-            {
-                let _ = self.engine.focus(item);
+            "composer.ready" => self.composer_ready(item),
+            value if value.starts_with("composer.height=") => {
+                if let Some(height) = value
+                    .strip_prefix("composer.height=")
+                    .and_then(|height| height.parse::<f64>().ok())
+                    .filter(|height| height.is_finite() && (160.0..=640.0).contains(height))
+                {
+                    self.composer_height(item, height);
+                }
             }
             _ => {}
         }

@@ -3,6 +3,7 @@ use crate::geometry::Rect;
 use crate::ids::DeckColumnId;
 
 pub const COLUMN_HEADER_HEIGHT: f64 = 30.0;
+pub const COMPOSER_HEADER_HEIGHT: f64 = 40.0;
 
 pub fn header_rect(pane: Rect) -> Rect {
     Rect::new(

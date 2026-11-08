@@ -585,6 +585,7 @@ impl Shell {
                 } else {
                     self.project_tab(id);
                 }
+                self.reset_composer_after_navigation(id, &committed_url);
             }
         }
     }

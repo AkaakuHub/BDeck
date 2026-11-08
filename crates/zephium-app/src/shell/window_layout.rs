@@ -179,8 +179,11 @@ impl Shell {
         let composer_item = composer
             .as_ref()
             .and_then(|frame| ItemId::parse(&frame.tab));
-        let composer_region =
-            composer.map(|frame| Rect::new(frame.x, frame.y, frame.width, frame.height));
+        let composer_region = composer.map(|frame| {
+            let inset = zephium_core::deck::layout::COMPOSER_HEADER_HEIGHT
+                - zephium_core::deck::layout::COLUMN_HEADER_HEIGHT;
+            Rect::new(frame.x, frame.y + inset, frame.width, (frame.height - inset).max(0.0))
+        });
         let composer_applied = self.engine.set_composer(composer_item, composer_region);
         self.reconcile_page_permission_placement();
         if composer_applied == NativeDispatch::Rejected {

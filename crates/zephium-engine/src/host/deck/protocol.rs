@@ -31,11 +31,15 @@ pub(in crate::host) fn accepts_command(command: &str) -> bool {
     identity
         || avatar
         || scroll
+        || command
+            .strip_prefix("composer.height=")
+            .and_then(|height| height.parse::<f64>().ok())
+            .is_some_and(|height| height.is_finite() && (160.0..=640.0).contains(&height))
         || matches!(
             command,
             "composer.open"
                 | "composer.close"
-                | "composer.focus"
+                | "composer.ready"
                 | "account.logged-in"
                 | "account.logged-out"
         )
@@ -66,6 +70,8 @@ mod tests {
     #[test]
     fn admits_bounded_ui_gestures_without_social_actions() {
         assert!(accepts_command("composer.open"));
+        assert!(accepts_command("composer.ready"));
+        assert!(accepts_command("composer.height=320"));
         assert!(accepts_command("deck.scrollBy=-10.5"));
         assert!(accepts_command(
             "account.avatar=\"https://pbs.twimg.com/profile_images/1/avatar.jpg\""
@@ -80,6 +86,9 @@ mod tests {
             "deck.scrollBy=inf",
             "deck.scrollBy=1001",
             "composer.open;tweet.send",
+            "composer.height=NaN",
+            "composer.height=159",
+            "composer.height=641",
         ] {
             assert!(!accepts_command(command));
         }

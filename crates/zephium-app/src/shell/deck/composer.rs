@@ -7,6 +7,8 @@ struct ComposerTab {
     account: DeckAccountId,
     profile: ProfileId,
     item: ItemId,
+    ready: bool,
+    height: f64,
 }
 
 #[derive(Default)]
@@ -60,8 +62,110 @@ impl ComposerRuntime {
 }
 
 impl Shell {
+    fn prepare_composer(&mut self, account: &zephium_core::deck::DeckAccount) -> Option<ItemId> {
+        if let Some(tab) = self
+            .composer
+            .tabs
+            .iter()
+            .find(|tab| tab.account == account.id)
+        {
+            return Some(tab.item);
+        }
+        let space = self.windows.focused()?.space;
+        let item = ItemId::generate();
+        if !self.items.insert_unloaded_tab(
+            item,
+            zephium_core::item::Placement::Space {
+                space,
+                section: zephium_core::item::SpaceSection::Today,
+            },
+            url::Url::parse(COMPOSE_URL).expect("static compose URL"),
+            "X",
+        ) {
+            return None;
+        }
+        self.composer.tabs.push(ComposerTab {
+            account: account.id,
+            profile: account.profile,
+            item,
+            ready: false,
+            height: 320.0,
+        });
+        Some(item)
+    }
+
+    pub(in crate::shell) fn prepare_composers(&mut self) {
+        if !self.bootstrapped {
+            return;
+        }
+        let accounts = self
+            .deck
+            .state()
+            .map(|state| state.accounts.clone())
+            .unwrap_or_default();
+        let mut effects = Vec::new();
+        for account in accounts {
+            if account.identity.is_none()
+                || self.profile_deletion_quarantines(account.profile)
+                || self.accounts.account_changed(account.profile)
+            {
+                continue;
+            }
+            if let Some(item) = self.prepare_composer(&account) {
+                effects.extend(self.items.ensure_view(item));
+            }
+        }
+        self.apply(effects);
+    }
+
+    pub(in crate::shell) fn composer_ready(&mut self, item: ItemId) {
+        if let Some(tab) = self.composer.tabs.iter_mut().find(|tab| tab.item == item) {
+            tab.ready = true;
+            if self.composer.active_item() == Some(item) && !self.settings_visible() {
+                let _ = self.engine.focus_composer(item);
+            }
+        }
+    }
+
+    pub(in crate::shell) fn composer_height(&mut self, item: ItemId, height: f64) {
+        if let Some(tab) = self.composer.tabs.iter_mut().find(|tab| tab.item == item) {
+            if (tab.height - height).abs() >= 1.0 {
+                tab.height = height;
+                if self.composer.active_item() == Some(item) {
+                    let _ = self.relayout();
+                }
+            }
+        }
+    }
+
+    pub(in crate::shell) fn reset_composer_after_navigation(
+        &mut self,
+        item: ItemId,
+        url: &url::Url,
+    ) {
+        if url.host_str() != Some("x.com") || url.path() != "/home" {
+            return;
+        }
+        let Some(tab) = self
+            .composer
+            .tabs
+            .iter_mut()
+            .find(|tab| tab.item == item && tab.ready)
+        else {
+            return;
+        };
+        tab.ready = false;
+        let effects = self.items.navigate(item, COMPOSE_URL);
+        self.apply(effects);
+    }
+
     pub(in crate::shell) fn composer_frame(&self) -> Option<zephium_ipc::ComposerFrame> {
-        let tab = self.composer.active_item()?;
+        let cached = self
+            .composer
+            .tabs
+            .iter()
+            .find(|cached| Some(cached.account) == self.composer.active)?;
+        let tab = cached.item;
         let account = self.composer.active?;
         let window = self.windows.focused()?;
         let region = self.content_region();
@@ -73,7 +177,8 @@ impl Shell {
             x: region.x,
             y: region.y,
             width,
-            height: (window.size.height - region.y).max(0.0),
+            height: (cached.height + zephium_core::deck::layout::COMPOSER_HEADER_HEIGHT)
+                .min((window.size.height - region.y - 8.0).max(0.0)),
         })
     }
 
@@ -96,9 +201,9 @@ impl Shell {
         else {
             return operation_result(OperationOutcome::Rejected, OperationReason::InvalidScope);
         };
-        let Some(space) = self.windows.focused().map(|window| window.space) else {
+        if self.windows.focused().is_none() {
             return operation_result(OperationOutcome::Rejected, OperationReason::NoFocusedWindow);
-        };
+        }
         if self.profile_deletion_quarantines(account.profile)
             || self.profiles.get(account.profile).is_none()
             || self.accounts.account_changed(account.profile)
@@ -108,35 +213,11 @@ impl Shell {
         if self.composer.active.is_none() {
             self.composer.return_to = self.windows.focused().and_then(|window| window.active);
         }
-        let item = if let Some(tab) = self
-            .composer
-            .tabs
-            .iter()
-            .find(|tab| tab.account == account.id)
-        {
-            tab.item
-        } else {
-            let item = ItemId::generate();
-            if !self.items.insert_unloaded_tab(
-                item,
-                zephium_core::item::Placement::Space {
-                    space,
-                    section: zephium_core::item::SpaceSection::Today,
-                },
-                url::Url::parse(COMPOSE_URL).expect("static compose URL"),
-                "新しいポスト",
-            ) {
-                return operation_result(
-                    OperationOutcome::Rejected,
-                    OperationReason::ItemLimitReached,
-                );
-            }
-            self.composer.tabs.push(ComposerTab {
-                account: account.id,
-                profile: account.profile,
-                item,
-            });
-            item
+        let Some(item) = self.prepare_composer(&account) else {
+            return operation_result(
+                OperationOutcome::Rejected,
+                OperationReason::ItemLimitReached,
+            );
         };
         let needs_navigation = self
             .items
@@ -196,6 +277,8 @@ mod tests {
                     account: DeckAccountId::from(id),
                     profile: ProfileId::from(id),
                     item: ItemId::from(id),
+                    ready: true,
+                    height: 320.0,
                 })
                 .collect(),
             active: Some(DeckAccountId::from(2)),

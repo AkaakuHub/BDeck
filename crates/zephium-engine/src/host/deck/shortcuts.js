@@ -32,19 +32,40 @@
     });
   }, { passive: false });
   if (!location.pathname.startsWith("/compose/")) return;
-  const focus = () => {
+  const measure = () => {
+    document.documentElement.setAttribute("data-bdeck-compose", "");
+    const editor = document.querySelector('[data-testid="tweetTextarea_0"][contenteditable="true"]');
+    const toolbar = document.querySelector('[data-testid="toolBar"]');
+    if (!(editor instanceof HTMLElement) || !(toolbar instanceof HTMLElement)) return;
+    let content = editor.parentElement;
+    while (content && !content.contains(toolbar)) content = content.parentElement;
+    for (let node = content; node && node !== document.body; node = node.parentElement) node.classList.add("bdeck-compose-layout");
+    const height = Math.max(160, Math.min(640, Math.ceil(toolbar.getBoundingClientRect().bottom + 12)));
+    if (height !== lastHeight) { lastHeight = height; send(`composer.height=${height}`); }
+  };
+  let lastHeight = 0;
+  let measuring = false;
+  const scheduleMeasure = () => {
+    if (measuring) return;
+    measuring = true;
+    requestAnimationFrame(() => { measuring = false; measure(); });
+  };
+  const readyEditor = () => {
     const editor = document.querySelector('[data-testid="tweetTextarea_0"][contenteditable="true"]');
     if (!(editor instanceof HTMLElement)) return false;
-    editor.focus({ preventScroll: true });
-    send("composer.focus");
+    send("composer.ready");
     return true;
   };
   const ready = () => {
-    if (focus()) return;
-    const observer = new MutationObserver(() => { if (focus()) observer.disconnect(); });
+    const sizing = new ResizeObserver(scheduleMeasure);
+    sizing.observe(document.body);
+    new MutationObserver(scheduleMeasure).observe(document.documentElement, { subtree: true, childList: true, characterData: true });
+    scheduleMeasure();
+    if (readyEditor()) return;
+    const observer = new MutationObserver(() => { if (readyEditor()) observer.disconnect(); });
     observer.observe(document.documentElement, { subtree: true, childList: true });
     setTimeout(() => observer.disconnect(), 10000);
   };
-  if (document.documentElement) ready();
+  if (document.body) ready();
   else document.addEventListener("DOMContentLoaded", ready, { once: true });
 })();

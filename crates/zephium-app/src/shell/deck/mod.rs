@@ -206,6 +206,7 @@ impl Shell {
             window.splits = None;
         }
         self.deck.set_state(state);
+        self.prepare_composers();
         if let Some(item) = self
             .windows
             .focused()

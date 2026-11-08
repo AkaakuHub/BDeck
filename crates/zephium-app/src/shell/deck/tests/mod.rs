@@ -1,6 +1,7 @@
 use zephium_core::extensions::ExtensionBrowserRequestId;
 mod support;
 mod portable;
+mod composer;
 use super::*;
 use support::Fixture;
 use zephium_core::ids::DeckAccountId;

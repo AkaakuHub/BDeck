@@ -1,3 +1,14 @@
+[data-bdeck-compose] .bdeck-compose-layout {
+  min-block-size: 0 !important;
+  block-size: auto !important;
+  flex-grow: 0 !important;
+}
+[data-bdeck-compose] [data-testid^="tweetTextarea_"][contenteditable="true"] {
+  min-block-size: 112px !important;
+  max-block-size: 320px !important;
+  overflow-y: auto !important;
+}
+[data-bdeck-compose] [data-testid="app-bar-back"] { display: none !important; }
 [data-testid="toolBar"] {
   min-inline-size: 0 !important;
   max-inline-size: 100% !important;
