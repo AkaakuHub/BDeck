@@ -7,7 +7,6 @@ mod diagnostics;
 mod external_links;
 mod material;
 mod memory_pressure;
-#[cfg(target_os = "macos")]
 mod platform;
 #[cfg(target_os = "windows")]
 mod privileged_runtime_windows;
