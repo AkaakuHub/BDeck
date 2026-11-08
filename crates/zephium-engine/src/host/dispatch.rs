@@ -308,6 +308,9 @@ pub(crate) fn install(
             #[cfg(target_os = "macos")]
             next_fullscreen_retirement: 0,
             stages: HashMap::new(),
+            #[cfg(any(target_os = "macos", target_os = "windows"))]
+            composer_parent: None,
+            pending_composer: None,
             native_terminal_failure,
             #[cfg(target_os = "macos")]
             macos_ephemeral_data_stores: HashMap::new(),

@@ -47,7 +47,18 @@ pub(crate) fn install(
                 | tauri::WindowEvent::Focused(true)
         ) {
             if let Some(panel) = app.get_webview_window(LABEL) {
-                let _ = panel.hide();
+                let composer = app
+                    .state::<Panel>()
+                    .view
+                    .lock()
+                    .ok()
+                    .and_then(|view| view.as_ref().map(|view| view.composer))
+                    == Some(true);
+                if composer {
+                    let _ = resize(&app, crate::inner_logical(&panel).height);
+                } else {
+                    let _ = panel.hide();
+                }
             }
         }
     });
@@ -67,6 +78,7 @@ pub(super) fn open(
         .ok_or("unavailable")?;
     let panel = app.state::<Panel>();
     let existed = app.get_webview_window(LABEL);
+    let mut updating_composer = false;
     if let Some(window) = &existed {
         let same = panel
             .view
@@ -74,13 +86,16 @@ pub(super) fn open(
             .map_err(|_| "unavailable")?
             .as_ref()
             .is_some_and(|current| current.id == view.id);
-        if same && window.is_visible()? {
+        updating_composer = same && view.composer && window.is_visible()?;
+        if same && window.is_visible()? && !view.composer {
             window.hide()?;
             return Ok(());
         }
     }
-    if let Some(window) = &existed {
-        window.hide()?;
+    if !view.composer {
+        if let Some(window) = &existed {
+            window.hide()?;
+        }
     }
     *panel.view.lock().map_err(|_| "unavailable")? = Some(view.clone());
     if existed.is_none() {
@@ -88,12 +103,17 @@ pub(super) fn open(
     }
     *panel.anchor.lock().map_err(|_| "unavailable")? = Some((x, y));
     *panel.placement.lock().map_err(|_| "unavailable")? = None;
-    crate::emit_to_privileged(app, LABEL, "zephium:column-panel-open", &Some(view));
+    let event = if updating_composer {
+        "zephium:column-panel-view"
+    } else {
+        "zephium:column-panel-open"
+    };
+    crate::emit_to_privileged(app, LABEL, event, &Some(view));
     Ok(())
 }
 
 pub(super) fn resize(app: &tauri::AppHandle, height: f64) -> Result<(), String> {
-    if !height.is_finite() || !(100.0..=640.0).contains(&height) {
+    if !height.is_finite() || !(100.0..=700.0).contains(&height) {
         return Err("invalid panel height".into());
     }
     let main = app
@@ -101,6 +121,14 @@ pub(super) fn resize(app: &tauri::AppHandle, height: f64) -> Result<(), String> 
         .ok_or("unavailable")?;
     let window = app.get_webview_window(LABEL).ok_or("unavailable")?;
     let panel = app.state::<Panel>();
+    let width = panel
+        .view
+        .lock()
+        .map_err(|_| "unavailable")?
+        .as_ref()
+        .filter(|view| view.composer)
+        .map(|view| f64::from(view.width))
+        .unwrap_or(WIDTH);
     let (x, y) = panel
         .anchor
         .lock()
@@ -116,15 +144,15 @@ pub(super) fn resize(app: &tauri::AppHandle, height: f64) -> Result<(), String> 
                 .lock()
                 .map_err(|_| tauri::Error::WindowNotFound)?;
             *placement.get_or_insert_with(|| {
-                super::placement::Placement::new((x, y), (size.width, size.height), WIDTH, height)
+                super::placement::Placement::new((x, y), (size.width, size.height), width, height)
             })
         };
         let height = placement.height(height);
         let left = placement.left;
         let top = placement.top;
         let current_size = window.inner_size()?.to_logical::<f64>(scale);
-        if (current_size.width - WIDTH).abs() > 0.5 || (current_size.height - height).abs() > 0.5 {
-            window.set_size(tauri::LogicalSize::new(WIDTH, height))?;
+        if (current_size.width - width).abs() > 0.5 || (current_size.height - height).abs() > 0.5 {
+            window.set_size(tauri::LogicalSize::new(width, height))?;
         }
         let current = window.outer_position()?.to_logical::<f64>(scale);
         let position = tauri::LogicalPosition::new(origin.x + left, origin.y + top);
@@ -209,6 +237,17 @@ fn build(
         tauri::WindowEvent::Focused(false)
             if parent.is_focused().unwrap_or(false) || !application_active() =>
         {
+            let composer = observed
+                .app_handle()
+                .state::<Panel>()
+                .view
+                .lock()
+                .ok()
+                .and_then(|view| view.as_ref().map(|view| view.composer))
+                == Some(true);
+            if composer {
+                return;
+            }
             let _ = observed.hide();
         }
         #[cfg(target_os = "windows")]
@@ -217,6 +256,14 @@ fn build(
         }
         _ => {}
     });
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    {
+        use raw_window_handle::HasWindowHandle;
+        if !zephium_engine::attach_composer_parent(window.window_handle()?.as_raw()) {
+            window.destroy()?;
+            return Err("composer surface attachment failed".into());
+        }
+    }
     window.navigate(context.url.clone())?;
     Ok(window)
 }

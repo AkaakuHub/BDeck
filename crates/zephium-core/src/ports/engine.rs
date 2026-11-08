@@ -335,7 +335,12 @@ pub trait Engine {
         tree: Option<Pane>,
         region: Option<Rect>,
     ) -> NativeDispatch;
-    fn set_composer(&self, _item: Option<ItemId>, _region: Option<Rect>) -> NativeDispatch {
+    fn set_composer(
+        &self,
+        _item: Option<ItemId>,
+        _region: Option<Rect>,
+        _floating: bool,
+    ) -> NativeDispatch {
         NativeDispatch::Unsupported
     }
     fn focus_composer(&self, _item: ItemId) -> NativeDispatch {

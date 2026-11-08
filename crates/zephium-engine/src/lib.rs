@@ -1,6 +1,4 @@
 #[cfg(any(target_os = "windows", test))]
-mod history_list;
-#[cfg(any(target_os = "windows", test))]
 mod caption_keys;
 #[cfg(any(target_os = "windows", test))]
 mod card_geometry;
@@ -8,6 +6,8 @@ mod erasure;
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 mod fullscreen;
 mod haptics;
+#[cfg(any(target_os = "windows", test))]
+mod history_list;
 mod host;
 mod layout_queue;
 #[cfg(any(target_os = "windows", test))]
@@ -985,6 +985,15 @@ pub struct WebviewEngine {
     stage_motion: StageMotionHints,
 }
 
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+pub fn attach_composer_parent(parent: RawWindowHandle) -> bool {
+    host::try_with(move |host| host.attach_composer_parent(parent))
+}
+
+pub fn focus_floating_composer(item: ItemId) -> bool {
+    host::try_with(move |host| host.focus_composer(item))
+}
+
 // Layout is a replaceable native fact, not an ordered user mutation. Keep at
 // most one newest frame per bounded window and one main-loop task in flight so
 // live resize/divider bursts cannot build an arbitrarily stale Tauri queue.
@@ -1670,8 +1679,24 @@ impl Engine for WebviewEngine {
         NativeDispatch::Scheduled
     }
 
-    fn set_composer(&self, item: Option<ItemId>, region: Option<Rect>) -> NativeDispatch {
-        self.set_content(u64::MAX, item.map(Pane::Leaf), region)
+    fn set_composer(
+        &self,
+        item: Option<ItemId>,
+        region: Option<Rect>,
+        floating: bool,
+    ) -> NativeDispatch {
+        let window = if floating {
+            host::COMPOSER_WINDOW
+        } else {
+            u64::MAX
+        };
+        let hidden = if floating {
+            u64::MAX
+        } else {
+            host::COMPOSER_WINDOW
+        };
+        let _ = self.set_content(hidden, None, None);
+        self.set_content(window, item.map(Pane::Leaf), region)
     }
 
     fn focus_composer(&self, item: ItemId) -> NativeDispatch {

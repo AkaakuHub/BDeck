@@ -1,8 +1,3 @@
-[data-bdeck-compose] .bdeck-compose-layout {
-  min-block-size: 0 !important;
-  block-size: auto !important;
-  flex-grow: 0 !important;
-}
 [data-bdeck-compose] [data-testid^="tweetTextarea_"][contenteditable="true"] {
   min-block-size: 112px !important;
   max-block-size: 320px !important;
@@ -34,5 +29,18 @@
 [data-testid="toolBar"] nav svg {
   inline-size: 20px !important;
   block-size: 20px !important;
+  flex-shrink: 0 !important;
+}
+[data-bdeck-compose] .bdeck-compose-background { display: none !important; }
+[data-bdeck-compose] [role="dialog"]:has([data-testid="tweetTextarea_0"]) {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  min-inline-size: 0 !important;
+  max-inline-size: 100% !important;
+}
+
+[data-bdeck-compose] .bdeck-compose-tools {
+  position: relative !important;
+  inset: auto !important;
   flex-shrink: 0 !important;
 }

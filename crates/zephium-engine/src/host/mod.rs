@@ -93,6 +93,8 @@ const MAX_WINDOWS_CLEANUP_DEBTS: usize = resources::MAX_NATIVE_TEARDOWN_DEBTS;
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 struct ParentHandle(RawWindowHandle);
 
+pub(super) const COMPOSER_WINDOW: WindowId = u64::MAX - 1;
+
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 impl HasWindowHandle for ParentHandle {
     fn window_handle(&self) -> Result<WindowHandle<'_>, HandleError> {
@@ -418,6 +420,13 @@ pub(crate) struct EngineHost {
     stages: HashMap<WindowId, Retained<ContentStage>>,
     #[cfg(not(target_os = "macos"))]
     stages: HashMap<WindowId, crate::platform::imp::Stage>,
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    composer_parent: Option<ParentHandle>,
+    pending_composer: Option<(
+        Option<zephium_core::split::Pane>,
+        Option<zephium_core::geometry::Rect>,
+        Option<zephium_core::ports::engine::StageMotion>,
+    )>,
     // Native callback admission failure, exhausted stage retries, or
     // unverifiable teardown must seal outer lifecycle/event authority before
     // the mandatory fatal path.

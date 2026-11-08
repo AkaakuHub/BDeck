@@ -11,6 +11,7 @@ pub(crate) struct AccountOption {
 #[serde(deny_unknown_fields)]
 pub(crate) struct PanelView {
     pub composer: bool,
+    pub content_height: Option<u16>,
     pub id: Option<String>,
     pub title: String,
     pub index: u16,

@@ -115,7 +115,9 @@ impl Shell {
                             viewport
                                 .columns
                                 .into_iter()
-                                .filter(|(_, rect)| rect.x < region.width && rect.x + rect.width > 0.0)
+                                .filter(|(_, rect)| {
+                                    rect.x < region.width && rect.x + rect.width > 0.0
+                                })
                                 .filter_map(|(id, rect)| {
                                     ItemId::parse(&id.to_string()).map(|id| (id, rect))
                                 })
@@ -179,12 +181,20 @@ impl Shell {
         let composer_item = composer
             .as_ref()
             .and_then(|frame| ItemId::parse(&frame.tab));
+        let floating = composer.as_ref().is_some_and(|frame| !frame.managing);
         let composer_region = composer.map(|frame| {
             let inset = zephium_core::deck::layout::COMPOSER_HEADER_HEIGHT
                 - zephium_core::deck::layout::COLUMN_HEADER_HEIGHT;
-            Rect::new(frame.x, frame.y + inset, frame.width, (frame.height - inset).max(0.0))
+            Rect::new(
+                frame.x,
+                frame.y + inset,
+                frame.width,
+                (frame.height - inset).max(0.0),
+            )
         });
-        let composer_applied = self.engine.set_composer(composer_item, composer_region);
+        let composer_applied = self
+            .engine
+            .set_composer(composer_item, composer_region, floating);
         self.reconcile_page_permission_placement();
         if composer_applied == NativeDispatch::Rejected {
             NativeDispatch::Rejected

@@ -1,29 +1,27 @@
 <script lang="ts">
-  import { Cancel01Icon } from "@hugeicons/core-free-icons";
   import { layout } from "$domain/layout";
   import { accountAvatars, deck } from "$domain/deck";
-  import { commands } from "$shared/ipc/bindings";
-  import IconButton from "$shared/ui/IconButton";
-  import AccountAvatar from "./accounts/AccountAvatar.svelte";
+  import { commands, type PanelView } from "$shared/ipc/bindings";
   import AccountPanel from "./AccountPanel.svelte";
   const frame = $derived(layout.composer());
+  let signature = "";
+  let queue: Promise<void> = Promise.resolve();
+  $effect(() => {
+    const candidate = frame;
+    const current = candidate && typeof candidate.x === "number" && typeof candidate.y === "number" && typeof candidate.width === "number" && typeof candidate.height === "number"
+      ? { ...candidate, x: candidate.x, y: candidate.y, width: candidate.width, height: candidate.height } : null;
+    const view: PanelView | null = current && !current.managing ? {
+      composer: true, content_height: Math.round(current.height - 42), id: current.tab, title: "", index: 0, count: 0,
+      account: current.account,
+      accounts: (deck.state()?.accounts ?? []).map(account => ({ id: account.id, title: deck.displayName(account.id), screen_name: account.identity?.screen_name ?? null, avatar: accountAvatars.url(account.profile) })),
+      width: Math.round(current.width), row: 0, two_rows: false, suspended: false, failed: false,
+    } : null;
+    const x = current ? current.x + current.width : 0;
+    const y = current?.y ?? 0;
+    const next = JSON.stringify([view, x, y]);
+    if (next === signature) return;
+    signature = next;
+    queue = queue.then(async () => { await commands.columnPanelComposerSync(view, x, y); }).catch(() => console.error("composer surface update failed"));
+  });
 </script>
-{#if frame?.managing}
-  <AccountPanel {frame} />
-{:else if frame}
-  <header class="composer-header" data-tauri-drag-region="deep" style:left={`${frame.x}px`} style:top={`${frame.y}px`} style:width={`${frame.width}px`}>
-    <div class="accounts" role="group" aria-label="投稿するアカウント">
-      {#each deck.state()?.accounts ?? [] as account (account.id)}
-        <button class="account" aria-label={deck.displayName(account.id)} title={deck.displayName(account.id)} aria-pressed={frame.account === account.id} onclick={() => void commands.composerOpen(account.id)}><AccountAvatar url={accountAvatars.url(account.profile)} size={32} /></button>
-      {/each}
-    </div>
-    <IconButton icon={Cancel01Icon} label="投稿パネルを閉じる" buttonSize={26} size={15} onclick={() => void commands.runCommand("composer.close")} />
-  </header>
-{/if}
-<style>
-  .composer-header { position: absolute; z-index: 3; display: flex; align-items: center; gap: 8px; height: 40px; padding-inline: 6px; box-sizing: border-box; background: var(--color-surface); color: var(--color-text); border-block-end: 1px solid var(--color-border); }
-  .accounts { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; overflow-x: auto; }
-  .account { display: inline-flex; flex: none; align-items: center; justify-content: center; padding: 1px; border: 1px solid transparent; border-radius: 50%; background: transparent; cursor: pointer; }
-  .account[aria-pressed="true"] { border-color: var(--color-ring); background: var(--color-fill); }
-  .account:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 1px; }
-</style>
+{#if frame?.managing}<AccountPanel {frame} />{/if}

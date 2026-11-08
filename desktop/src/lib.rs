@@ -14,8 +14,8 @@ mod profiles;
 #[cfg(any(target_os = "macos", target_os = "windows", test))]
 mod renderer_recovery;
 mod startup_alert;
-mod windows_privacy;
 mod webext;
+mod windows_privacy;
 
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU64, AtomicU8, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -974,6 +974,7 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             deck::column_panel::column_panel_ready,
             deck::column_panel::column_panel_resize,
             deck::column_panel::column_panel_close,
+            deck::column_panel::column_panel_composer_sync,
             deck::column_panel::column_panel_action,
             deck::column_panel::column_panel_sync,
             webext::actions::extension_action_invoke,
@@ -1609,7 +1610,11 @@ fn run_command(
         || !(deck::commands::admits_scroll(&id)
             || matches!(
                 id.as_str(),
-                "browser.settings" | "browser.return" | "composer.open" | "composer.close" | "tab.close"
+                "browser.settings"
+                    | "browser.return"
+                    | "composer.open"
+                    | "composer.close"
+                    | "tab.close"
             ))
         || shutdown_started(&app)
     {

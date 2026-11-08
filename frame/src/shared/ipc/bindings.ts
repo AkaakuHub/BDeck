@@ -39,6 +39,7 @@ export const commands = {
 	columnPanelOpen: (view: PanelView, x: number | null, y: number | null) => __TAURI_INVOKE<null>("column_panel_open", { view, x, y }),
 	columnPanelGet: () => __TAURI_INVOKE<{
 	composer: boolean,
+	content_height: number | null,
 	id: string | null,
 	title: string,
 	index: number,
@@ -54,9 +55,25 @@ export const commands = {
 	columnPanelReady: (height: number | null) => __TAURI_INVOKE<null>("column_panel_ready", { height }),
 	columnPanelResize: (height: number | null) => __TAURI_INVOKE<null>("column_panel_resize", { height }),
 	columnPanelClose: () => __TAURI_INVOKE<null>("column_panel_close"),
+	columnPanelComposerSync: (view: {
+	composer: boolean,
+	content_height: number | null,
+	id: string | null,
+	title: string,
+	index: number,
+	count: number,
+	account: string,
+	accounts: AccountOption[],
+	width: number,
+	row: number,
+	two_rows: boolean,
+	suspended: boolean,
+	failed: boolean,
+} | null, x: number | null, y: number | null) => __TAURI_INVOKE<null>("column_panel_composer_sync", { view, x, y }),
 	columnPanelAction: (action: PanelAction) => __TAURI_INVOKE<null>("column_panel_action", { action }),
 	columnPanelSync: (view: {
 	composer: boolean,
+	content_height: number | null,
 	id: string | null,
 	title: string,
 	index: number,
@@ -359,6 +376,7 @@ export type PanelAction = { kind: "create"; value: ColumnDraft } | { kind: "widt
 
 export type PanelView = {
 	composer: boolean,
+	content_height: number | null,
 	id: string | null,
 	title: string,
 	index: number,

@@ -169,15 +169,15 @@ impl Shell {
         let account = self.composer.active?;
         let window = self.windows.focused()?;
         let region = self.content_region();
-        let width = 360.0_f64.min(region.width);
+        let width = 480.0_f64.min((region.width - 16.0).max(0.0));
         Some(zephium_ipc::ComposerFrame {
             tab: tab.to_string(),
             account: account.to_string(),
             managing: false,
-            x: region.x,
-            y: region.y,
+            x: region.x + 8.0,
+            y: region.y + 8.0,
             width,
-            height: (cached.height + zephium_core::deck::layout::COMPOSER_HEADER_HEIGHT)
+            height: (cached.height + zephium_core::deck::layout::COMPOSER_HEADER_HEIGHT + 2.0)
                 .min((window.size.height - region.y - 8.0).max(0.0)),
         })
     }

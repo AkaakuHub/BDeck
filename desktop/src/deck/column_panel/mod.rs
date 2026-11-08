@@ -95,7 +95,18 @@ pub(crate) fn column_panel_ready(
     caller
         .show()
         .and_then(|_| caller.set_focus())
-        .map_err(|error| error.to_string())
+        .map_err(|error| error.to_string())?;
+    if let Some(item) = panel.view.lock().ok().and_then(|view| {
+        view.as_ref()
+            .filter(|view| view.composer)
+            .and_then(|view| view.id.as_ref())
+            .and_then(|id| zephium_core::ids::ItemId::parse(id))
+    }) {
+        if !zephium_engine::focus_floating_composer(item) {
+            return Err("composer focus failed".into());
+        }
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -107,6 +118,22 @@ pub(crate) fn column_panel_close(caller: WebviewWindow) -> Result<(), String> {
         "column_panel_close",
     ) {
         return Err("unavailable".into());
+    }
+    let composer = caller
+        .app_handle()
+        .state::<Panel>()
+        .view
+        .lock()
+        .ok()
+        .and_then(|view| view.as_ref().map(|view| view.composer))
+        == Some(true);
+    if composer {
+        let shell = caller.app_handle().state::<zephium_app::Handle>();
+        let _ = crate::dispatch_operation(
+            caller.app_handle(),
+            &shell,
+            zephium_app::Command::Run("composer.close".into()),
+        );
     }
     caller.hide().map_err(|error| error.to_string())
 }
@@ -141,6 +168,18 @@ pub(crate) fn column_panel_action(
     if !valid {
         return Err("invalid column action".into());
     }
+    if view.composer {
+        if let PanelAction::Account(id) = action {
+            let account = zephium_core::ids::DeckAccountId::parse(&id).ok_or("invalid account")?;
+            let shell = caller.app_handle().state::<zephium_app::Handle>();
+            let _ = crate::dispatch_operation(
+                caller.app_handle(),
+                &shell,
+                zephium_app::Command::OpenComposer(account),
+            );
+        }
+        return Ok(());
+    }
     crate::emit_to_privileged(
         caller.app_handle(),
         crate::MAIN_LABEL,
@@ -162,6 +201,9 @@ pub(crate) fn column_panel_sync(
     }
     let mut current = panel.view.lock().map_err(|_| "unavailable")?;
     if view.is_none() {
+        if current.as_ref().is_some_and(|view| view.composer) {
+            return Ok(());
+        }
         *current = None;
         if let Some(window) = caller.app_handle().get_webview_window(LABEL) {
             let _ = window.hide();
@@ -187,6 +229,42 @@ pub(crate) fn column_panel_sync(
         &view,
     );
     Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn column_panel_composer_sync(
+    caller: WebviewWindow,
+    view: Option<PanelView>,
+    x: f64,
+    y: f64,
+) -> Result<(), String> {
+    if !admitted(
+        &caller,
+        crate::CallerPolicy::Main,
+        "column_panel_composer_sync",
+    ) {
+        return Err("unavailable".into());
+    }
+    let Some(view) = view else {
+        let panel = caller.app_handle().state::<Panel>();
+        let mut current = panel.view.lock().map_err(|_| "unavailable")?;
+        if current.as_ref().is_some_and(|view| view.composer) {
+            *current = None;
+            if let Some(window) = caller.app_handle().get_webview_window(LABEL) {
+                let _ = window.hide();
+            }
+        }
+        return Ok(());
+    };
+    if !view.composer
+        || view
+            .content_height
+            .is_none_or(|height| !(160..=640).contains(&height))
+    {
+        return Err("invalid composer".into());
+    }
+    column_panel_open(caller, view, x, y).await
 }
 
 #[tauri::command]

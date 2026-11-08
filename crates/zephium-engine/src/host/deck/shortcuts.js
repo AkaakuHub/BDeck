@@ -44,37 +44,43 @@
   if (!location.pathname.startsWith("/compose/")) return;
   const measure = () => {
     document.documentElement.setAttribute("data-bdeck-compose", "");
-    const editor = document.querySelector('[data-testid="tweetTextarea_0"][contenteditable="true"]');
-    const toolbar = document.querySelector('[data-testid="toolBar"]');
+    document.querySelectorAll(".bdeck-compose-background").forEach(node => node.classList.remove("bdeck-compose-background"));
+    const editors = [...document.querySelectorAll('[data-testid="tweetTextarea_0"][contenteditable="true"]')];
+    const editor = editors.find(node => node.closest('[role="dialog"]')) || editors.find(node => node.getClientRects().length && !node.closest('[aria-hidden="true"]'));
+    const dialog = editor?.closest('[role="dialog"]');
+    if (dialog) {
+      for (let node = dialog; node?.parentElement && node !== document.body; node = node.parentElement) {
+        for (const sibling of node.parentElement.children) {
+          if (sibling !== node && sibling instanceof HTMLElement && !sibling.querySelector('[role="dialog"]') && (sibling.matches('[role="main"], [data-testid="primaryColumn"]') || sibling.querySelector('[role="main"], [data-testid="primaryColumn"]'))) sibling.classList.add("bdeck-compose-background");
+        }
+      }
+    }
+    let content = editor?.parentElement;
+    while (content && !content.querySelector('[data-testid="toolBar"]')) content = content.parentElement;
+    const toolbar = content?.querySelector('[data-testid="toolBar"]');
     if (!(editor instanceof HTMLElement) || !(toolbar instanceof HTMLElement)) return;
-    let content = editor.parentElement;
-    while (content && !content.contains(toolbar)) content = content.parentElement;
-    for (let node = content; node && node !== document.body; node = node.parentElement) node.classList.add("bdeck-compose-layout");
+    for (let node = toolbar.parentElement; node && node !== content; node = node.parentElement) {
+      if (["absolute", "fixed"].includes(getComputedStyle(node).position)) node.classList.add("bdeck-compose-tools");
+    }
+    if (!editor.getBoundingClientRect().width || !toolbar.getBoundingClientRect().height) return;
+    if (toolbar.getBoundingClientRect().top < editor.getBoundingClientRect().bottom) return;
+    if (editor !== readyElement) { readyElement = editor; send("composer.ready"); }
     const height = Math.max(160, Math.min(640, Math.ceil(toolbar.getBoundingClientRect().bottom + 12)));
     if (height !== lastHeight) { lastHeight = height; send(`composer.height=${height}`); }
   };
   let lastHeight = 0;
+  let readyElement = null;
   let measuring = false;
   const scheduleMeasure = () => {
     if (measuring) return;
     measuring = true;
     requestAnimationFrame(() => { measuring = false; measure(); });
   };
-  const readyEditor = () => {
-    const editor = document.querySelector('[data-testid="tweetTextarea_0"][contenteditable="true"]');
-    if (!(editor instanceof HTMLElement)) return false;
-    send("composer.ready");
-    return true;
-  };
   const ready = () => {
     const sizing = new ResizeObserver(scheduleMeasure);
     sizing.observe(document.body);
     new MutationObserver(scheduleMeasure).observe(document.documentElement, { subtree: true, childList: true, characterData: true });
     scheduleMeasure();
-    if (readyEditor()) return;
-    const observer = new MutationObserver(() => { if (readyEditor()) observer.disconnect(); });
-    observer.observe(document.documentElement, { subtree: true, childList: true });
-    setTimeout(() => observer.disconnect(), 10000);
   };
   if (document.body) ready();
   else document.addEventListener("DOMContentLoaded", ready, { once: true });

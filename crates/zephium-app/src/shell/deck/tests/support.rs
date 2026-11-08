@@ -1,9 +1,9 @@
-use zephium_core::extensions::ExtensionBrowserRequestId;
 use crate::api::{
     ChromePresentation, ChromePresentationCallback, ChromePresentationDispatch, PresentationChrome,
 };
 use crate::shell::*;
 use std::sync::Mutex;
+use zephium_core::extensions::ExtensionBrowserRequestId;
 use zephium_core::ids::*;
 use zephium_core::ports::chrome::{Chrome, ChromeFrame};
 use zephium_core::ports::engine::*;
@@ -54,10 +54,21 @@ impl Engine for TestEngine {
         _first_url_after_reply: Option<(Arc<str>, NavigationRequestId)>,
     ) -> NativeDispatch {
         if let ExtensionBrowserRequestSettlement::Applied(
-            zephium_core::extensions::ExtensionBrowserRequestResult::ExtensionPageAuthorized { tab, .. },
-        ) = settlement {
-            assert!(self.extension_surfaces.lock().unwrap().last().unwrap().windows()
-                .iter().any(|window| window.tabs().iter().any(|published| published.id() == tab)));
+            zephium_core::extensions::ExtensionBrowserRequestResult::ExtensionPageAuthorized {
+                tab,
+                ..
+            },
+        ) = settlement
+        {
+            assert!(self
+                .extension_surfaces
+                .lock()
+                .unwrap()
+                .last()
+                .unwrap()
+                .windows()
+                .iter()
+                .any(|window| window.tabs().iter().any(|published| published.id() == tab)));
         }
         NativeDispatch::Scheduled
     }
@@ -125,7 +136,12 @@ impl Engine for TestEngine {
     ) -> NativeDispatch {
         NativeDispatch::Scheduled
     }
-    fn set_composer(&self, _item: Option<ItemId>, _region: Option<Rect>) -> NativeDispatch {
+    fn set_composer(
+        &self,
+        _item: Option<ItemId>,
+        _region: Option<Rect>,
+        _floating: bool,
+    ) -> NativeDispatch {
         NativeDispatch::Scheduled
     }
     fn focus(&self, _item: ItemId) -> NativeDispatch {

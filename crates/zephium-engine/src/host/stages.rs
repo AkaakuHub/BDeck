@@ -45,6 +45,13 @@ fn should_seed_stage_readiness(
 }
 
 impl EngineHost {
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    pub(crate) fn attach_composer_parent(&mut self, parent: RawWindowHandle) {
+        self.composer_parent = Some(super::ParentHandle(parent));
+        if let Some((tree, region, motion)) = self.pending_composer.take() {
+            self.set_content(super::COMPOSER_WINDOW, tree, region, motion);
+        }
+    }
     pub(crate) fn focus(&self, item: ItemId) {
         if let Some(view) = self.views.get(&item) {
             let _ = view.focus();
@@ -210,6 +217,23 @@ impl EngineHost {
         motion: Option<StageMotion>,
     ) -> bool {
         #[cfg(any(target_os = "macos", target_os = "windows"))]
+        let region = if window == super::COMPOSER_WINDOW {
+            if self.composer_parent.is_none() {
+                self.pending_composer = Some((tree, region, motion));
+                return true;
+            }
+            region.map(|region| {
+                Rect::new(
+                    1.0,
+                    11.0,
+                    (region.width - 2.0).max(0.0),
+                    (region.height - 2.0).max(0.0),
+                )
+            })
+        } else {
+            region
+        };
+        #[cfg(any(target_os = "macos", target_os = "windows"))]
         let shown = match region {
             Some(_) => tree.as_ref().map(Pane::tabs).unwrap_or_default(),
             None => Vec::new(),
@@ -259,7 +283,15 @@ impl EngineHost {
             let applied = stage.finish_content_update(update_epoch);
             return applied;
         };
-        if !stage_set_frame(&stage, &self.parent, r, motion) {
+        let parent = if window == super::COMPOSER_WINDOW {
+            self.composer_parent.as_ref()
+        } else {
+            Some(&self.parent)
+        };
+        let Some(parent) = parent else {
+            return false;
+        };
+        if !stage_set_frame(&stage, parent, r, motion) {
             stage.abort_content_update(update_epoch);
             return false;
         }
@@ -279,6 +311,20 @@ impl EngineHost {
             };
             let mut inserted = false;
             if !stage.has_view(*id) {
+                if window == super::COMPOSER_WINDOW {
+                    use wry::WebViewExtMacOS;
+                    let Some(parent) = self
+                        .composer_parent
+                        .as_ref()
+                        .and_then(content_view)
+                        .and_then(|parent| parent.window())
+                    else {
+                        return false;
+                    };
+                    if view.reparent(Retained::as_ptr(&parent).cast_mut()).is_err() {
+                        return false;
+                    }
+                }
                 if let Some(native_view) = webview_nsview(view) {
                     if !stage.insert_view(*id, native_view, view.presentation_permit.clone()) {
                         stage.abort_content_update(update_epoch);
@@ -396,6 +442,17 @@ impl EngineHost {
             if !stage.has_view(*id) {
                 #[cfg(target_os = "windows")]
                 {
+                    if window == super::COMPOSER_WINDOW {
+                        use wry::WebViewExtWindows;
+                        let Some(super::ParentHandle(RawWindowHandle::Win32(parent))) =
+                            self.composer_parent.as_ref()
+                        else {
+                            return false;
+                        };
+                        if view.reparent(parent.hwnd.get()).is_err() {
+                            return false;
+                        }
+                    }
                     let Some(generation) = view.event_permit.active_token() else {
                         return false;
                     };
@@ -489,7 +546,12 @@ impl EngineHost {
         if let Some(stage) = self.stages.get(&window) {
             return Some(stage.clone());
         }
-        let RawWindowHandle::Win32(h) = self.parent.0 else {
+        let parent = if window == super::COMPOSER_WINDOW {
+            self.composer_parent.as_ref()?
+        } else {
+            &self.parent
+        };
+        let RawWindowHandle::Win32(h) = parent.0 else {
             return None;
         };
         let parent = HWND(h.hwnd.get() as *mut _);
@@ -571,7 +633,12 @@ impl EngineHost {
             return Some(stage.clone());
         }
         let mtm = MainThreadMarker::new()?;
-        let content = content_view(&self.parent)?;
+        let parent = if window == super::COMPOSER_WINDOW {
+            self.composer_parent.as_ref()?
+        } else {
+            &self.parent
+        };
+        let content = content_view(parent)?;
         let native_terminal_failure = self.native_terminal_failure.clone();
         let stage = ContentStage::new(
             mtm,
@@ -602,7 +669,7 @@ impl EngineHost {
             content.addSubview_positioned_relativeTo(
                 &stage,
                 objc2_app_kit::NSWindowOrderingMode::Above,
-                if window == u64::MAX {
+                if window == u64::MAX || window == super::COMPOSER_WINDOW {
                     None
                 } else {
                     Some(&chrome)

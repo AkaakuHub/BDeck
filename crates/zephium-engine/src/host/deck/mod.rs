@@ -34,7 +34,6 @@ impl super::EngineHost {
         let script = update_script(appearance, hide_advertisements);
         for view in self.views.values() {
             let _ = view.evaluate_script(&script);
-
         }
     }
 }

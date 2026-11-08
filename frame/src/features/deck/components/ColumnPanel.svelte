@@ -5,7 +5,7 @@
   import { commands, type PanelView, type PanelAction, type ColumnDraft } from "$shared/ipc/bindings";
   import { events } from "$shared/ipc/native-events";
   import { Cancel01Icon, ArrowLeft02Icon, ArrowRight02Icon, Copy01Icon } from "@hugeicons/core-free-icons";
-  import AccountPicker from "./accounts/AccountPicker.svelte";
+  import AccountAvatar from "./accounts/AccountAvatar.svelte";
   import ColumnFields from "./ColumnFields.svelte";
   import Icon from "$shared/ui/Icon";
   import IconButton from "$shared/ui/IconButton";
@@ -28,24 +28,23 @@
     if (pending) return;
     pending = true;
     failed = false;
-    try { await commands.columnPanelAction(value); }
+    try { await commands.columnPanelAction(value); if (view?.composer) pending = false; }
     catch { failed = true; pending = false; }
   }
   onMount(() => {
     let disposed = false;
     let stops: (() => void)[] = [];
     let resize: ResizeObserver | undefined;
-    const height = () => Math.max(100, Math.min(640, Math.ceil(panel?.getBoundingClientRect().height ?? 100)));
+    const height = () => Math.max(100, Math.min(view?.composer ? 700 : 640, Math.ceil(panel?.getBoundingClientRect().height ?? 100)));
     async function present(next: PanelView | null) {
       resize?.disconnect();
-      view = null;
-      await tick();
+      if (!next?.composer) { view = null; await tick(); }
       view = next;
       pending = false;
       failed = false;
       await tick();
       if (disposed || !view || !panel) return;
-      initial?.focus();
+      if (!view.composer) initial?.focus();
       await commands.columnPanelReady(height());
       resize = new ResizeObserver(() => { void commands.columnPanelResize(height()).catch(() => console.error("column panel sizing failed")); });
       resize.observe(panel);
@@ -63,10 +62,14 @@
 </script>
 <svelte:window onkeydown={(event) => { if (event.key === "Escape" && !event.defaultPrevented) { event.preventDefault(); void commands.columnPanelClose(); } }} />
 {#if view}
-<section bind:this={panel} aria-label={view.composer ? view.title : adding ? "カラムを追加" : `${view.title}の設定`} class="panel" aria-busy={pending}>
-  <header><h1>{view.title}</h1><button bind:this={initial} class="icon-button" style:--icon-button-size="28px" aria-label="カラム設定を閉じる" onclick={() => void commands.columnPanelClose()}><Icon icon={Cancel01Icon} size={16} /></button></header>
+<section bind:this={panel} aria-label={view.composer ? "投稿パネル" : adding ? "カラムを追加" : `${view.title}の設定`} class="panel" class:composer={view.composer} aria-busy={pending}>
+  <header>
+    {#if view.composer}<div class="composer-accounts" role="group" aria-label="投稿するアカウント">
+      {#each view.accounts as account (account.id)}<button class="composer-account" aria-label={account.title} title={account.title} aria-pressed={view.account === account.id} onclick={() => void action({ kind: "account", value: account.id })}><AccountAvatar url={account.avatar} size={32} /></button>{/each}
+    </div>{:else}<h1>{view.title}</h1>{/if}
+    <button bind:this={initial} class="icon-button" style:--icon-button-size="28px" aria-label={view.composer ? "投稿パネルを閉じる" : "カラム設定を閉じる"} onclick={() => void commands.columnPanelClose()}><Icon icon={Cancel01Icon} size={16} /></button></header>
   {#if view.composer}
-    <div class="composer-account"><AccountPicker accounts={view.accounts} value={view.account} disabled={pending} onchange={(value) => void action({ kind: "account", value })} /></div>
+    <div class="composer-content" style:height={`${view.content_height}px`} aria-hidden="true"></div>
   {:else}
   <form onsubmit={(event) => { event.preventDefault(); if (adding) void action({ kind: "create", value: { ...draft, row: draft.row } }); }}>
     <ColumnFields accounts={view.accounts} account={adding ? draft.account : view.account} width={adding ? draft.width : view.width} row={adding ? draft.row : view.row} {adding} kind={draft.kind} text={draft.text} onchange={fields} />
@@ -90,7 +93,12 @@
   .panel { box-sizing: border-box; padding: 14px 18px; border: 1px solid var(--color-border-strong); border-radius: 12px; background: var(--color-surface); color: var(--color-text); overflow-y: auto; }
   header, footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   h1 { margin: 0; font-size: 14px; font-weight: 600; }
-  .composer-account { margin-block-start: 12px; }
+  .panel.composer { padding: 0; overflow: hidden; }
+  .composer header { height: 40px; padding-inline: 6px; box-sizing: border-box; }
+  .composer-accounts { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; overflow-x: auto; }
+  .composer-account { display: inline-flex; flex: none; padding: 1px; border: 1px solid transparent; border-radius: 50%; background: transparent; cursor: pointer; }
+  .composer-account[aria-pressed="true"] { border-color: var(--color-ring); }
+  .composer-account:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 1px; }
   form { display: grid; gap: 14px; margin-block-start: 12px; }
   footer { border-block-start: 1px solid var(--color-border); padding-block-start: 10px; }
   p { margin: 8px 0 0; font-size: 12px; color: var(--color-danger); }
