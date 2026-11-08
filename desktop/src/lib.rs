@@ -952,6 +952,7 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
     tauri_specta::Builder::<tauri::Wry>::new()
         .error_handling(tauri_specta::ErrorHandlingMode::Throw)
         .commands(collect_commands![
+            diagnostics::diagnostics_show_logs,
             tabs_bootstrap,
             tabs_activate,
             tabs_reload,

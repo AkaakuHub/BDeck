@@ -27,7 +27,9 @@
   // against Chrome's text.
   const native = (api, fields) =>
     runtime.sendNativeMessage("app.zephium.webext", Object.assign({ api }, fields)).catch((error) => {
-      throw new Error(String((error && error.message) || error).replace(/^Invalid call to runtime\.sendNativeMessage\(\)\. /, ""));
+      const message = String((error && error.message) || error).replace(/^Invalid call to runtime\.sendNativeMessage\(\)\. /, "");
+      if (api !== "log" && Z.report) Z.report("error", `${api}: ${message}`);
+      throw new Error(message);
     });
 
   // A new worker means the previous one is gone, along with whatever it had
@@ -607,7 +609,10 @@
           return result.catch((error) => {
             const index = Number((rejected.exec(String(error && error.message)) || [])[1]);
             const rules = Array.isArray(current.addRules) ? current.addRules : [];
-            if (!(index < rules.length) || attempts <= 0) throw error;
+            if (!(index < rules.length) || attempts <= 0) {
+              if (Z.report) Z.report("error", `declarativeNetRequest.${method}: ${error.message}`);
+              throw error;
+            }
             if (Z.report) Z.report("warning", `skipped a network rule WebKit can't apply: ${error.message}`);
             current = Object.assign({}, current, { addRules: rules.filter((_, i) => i !== index) });
             return run(attempts - 1);
