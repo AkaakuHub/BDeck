@@ -39,6 +39,14 @@ pub(crate) fn open_external_app(url: &str) -> bool {
     if zephium_core::navigation::external_app_link(url).is_none() {
         return false;
     }
+    open_native(url)
+}
+
+pub(crate) fn open_external_web(target: &str) -> bool {
+    zephium_core::deck::links::external_target(target).is_some_and(|url| open_native(url.as_str()))
+}
+
+fn open_native(url: &str) -> bool {
     let target = wide(url);
     // SAFETY: a validated link as the file argument of a plain "open" verb;
     // ShellExecute reports success as any value above 32.

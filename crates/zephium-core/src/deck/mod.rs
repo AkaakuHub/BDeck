@@ -15,6 +15,7 @@ pub mod account;
 pub mod appearance;
 pub mod avatars;
 pub mod layout;
+pub mod links;
 pub mod portable;
 mod removal;
 pub use appearance::DeckAppearance;

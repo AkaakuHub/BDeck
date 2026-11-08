@@ -138,7 +138,10 @@ impl EngineHost {
         }
         let event_permit = EventPermit::bound(&event_token);
         #[cfg(target_os = "windows")]
-        let event_permit = event_permit.with_extensions(self.windows_extensions.navigation_grants(partition.profile()));
+        let event_permit = event_permit.with_extensions(
+            self.windows_extensions
+                .navigation_grants(partition.profile()),
+        );
         // Restored and explicitly opened tabs need the same live profile grant
         // as native child adoption, before either fresh or spare construction.
         if !event_permit.allows_navigation(url) {
@@ -353,7 +356,8 @@ impl EngineHost {
         let report_failure = purpose.reports_failure();
         #[cfg(target_os = "windows")]
         let event_permit = event_permit.with_extensions(
-            self.windows_extensions.navigation_grants(partition.profile()),
+            self.windows_extensions
+                .navigation_grants(partition.profile()),
         );
         let target_resource_class = purpose.resource_class();
         let logical_id = id.get();
@@ -1188,6 +1192,12 @@ impl EngineHost {
                     return wry::NewWindowResponse::Deny;
                 }
                 burst.set((started, count + 1));
+                if zephium_core::deck::links::external_target(&url).is_some() {
+                    if !crate::platform::imp::open_external_web(&url) {
+                        eprintln!("engine: the default browser could not open the web link");
+                    }
+                    return wry::NewWindowResponse::Deny;
+                }
                 let Some(activity) = tracker.activity_snapshot() else {
                     report_blocked();
                     return wry::NewWindowResponse::Deny;
@@ -2424,7 +2434,8 @@ impl EngineHost {
         {
             return Err(WindowsProfileEnvironmentFailure::Busy);
         }
-        let startup = self.windows_extension_startup(profile, &path)
+        let startup = self
+            .windows_extension_startup(profile, &path)
             .map_err(|_| WindowsProfileEnvironmentFailure::Mismatch)?;
         let existing_environment = self.environments.get(&profile).cloned();
         if let Some(environment) = &existing_environment {
@@ -2501,7 +2512,9 @@ impl EngineHost {
             };
             builder
                 .with_controller_initialization_hook(|_, core| crate::reputation::configure(core))
-                .with_browser_extension_startup_gate(move |environment, core| startup.authenticate(environment, core))
+                .with_browser_extension_startup_gate(move |environment, core| {
+                    startup.authenticate(environment, core)
+                })
         };
 
         let mut built = builder.build_as_child(&parent);

@@ -20,3 +20,9 @@ pub(crate) fn external_app_name(url: &str) -> Option<String> {
 pub(crate) fn open_external_app(url: &str) -> bool {
     native(url).is_some_and(|url| NSWorkspace::sharedWorkspace().openURL(&url))
 }
+
+pub(crate) fn open_external_web(target: &str) -> bool {
+    zephium_core::deck::links::external_target(target)
+        .and_then(|url| NSURL::URLWithString(&NSString::from_str(url.as_str())))
+        .is_some_and(|url| NSWorkspace::sharedWorkspace().openURL(&url))
+}

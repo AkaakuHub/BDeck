@@ -2,6 +2,16 @@
   const host = location.hostname.toLowerCase();
   if (window !== window.top || !(host === "x.com" || host.endsWith(".x.com") || host === "twitter.com" || host.endsWith(".twitter.com"))) return;
   const send = (command) => window.ipc.postMessage(command);
+  document.addEventListener("click", event => {
+    if (!event.isTrusted || event.defaultPrevented) return;
+    const anchor = event.composedPath().find(node => node instanceof HTMLAnchorElement);
+    if (!anchor) return;
+    const target = new URL(anchor.href);
+    const host = target.hostname.toLowerCase().replace(/\.$/, "");
+    if (!["http:", "https:"].includes(target.protocol) || target.username || target.password || host === "x.com" || host.endsWith(".x.com") || host === "twitter.com" || host.endsWith(".twitter.com")) return;
+    anchor.target = "_blank";
+    anchor.rel = "noopener noreferrer";
+  }, true);
   document.addEventListener("keydown", (event) => {
     if (!event.isTrusted || event.isComposing || event.metaKey || event.ctrlKey || event.altKey) return;
     const editable = event.composedPath().some(node => node instanceof Element && node.closest("input, textarea, select, [contenteditable], [role=textbox]"));

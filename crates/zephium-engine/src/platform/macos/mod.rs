@@ -14,7 +14,7 @@ mod navigation;
 pub(crate) mod page_save;
 pub mod private_api;
 pub(crate) mod proxy;
-pub(crate) use apps::{external_app_name, open_external_app};
+pub(crate) use apps::{external_app_name, open_external_app, open_external_web};
 mod paint;
 pub(crate) use paint::{PageSnapshot, PaintCover};
 mod session_state;
