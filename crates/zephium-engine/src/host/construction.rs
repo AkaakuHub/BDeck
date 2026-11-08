@@ -726,6 +726,8 @@ impl EngineHost {
         #[cfg(target_os = "windows")]
         let mut cached_environment = self.environments.get(&partition.profile()).cloned();
         #[cfg(target_os = "windows")]
+        let mut extension_startup = None;
+        #[cfg(target_os = "windows")]
         let construction_environment: Rc<RefCell<Option<ICoreWebView2Environment>>> =
             Rc::new(RefCell::new(None));
         #[cfg(target_os = "windows")]
@@ -830,6 +832,7 @@ impl EngineHost {
                     return None;
                 }
                 cached_environment = self.environments.get(&profile).cloned();
+                extension_startup = Some(self.windows_extension_startup(profile, &path).ok()?);
             }
             let api_path = match crate::platform::windows::webview2_user_data_path(&path) {
                 Ok(api_path) => api_path,
@@ -1325,6 +1328,11 @@ impl EngineHost {
             }
             builder = builder
                 .with_controller_initialization_hook(|_, core| crate::reputation::configure(core));
+            if let Some(startup) = extension_startup {
+                builder = builder.with_browser_extension_startup_gate(move |environment, core| {
+                    startup.authenticate(environment, core)
+                });
+            }
         }
 
         #[cfg(target_os = "macos")]
