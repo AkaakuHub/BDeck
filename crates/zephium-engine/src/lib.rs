@@ -1,4 +1,6 @@
 #[cfg(any(target_os = "windows", test))]
+mod history_list;
+#[cfg(any(target_os = "windows", test))]
 mod caption_keys;
 #[cfg(any(target_os = "windows", test))]
 mod card_geometry;
@@ -2112,6 +2114,7 @@ impl Engine for WebviewEngine {
         }))
     }
 
+    #[cfg(target_os = "macos")]
     fn answer_web_extension_access(
         &self,
         profile: ProfileId,
