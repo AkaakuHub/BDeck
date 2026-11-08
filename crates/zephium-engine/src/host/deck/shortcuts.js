@@ -60,7 +60,7 @@
     const toolbar = content?.querySelector('[data-testid="toolBar"]');
     if (!(editor instanceof HTMLElement) || !(toolbar instanceof HTMLElement)) return;
     for (let node = toolbar.parentElement; node && node !== content; node = node.parentElement) {
-      if (["absolute", "fixed"].includes(getComputedStyle(node).position)) node.classList.add("bdeck-compose-tools");
+      if (["absolute", "fixed", "sticky"].includes(getComputedStyle(node).position)) node.classList.add("bdeck-compose-tools");
     }
     if (!editor.getBoundingClientRect().width || !toolbar.getBoundingClientRect().height) return;
     if (toolbar.getBoundingClientRect().top < editor.getBoundingClientRect().bottom) return;
