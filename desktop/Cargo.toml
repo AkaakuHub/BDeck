@@ -29,9 +29,9 @@ zephium-app.workspace = true
 zephium-engine.workspace = true
 zephium-store.workspace = true
 zephium-webext = { path = "../crates/zephium-webext", version = "=0.1.0" }
-reqwest = { version = "=0.13.4", default-features = false, features = ["rustls", "stream", "system-proxy"] }
+reqwest = { version = "=0.13.5", default-features = false, features = ["rustls", "stream", "system-proxy"] }
 tauri-plugin-single-instance.workspace = true
-window-vibrancy = "=0.8.0"
+window-vibrancy = "=0.8.1"
 serde.workspace = true
 serde_json.workspace = true
 specta.workspace = true
