@@ -18,7 +18,7 @@
   <SettingsGroup title="拡張機能を追加">
   <form onsubmit={(event) => { event.preventDefault(); void webext.prepareListing(listing); }}>
     <label for="extension-listing">Chrome Web StoreのURL</label>
-    <div class="install"><input id="extension-listing" type="url" bind:value={listing} maxlength={4096} required disabled={webext.working()} /><Button type="submit" disabled={webext.working() || !listing.trim()}>追加</Button></div>
+    <div class="install"><input id="extension-listing" type="url" bind:value={listing} maxlength={4096} required disabled={webext.working()} /><Button type="submit" pending={webext.isPreparing()} disabled={webext.working() || !listing.trim()}>{webext.isPreparing() ? "取得中…" : "追加"}</Button></div>
   </form>
   <div class="files"><Button disabled={webext.working()} onclick={() => void webext.chooseFile(false)}>CRX・ZIPから追加</Button><Button disabled={webext.working()} onclick={() => void webext.chooseFile(true)}>フォルダーから追加</Button></div>
   </SettingsGroup>

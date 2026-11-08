@@ -5,6 +5,7 @@ let installed = $state<WebExtensionView[]>([]);
 let review = $state<WebExtensionReview | null>(null);
 let error = $state<string | null>(null);
 let busy = $state(false);
+let preparing = $state(false);
 let requests = $state<WebExtensionAccessRequestView[]>([]);
 let refreshTimer: ReturnType<typeof setTimeout> | undefined;
 let generation = 0;
@@ -13,6 +14,7 @@ export const list = () => installed;
 export const pending = () => review;
 export const failure = () => error;
 export const working = () => busy;
+export const isPreparing = () => preparing;
 export const accessRequest = () => requests[0] ?? null;
 
 export async function refresh() {
@@ -38,7 +40,7 @@ export function release() {
   clearTimeout(refreshTimer);
   stop?.(); stop = null;
   if (review) void commands.webExtensionCancel(review.review_id);
-  review = null; installed = []; requests = []; busy = false; error = null;
+  review = null; installed = []; requests = []; busy = false; preparing = false; error = null;
 }
 async function perform(action: () => Promise<void>) {
   if (busy) return;
@@ -51,10 +53,15 @@ async function perform(action: () => Promise<void>) {
 async function prepare(request: () => Promise<WebExtensionReview | null>) {
   await perform(async () => {
     const current = generation;
-    const result = await request();
-    if (current !== generation) { if (result) await commands.webExtensionCancel(result.review_id); return; }
-    if (review) await commands.webExtensionCancel(review.review_id);
-    review = result;
+    preparing = true;
+    try {
+      const result = await request();
+      if (current !== generation) { if (result) await commands.webExtensionCancel(result.review_id); return; }
+      if (review) await commands.webExtensionCancel(review.review_id);
+      review = result;
+    } finally {
+      if (current === generation) preparing = false;
+    }
   });
 }
 export const prepareListing = (url: string) => prepare(() => commands.webExtensionPrepare(url));
