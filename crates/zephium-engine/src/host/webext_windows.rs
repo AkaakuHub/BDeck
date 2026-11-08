@@ -458,7 +458,6 @@ impl super::EngineHost {
             profile,
             std::time::Instant::now() + std::time::Duration::from_secs(5),
             path.clone(),
-            true,
         )
         .map_err(|error| format!("Extension profile startup failed: {error:?}"))?;
         zephium_webext::ExtensionId::parse(&load.extension_id)
@@ -633,7 +632,6 @@ impl super::EngineHost {
                 profile,
                 std::time::Instant::now() + std::time::Duration::from_secs(5),
                 path,
-                true,
             )
             .map_err(|error| format!("Extension profile startup failed: {error:?}"))?;
             let runtime = ExtensionRuntimeInstance::new(

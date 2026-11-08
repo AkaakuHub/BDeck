@@ -1,4 +1,6 @@
 #[cfg(any(target_os = "windows", test))]
+mod history_list;
+#[cfg(any(target_os = "windows", test))]
 mod caption_keys;
 #[cfg(any(target_os = "windows", test))]
 mod card_geometry;
@@ -1707,7 +1709,7 @@ impl Engine for WebviewEngine {
     }
 
     fn set_resize_guide(&self, window: WindowId, zone: Option<Rect>) -> NativeDispatch {
-        #[cfg(target_os = "windows")]
+        #[cfg(any(target_os = "macos", target_os = "windows"))]
         {
             let queued_retirement = self.retirement.clone();
             let queued_delivery = self.event_delivery.clone();
@@ -1723,7 +1725,7 @@ impl Engine for WebviewEngine {
                 }
             }))
         }
-        #[cfg(not(target_os = "windows"))]
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         {
             let _ = (window, zone);
             NativeDispatch::Unsupported
@@ -2112,6 +2114,7 @@ impl Engine for WebviewEngine {
         }))
     }
 
+    #[cfg(target_os = "macos")]
     fn answer_web_extension_access(
         &self,
         profile: ProfileId,

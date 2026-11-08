@@ -61,7 +61,7 @@ impl Hub {
             self.validate_session_transition(&prepared.registry)?;
             // Only the live, validated deletion request may establish this
             // protected cleanup intent. Imported AppData tombstones alone
-            self.commit_prepared_session(prepared, Some(profile))?;
+            self.commit_prepared_session(prepared, Some(profile), None)?;
             Ok(ProfileDeletionAuthorizeOutcome::Authorized)
         } else if already_authorized {
             // A crash/retry may reach this path after the atomic transaction
@@ -72,7 +72,7 @@ impl Hub {
                 return Ok(ProfileDeletionAuthorizeOutcome::SessionConflict);
             }
             self.validate_session_transition(&prepared.registry)?;
-            self.commit_prepared_session(prepared, None)?;
+            self.commit_prepared_session(prepared, None, None)?;
             Ok(ProfileDeletionAuthorizeOutcome::AlreadyAuthorized)
         } else {
             Ok(ProfileDeletionAuthorizeOutcome::NotRegistered)

@@ -2,6 +2,8 @@ use super::{invalid_data, MAX_SETTING_VALUE_BYTES};
 use rusqlite::{Connection, OptionalExtension};
 use zephium_core::{deck::DeckState, ids::ProfileId};
 
+mod import;
+
 pub(super) fn remove_profile(meta: &Connection, profile: ProfileId) -> rusqlite::Result<()> {
     remove_avatar(meta, profile)?;
     let stored = meta.query_row(
@@ -226,5 +228,67 @@ mod tests {
         assert!(hub.pending_profile_deletions().unwrap().is_empty());
         assert_eq!(hub.load().unwrap().unwrap().profiles.len(), 2);
         assert_eq!(hub.app_setting("deck.state").as_deref(), Some("invalid"));
+    }
+
+    #[test]
+    fn layout_import_registers_profiles_and_layout_in_one_transaction() {
+        use zephium_core::ports::store::DeckImportOutcome;
+        let mut hub = Hub::in_memory().unwrap();
+        let original_session = session();
+        hub.save(&original_session).unwrap();
+        let original_deck = serde_json::to_string(&deck()).unwrap();
+        hub.set_app_setting("deck.state", &original_deck).unwrap();
+        let mut imported_session = original_session.clone();
+        imported_session.profiles.push(PersistedProfile {
+            id: ProfileId::from(3),
+            name: "Imported".into(),
+            kind: ProfileKind::Named,
+        });
+        imported_session.spaces.push(PersistedSpace {
+            id: SpaceId::from(3),
+            profile: ProfileId::from(3),
+            name: "main".into(),
+            look: Default::default(),
+        });
+        let mut imported_deck = deck();
+        imported_deck
+            .accounts
+            .push(DeckAccount::new(DeckAccountId::from(3), ProfileId::from(3)));
+        imported_deck.decks[0].columns[0].width = 440;
+        hub.meta.execute_batch("CREATE TRIGGER reject_deck BEFORE UPDATE ON settings WHEN NEW.key = 'deck.state' BEGIN SELECT RAISE(ABORT, 'write failure'); END;").unwrap();
+        assert_eq!(
+            hub.import_deck(&imported_session, &imported_deck),
+            DeckImportOutcome::Rejected
+        );
+        assert_eq!(hub.load().unwrap(), Some(original_session));
+        assert_eq!(hub.app_setting("deck.state"), Some(original_deck));
+        hub.meta.execute_batch("DROP TRIGGER reject_deck").unwrap();
+        assert_eq!(
+            hub.import_deck(&imported_session, &imported_deck),
+            DeckImportOutcome::Applied
+        );
+        assert_eq!(hub.load().unwrap(), Some(imported_session));
+        assert_eq!(
+            hub.app_setting("deck.state"),
+            Some(serde_json::to_string(&imported_deck).unwrap())
+        );
+    }
+
+    #[test]
+    fn layout_import_cannot_reassign_an_existing_login_partition() {
+        use zephium_core::ports::store::DeckImportOutcome;
+        let mut hub = Hub::in_memory().unwrap();
+        hub.save(&session()).unwrap();
+        let original = serde_json::to_string(&deck()).unwrap();
+        hub.set_app_setting("deck.state", &original).unwrap();
+        let mut imported = deck();
+        imported.accounts.swap(0, 1);
+        imported.accounts[0].profile = ProfileId::from(1);
+        imported.accounts[1].profile = ProfileId::from(2);
+        assert_eq!(
+            hub.import_deck(&session(), &imported),
+            DeckImportOutcome::Rejected
+        );
+        assert_eq!(hub.app_setting("deck.state"), Some(original));
     }
 }

@@ -5,6 +5,8 @@ let installed = $state<WebExtensionView[]>([]);
 let review = $state<WebExtensionReview | null>(null);
 let error = $state<string | null>(null);
 let busy = $state(false);
+let preparing = $state(false);
+let preparingExtension = $state<string | null>(null);
 let requests = $state<WebExtensionAccessRequestView[]>([]);
 let refreshTimer: ReturnType<typeof setTimeout> | undefined;
 let generation = 0;
@@ -13,6 +15,8 @@ export const list = () => installed;
 export const pending = () => review;
 export const failure = () => error;
 export const working = () => busy;
+export const isPreparing = () => preparing;
+export const preparingId = () => preparingExtension;
 export const accessRequest = () => requests[0] ?? null;
 
 export async function refresh() {
@@ -38,7 +42,7 @@ export function release() {
   clearTimeout(refreshTimer);
   stop?.(); stop = null;
   if (review) void commands.webExtensionCancel(review.review_id);
-  review = null; installed = []; requests = []; busy = false; error = null;
+  review = null; installed = []; requests = []; busy = false; preparing = false; preparingExtension = null; error = null;
 }
 async function perform(action: () => Promise<void>) {
   if (busy) return;
@@ -48,18 +52,23 @@ async function perform(action: () => Promise<void>) {
   catch (reason) { if (current === generation) error = String(reason); }
   finally { if (current === generation) busy = false; }
 }
-async function prepare(request: () => Promise<WebExtensionReview | null>) {
+async function prepare(request: () => Promise<WebExtensionReview | null>, extension: string | null = null) {
   await perform(async () => {
     const current = generation;
-    const result = await request();
-    if (current !== generation) { if (result) await commands.webExtensionCancel(result.review_id); return; }
-    if (review) await commands.webExtensionCancel(review.review_id);
-    review = result;
+    preparing = true; preparingExtension = extension;
+    try {
+      const result = await request();
+      if (current !== generation) { if (result) await commands.webExtensionCancel(result.review_id); return; }
+      if (review) await commands.webExtensionCancel(review.review_id);
+      review = result;
+    } finally {
+      if (current === generation) { preparing = false; preparingExtension = null; }
+    }
   });
 }
 export const prepareListing = (url: string) => prepare(() => commands.webExtensionPrepare(url));
 export const chooseFile = (folder: boolean) => prepare(() => commands.webExtensionChooseFile(folder));
-export const reviewUpdate = (id: string) => prepare(() => commands.webExtensionReviewUpdate(id));
+export const reviewUpdate = (id: string) => prepare(() => commands.webExtensionReviewUpdate(id), id);
 export const confirm = () => perform(async () => {
   const current = review;
   if (!current) return;

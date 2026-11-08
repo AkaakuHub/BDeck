@@ -1,5 +1,6 @@
 use zephium_core::extensions::ExtensionBrowserRequestId;
 mod support;
+mod portable;
 use super::*;
 use support::Fixture;
 use zephium_core::ids::DeckAccountId;
@@ -220,7 +221,8 @@ fn extension_options_from_each_account_return_to_the_original_column() {
         assert_eq!(shell.pane_tree(), Some(Pane::Leaf(page)));
         assert_eq!(shell.browser_page, None);
         assert_eq!(shell.items.tab(page).unwrap().content, zephium_core::item::TabContent::ExtensionOwned);
-        let _ = shell.close(page);
+        let closed = shell.operation_run_command("tab.close");
+        assert_ne!(closed.outcome, OperationOutcome::Rejected);
         assert_eq!(shell.windows.focused().unwrap().active, Some(column));
         assert!(!shell.web_extensions.pages.contains_key(&page));
         assert!(shell.items.tab(page).is_none());
@@ -279,4 +281,30 @@ fn extension_toolbar_events_follow_the_selected_account_and_reject_another_accou
             _ => false,
         }));
     }
+}
+
+#[test]
+fn reloading_chrome_replays_extension_actions_without_recreating_views() {
+    let mut fixture = Fixture::new(2);
+    let _ = fixture.shell.operation_activate(ItemId::from(102));
+    fixture.events.lock().unwrap().clear();
+    let views = fixture.engine.views.lock().unwrap().len();
+    fixture.shell.bootstrap();
+    assert_eq!(fixture.engine.views.lock().unwrap().len(), views);
+    assert!(fixture.events.lock().unwrap().iter().any(|event| matches!(event,
+        Projection::ExtensionActions(view) if view.profile_id == ProfileId::from(2).to_string()
+    )));
+}
+
+#[test]
+fn columns_beyond_the_browser_split_limit_remain_accessible_without_loading_every_page() {
+    let mut fixture = Fixture::new(14);
+    assert!(fixture.shell.items.tab(ItemId::from(114)).is_some());
+    assert!(!fixture.shell.items.tab(ItemId::from(114)).unwrap().has_view());
+    assert!(fixture.engine.views.lock().unwrap().len() < 8);
+    let _ = fixture.shell.operation_run_command("deck.scroll=100000");
+    assert!(fixture.shell.items.tab(ItemId::from(114)).unwrap().has_view());
+    assert!(fixture.shell.pane_tree().unwrap().contains(ItemId::from(114)));
+    assert!(fixture.engine.views.lock().unwrap().len() < 14);
+    assert_eq!(fixture.shell.deck.profile_for_item(ItemId::from(114)), Some(ProfileId::from(14)));
 }
