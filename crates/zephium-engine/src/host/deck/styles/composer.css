@@ -1,0 +1,27 @@
+[data-testid="toolBar"] {
+  min-inline-size: 0 !important;
+  max-inline-size: 100% !important;
+}
+[data-testid="toolBar"] nav,
+[data-testid="toolBar"] [data-testid="ScrollSnap-SwipeableList"] {
+  min-inline-size: 0 !important;
+}
+[data-testid="toolBar"] [data-testid="ScrollSnap-List"] {
+  flex-wrap: nowrap !important;
+  inline-size: max-content !important;
+}
+[data-testid="toolBar"] [data-testid="ScrollSnap-List"] > div {
+  flex: 0 0 auto !important;
+  inline-size: auto !important;
+  min-inline-size: 0 !important;
+  max-inline-size: none !important;
+}
+[data-testid="toolBar"] nav :is(button, [role="button"]) {
+  min-inline-size: 28px !important;
+  min-block-size: 28px !important;
+}
+[data-testid="toolBar"] nav svg {
+  inline-size: 20px !important;
+  block-size: 20px !important;
+  flex-shrink: 0 !important;
+}

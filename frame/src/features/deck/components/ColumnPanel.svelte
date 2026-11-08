@@ -1,0 +1,97 @@
+<script lang="ts">
+  import { DEFAULT_COLUMN_WIDTH } from "$domain/deck";
+  import { onMount, tick } from "svelte";
+  import "$styles/global.css";
+  import { commands, type PanelView, type PanelAction, type ColumnDraft } from "$shared/ipc/bindings";
+  import { events } from "$shared/ipc/native-events";
+  import { Cancel01Icon, ArrowLeft02Icon, ArrowRight02Icon, Copy01Icon } from "@hugeicons/core-free-icons";
+  import AccountPicker from "./accounts/AccountPicker.svelte";
+  import ColumnFields from "./ColumnFields.svelte";
+  import Icon from "$shared/ui/Icon";
+  import IconButton from "$shared/ui/IconButton";
+  import Button from "$shared/ui/Button";
+  let view = $state<PanelView | null>(null);
+  let pending = $state(false);
+  let failed = $state(false);
+  let initial = $state<HTMLButtonElement>();
+  let panel = $state<HTMLElement>();
+  let draft = $state<ColumnDraft>({ kind: "home", account: "", text: "", width: DEFAULT_COLUMN_WIDTH, row: 0 });
+  const adding = $derived(view?.id === null && !view?.composer);
+  $effect(() => { if (view && !view.accounts.some((account) => account.id === draft.account)) draft.account = view.account; });
+  function fields(update: Partial<ColumnDraft>) {
+    if (adding) { draft = { ...draft, ...update }; return; }
+    if (update.account !== undefined) void action({ kind: "account", value: update.account });
+    if (update.width !== undefined) void action({ kind: "width", value: update.width });
+    if (update.row !== undefined) void action({ kind: "row", value: update.row });
+  }
+  async function action(value: PanelAction) {
+    if (pending) return;
+    pending = true;
+    failed = false;
+    try { await commands.columnPanelAction(value); }
+    catch { failed = true; pending = false; }
+  }
+  onMount(() => {
+    let disposed = false;
+    let stops: (() => void)[] = [];
+    let resize: ResizeObserver | undefined;
+    const height = () => Math.max(100, Math.min(640, Math.ceil(panel?.getBoundingClientRect().height ?? 100)));
+    async function present(next: PanelView | null) {
+      resize?.disconnect();
+      view = null;
+      await tick();
+      view = next;
+      pending = false;
+      failed = false;
+      await tick();
+      if (disposed || !view || !panel) return;
+      initial?.focus();
+      await commands.columnPanelReady(height());
+      resize = new ResizeObserver(() => { void commands.columnPanelResize(height()).catch(() => console.error("column panel sizing failed")); });
+      resize.observe(panel);
+    }
+    void (async () => {
+      stops = await Promise.all([
+        events.columnPanelView.listen(({ payload }) => { if (payload === null) resize?.disconnect(); view = payload; pending = false; }),
+        events.columnPanelOpen.listen(({ payload }) => { void present(payload).catch(() => console.error("column panel presentation failed")); }),
+      ]);
+      if (disposed) { for (const stop of stops) stop(); return; }
+      await present(await commands.columnPanelGet());
+    })().catch(() => { failed = true; });
+    return () => { disposed = true; for (const stop of stops) stop(); resize?.disconnect(); };
+  });
+</script>
+<svelte:window onkeydown={(event) => { if (event.key === "Escape" && !event.defaultPrevented) { event.preventDefault(); void commands.columnPanelClose(); } }} />
+{#if view}
+<section bind:this={panel} aria-label={view.composer ? view.title : adding ? "カラムを追加" : `${view.title}の設定`} class="panel" aria-busy={pending}>
+  <header><h1>{view.title}</h1><button bind:this={initial} class="icon-button" style:--icon-button-size="28px" aria-label="カラム設定を閉じる" onclick={() => void commands.columnPanelClose()}><Icon icon={Cancel01Icon} size={16} /></button></header>
+  {#if view.composer}
+    <div class="composer-account"><AccountPicker accounts={view.accounts} value={view.account} disabled={pending} onchange={(value) => void action({ kind: "account", value })} /></div>
+  {:else}
+  <form onsubmit={(event) => { event.preventDefault(); if (adding) void action({ kind: "create", value: { ...draft, row: view?.two_rows ? draft.row : 0 } }); }}>
+    <ColumnFields accounts={view.accounts} account={adding ? draft.account : view.account} width={adding ? draft.width : view.width} row={adding ? draft.row : view.row} twoRows={view.two_rows} {adding} kind={draft.kind} text={draft.text} onchange={fields} />
+    {#if adding}<footer><Button type="submit" disabled={pending || !draft.account || ((draft.kind === "search" || draft.kind === "list") && !draft.text.trim())}>追加</Button></footer>{:else}
+    <footer>
+      <IconButton icon={ArrowLeft02Icon} label="前へ移動" disabled={view.index === 0 || pending} onclick={() => void action({ kind: "previous" })} />
+      <IconButton icon={ArrowRight02Icon} label="次へ移動" disabled={view.index + 1 === view.count || pending} onclick={() => void action({ kind: "next" })} />
+      <IconButton icon={Copy01Icon} label="カラムを複製" disabled={pending} onclick={() => void action({ kind: "duplicate" })} />
+      <Button variant="ghost" disabled={pending} onclick={() => void action({ kind: "suspend" })}>{view.suspended ? "再開" : "休止"}</Button>
+      <IconButton icon={Cancel01Icon} label="カラムを削除" disabled={pending} onclick={() => void action({ kind: "remove" })} />
+    </footer>
+    {/if}
+  </form>
+  {/if}
+  {#if failed || view.failed}<p role="alert">変更を反映できませんでした。</p>{/if}
+</section>
+{/if}
+<style>
+  :global(html) { background: transparent; }
+  :global(body) { overflow-y: auto; }
+  .panel { box-sizing: border-box; padding: 14px 18px; border: 1px solid var(--color-border-strong); border-radius: 12px; background: var(--color-surface); color: var(--color-text); overflow-y: auto; }
+  header, footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  h1 { margin: 0; font-size: 14px; font-weight: 600; }
+  .composer-account { margin-block-start: 12px; }
+  form { display: grid; gap: 14px; margin-block-start: 12px; }
+  footer { border-block-start: 1px solid var(--color-border); padding-block-start: 10px; }
+  p { margin: 8px 0 0; font-size: 12px; color: var(--color-danger); }
+</style>

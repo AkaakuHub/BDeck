@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Access extension verification",
+  "description": "Verifies that extending permissions keeps native extension pages alive.",
+  "version": "1.0.0",
+  "permissions": [
+    "storage"
+  ],
+  "optional_permissions": [
+    "unlimitedStorage"
+  ],
+  "action": {
+    "default_popup": "page.html"
+  }
+}

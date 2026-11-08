@@ -1,0 +1,7 @@
+[data-testid="dm-container"],
+[data-testid="dm-inbox-panel"] {
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}

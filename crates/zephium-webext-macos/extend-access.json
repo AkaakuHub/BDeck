@@ -1,0 +1,36 @@
+[
+  {
+    "load": "crates/zephium-webext-macos/fixtures/access-extension",
+    "compat": true,
+    "sites": [],
+    "permissions": [
+      "storage"
+    ]
+  },
+  {
+    "background": true
+  },
+  {
+    "page": "page.html"
+  },
+  {
+    "eval": "if(await chrome.permissions.contains({permissions:['unlimitedStorage']})) throw new Error('Optional permission was granted before approval'); globalThis.preservedPage='alive'; await chrome.storage.local.set({theme:'same'}); return true;",
+    "expect": true
+  },
+  {
+    "grant_access": {
+      "permissions": [
+        "storage",
+        "unlimitedStorage"
+      ],
+      "patterns": []
+    }
+  },
+  {
+    "eval": "if(!await chrome.permissions.contains({permissions:['unlimitedStorage']})||globalThis.preservedPage!=='alive'||(await chrome.storage.local.get('theme')).theme!=='same') throw new Error('Page or permission was lost'); return true;",
+    "expect": true
+  },
+  {
+    "erase": true
+  }
+]

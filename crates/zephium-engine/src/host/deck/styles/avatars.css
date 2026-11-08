@@ -1,0 +1,2 @@
+[data-testid^="UserAvatar-Container"] img,
+[data-testid^="UserAvatar-Container"] div { border-radius: var(--bdeck-avatar-radius) !important; }

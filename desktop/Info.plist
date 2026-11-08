@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSCameraUsageDescription</key>
+  <string>BDeck uses the camera only when you allow a website to access it.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>BDeck uses the microphone only when you allow a website to access it.</string>
+  <key>NSLocationUsageDescription</key>
+  <string>BDeck shares your location with a website only when you allow it.</string>
+  <key>NSLocationWhenInUseUsageDescription</key>
+  <string>BDeck shares your location with a website only when you allow it.</string>
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>Websites you open can reach devices on your network, such as your router, printer or a video call.</string>
+  <key>NSDownloadsFolderUsageDescription</key>
+  <string>BDeck saves the files you download to your Downloads folder.</string>
+  <key>NSDesktopFolderUsageDescription</key>
+  <string>BDeck saves downloads to your Desktop when you choose it as the download folder.</string>
+  <key>NSDocumentsFolderUsageDescription</key>
+  <string>BDeck saves downloads to your Documents folder when you choose it as the download folder.</string>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key>
+      <string>Web site URL</string>
+      <key>CFBundleTypeRole</key>
+      <string>Viewer</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>http</string>
+        <string>https</string>
+      </array>
+    </dict>
+  </array>
+</dict>
+</plist>

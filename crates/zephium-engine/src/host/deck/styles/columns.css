@@ -1,0 +1,52 @@
+html, body { overflow-x: clip !important; }
+html[data-bdeck-home] .bdeck-home-composer,
+html[data-bdeck-home] [data-testid="primaryColumn"] > div > div:has(.bdeck-home-composer),
+html[data-bdeck-home] [data-testid="primaryColumn"] > div > div:has(.bdeck-home-composer) + div:empty { display: none !important; }
+[data-testid="tweet"] .bdeck-post-body { padding-block-end: 0 !important; }
+[data-testid="tweet"] .bdeck-empty-context { display: none !important; }
+[role="main"]:has([data-testid="primaryColumn"]),
+[role="main"] > div:has([data-testid="primaryColumn"]),
+[data-testid="primaryColumn"] {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  margin-inline: 0 !important;
+}
+[data-testid="primaryColumn"] { border-inline: 0 !important; }
+[data-testid="primaryColumn"] [data-testid="tweetText"] {
+  font-size: var(--bdeck-font-size) !important;
+  line-height: 1.4 !important;
+  overflow-wrap: anywhere;
+}
+[data-testid="primaryColumn"] [data-testid="tweet"] {
+  padding: var(--bdeck-post-padding) !important;
+  border-radius: 0 !important;
+}
+[data-testid="primaryColumn"] [data-testid="tweetPhoto"] { border-radius: 4px !important; }
+[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) :is(button, a, span) { font-size: 11px !important; }
+[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) svg { width: 16px !important; height: 16px !important; }
+[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) span { padding-inline: 0 !important; }
+
+[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) :is(button, a) { min-height: 28px !important; }
+
+[data-testid="primaryColumn"] nav:has([role="tab"]):not([data-testid="tweet"] nav) [data-testid="ScrollSnap-List"] {
+  flex-wrap: wrap !important;
+  overflow: visible !important;
+  width: 100% !important;
+  height: auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+[data-testid="primaryColumn"] nav:has([role="tab"]):not([data-testid="tweet"] nav):has([data-testid="ScrollSnap-List"]),
+[data-testid="primaryColumn"] nav:has([role="tab"]):not([data-testid="tweet"] nav) [data-testid="ScrollSnap-SwipeableList"],
+[data-testid="primaryColumn"] nav:has([role="tab"]):not([data-testid="tweet"] nav) div:has(> [data-testid="ScrollSnap-SwipeableList"]) {
+  height: auto !important;
+  min-height: 0 !important;
+}
+[data-testid="primaryColumn"] nav:has([role="tab"]):not([data-testid="tweet"] nav) [data-testid="ScrollSnap-List"] > div {
+  flex: 1 1 96px !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+[data-testid="primaryColumn"] [role="tab"]:not([data-testid="tweet"] [role="tab"]) { padding-inline: 8px !important; }
+[data-testid="primaryColumn"] [role="tab"]:not([data-testid="tweet"] [role="tab"]) [dir="auto"] { font-size: 13px !important; }

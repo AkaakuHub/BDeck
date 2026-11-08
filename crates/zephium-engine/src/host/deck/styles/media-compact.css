@@ -1,0 +1,2 @@
+[data-testid="primaryColumn"] [data-testid="tweetPhoto"] { max-height: 160px !important; }
+[data-testid="primaryColumn"] [data-testid="tweetPhoto"] img { object-fit: cover !important; }

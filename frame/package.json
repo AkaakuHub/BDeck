@@ -1,0 +1,27 @@
+{
+  "name": "@bdeck/frame",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test:ipc": "node --test tests/ipc/operation.test.mjs",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings && tsc6 --project tsconfig.node.json"
+  },
+  "dependencies": {
+    "@hugeicons/svelte": "1.1.4",
+    "@tauri-apps/api": "2.11.1",
+    "bits-ui": "2.18.1",
+    "svelte": "5.56.8"
+  },
+  "devDependencies": {
+    "@hugeicons/core-free-icons": "4.3.5",
+    "@sveltejs/vite-plugin-svelte": "7.2.0",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/node": "^24.13.4",
+    "svelte-check": "4.7.3",
+    "tailwindcss": "4.3.3",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vite": "8.3.5"
+  }
+}

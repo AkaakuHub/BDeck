@@ -1,0 +1,27 @@
+[package]
+name = "zephium-app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+# Browser-owned camera/microphone prompts for foreground macOS tabs.
+macos-page-permission-prompts = []
+
+[dependencies]
+serde_json.workspace = true
+psl = "=2.1.220"
+chrono = { version = "=0.4.45", default-features = false, features = ["clock"] }
+zephium-core.workspace = true
+zephium-ipc.workspace = true
+base64.workspace = true
+url.workspace = true
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-core = "0.61"
+windows = { version = "0.61", features = ["Win32_Foundation", "Win32_Globalization", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_UI_Shell", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_System_SystemInformation", "Win32_System_Pipes", "Win32_System_IO", "Win32_Security", "Win32_Security_Isolation", "Win32_Security_Authorization"] }
+
+[dev-dependencies]
+serde_json.workspace = true
+tempfile.workspace = true
+zephium-store.workspace = true

@@ -1,0 +1,29 @@
+{
+  "productName": "BDeck",
+  "app": {
+    "enableGTKAppId": true,
+    "windows": [
+      {
+        "label": "main",
+        "create": false,
+        "title": "BDeck",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 680,
+        "minHeight": 480,
+        "decorations": false,
+        "transparent": true
+      }
+    ]
+  },
+  "bundle": {
+    "linux": {
+      "deb": {
+        "desktopTemplate": "linux/bdeck.desktop.hbs"
+      },
+      "rpm": {
+        "desktopTemplate": "linux/bdeck.desktop.hbs"
+      }
+    }
+  }
+}

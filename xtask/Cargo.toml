@@ -1,0 +1,13 @@
+[package]
+name = "xtask"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+base64 = "0.22"
+minisign = "=0.10.0"
+semver = "=1.0.28"
+serde_json = "1"
+tempfile = "3"

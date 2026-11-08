@@ -1,0 +1,45 @@
+[
+  {
+    "load": "crates/zephium-webext-macos/fixtures/shared-storage",
+    "compat": true
+  },
+  {
+    "background": true
+  },
+  {
+    "page": "page.html"
+  },
+  {
+    "eval": "globalThis.sharedChanges=[]; chrome.storage.onChanged.addListener((changes,area)=>sharedChanges.push({changes,area})); localStorage.setItem('isolatedProfile','primary'); await chrome.storage.local.set({theme:'primary'}); await chrome.storage.session.set({draft:'primary'}); return true;",
+    "expect": true
+  },
+  {
+    "profile": "peer",
+    "load": "crates/zephium-webext-macos/fixtures/shared-storage",
+    "compat": true
+  },
+  {
+    "profile": "peer",
+    "background": true
+  },
+  {
+    "profile": "peer",
+    "page": "page.html"
+  },
+  {
+    "profile": "peer",
+    "eval": "const values=await chrome.storage.local.get('theme'); const session=await chrome.storage.session.get('draft'); if(values.theme!=='primary'||session.draft!=='primary'||localStorage.getItem('isolatedProfile')!==null) throw new Error('Profile isolation or shared storage failed'); localStorage.setItem('isolatedProfile','peer'); await chrome.storage.local.set({theme:'peer'}); await chrome.storage.session.set({draft:'peer'}); return true;",
+    "expect": true
+  },
+  {
+    "eval": "await new Promise(resolve=>setTimeout(resolve,300)); const values=await chrome.storage.local.get('theme'); const session=await chrome.storage.session.get('draft'); if(values.theme!=='peer'||session.draft!=='peer'||localStorage.getItem('isolatedProfile')!=='primary'||!sharedChanges.some(event=>event.area==='local'&&event.changes.theme?.newValue==='peer')) throw new Error('Cross-profile change delivery failed'); return true;",
+    "expect": true
+  },
+  {
+    "profile": "peer",
+    "erase": true
+  },
+  {
+    "erase": true
+  }
+]

@@ -1,0 +1,104 @@
+import { commands, type PanelAction, type PanelView, type ColumnDraft } from "$shared/ipc/bindings";
+import { surface } from "$domain/surface";
+import { layout } from "$domain/layout";
+import { accepted, runOperation } from "$shared/ipc/operation";
+import { events } from "$shared/ipc/native-events";
+import { deck } from "./deck.svelte";
+import { accountAvatars } from "./avatars.svelte";
+import { DEFAULT_COLUMN_WIDTH, targetName, type ColumnTarget } from "./deck-types";
+
+let selection = $state<string | null>(null);
+let queue: Promise<void> = Promise.resolve();
+let panelFailed = false;
+
+function snapshot(): PanelView | null {
+  const active = deck.active();
+  if (!active || !selection) return null;
+  const accounts = (deck.state()?.accounts ?? []).map((account) => ({ id: account.id, title: deck.displayName(account.id), screen_name: account.identity?.screen_name ?? null, avatar: accountAvatars.url(account.profile) }));
+  const column = active.columns.find((column) => column.id === selection);
+  const composer = selection === "composer";
+  if (!column && selection !== "add" && !composer) return null;
+  return {
+    composer, id: column?.id ?? null, title: composer ? "投稿するアカウント" : column ? targetName(column.target) : "カラムを追加", index: column ? active.columns.indexOf(column) : 0, count: active.columns.length,
+    account: composer ? layout.composer()?.account ?? "" : column?.account ?? accounts[0]?.id ?? "", accounts,
+    width: column?.width ?? DEFAULT_COLUMN_WIDTH, row: column?.row ?? 0, two_rows: active.layout === "two_rows", suspended: column?.suspended ?? false, failed: deck.failed() || panelFailed,
+  };
+}
+
+function target(draft: ColumnDraft): ColumnTarget {
+  switch (draft.kind) {
+    case "home": return { kind: "home" };
+    case "notifications": return { kind: "notifications" };
+    case "messages": return { kind: "url", url: "https://x.com/messages" };
+    case "explore": return { kind: "url", url: "https://x.com/explore" };
+    case "search": return { kind: "search", query: draft.text.trim() };
+    case "list": return { kind: "list", url: draft.text.trim() };
+  }
+}
+
+async function apply(id: string | null, action: PanelAction) {
+  if (selection === "composer") {
+    if (id !== null || action.kind !== "account") return;
+    try {
+      const result = await runOperation(() => commands.composerOpen(action.value));
+      if (selection !== "composer") return;
+      panelFailed = !accepted(result);
+      if (!panelFailed) selection = null;
+    } catch { if (selection === "composer") panelFailed = true; }
+    if (selection === "composer" || selection === null) await commands.columnPanelSync(snapshot());
+    return;
+  }
+  if (action.kind === "create") {
+    if (id !== null || selection !== "add") return;
+    const draft = action.value;
+    const created = await deck.addColumn(target(draft), draft.account, draft.width, draft.row);
+    if (selection !== "add") return;
+    if (created) {
+      selection = null;
+      await commands.columnPanelSync(null);
+      await commands.tabsActivate(created);
+    } else { await commands.columnPanelSync(snapshot()); }
+    return;
+  }
+  const column = deck.active()?.columns.find((column) => column.id === id);
+  if (!id || !column || id !== selection) return;
+  try {
+    switch (action.kind) {
+      case "width": await deck.updateColumn(id, (current) => ({ ...current, width: action.value })); break;
+      case "account": await deck.updateColumn(id, (current) => ({ ...current, account: action.value })); break;
+      case "row": if (action.value === 0 || action.value === 1) await deck.setColumnRow(id, action.value); break;
+      case "previous": await deck.moveColumn(id, -1); break;
+      case "next": await deck.moveColumn(id, 1); break;
+      case "duplicate": await deck.duplicateColumn(column); break;
+      case "suspend": await deck.toggleSuspended(id); break;
+      case "remove": await deck.removeColumn(id); break;
+    }
+  } finally { if (selection === id) await commands.columnPanelSync(snapshot()); }
+}
+
+async function show(next: string, event: MouseEvent) {
+  if (!(event.currentTarget instanceof HTMLElement)) return;
+  const button = event.currentTarget;
+  if (!await surface.close() || !button.isConnected) return;
+  const anchor = button.getBoundingClientRect();
+  panelFailed = false;
+  selection = next;
+  const view = snapshot();
+  if (view) await commands.columnPanelOpen(view, anchor.right, anchor.bottom);
+}
+
+async function init(): Promise<() => void> {
+  if (selection === null) await commands.columnPanelSync(null);
+  const stop = await events.columnPanelAction.listen(({ payload: [id, action] }) => {
+    queue = queue.then(() => apply(id, action)).catch(() => console.error("column panel update failed"));
+  });
+  const stopSync = $effect.root(() => {
+    $effect(() => {
+      const view = snapshot();
+      if (selection) void commands.columnPanelSync(view).catch(() => console.error("column panel synchronization failed"));
+    });
+  });
+  return () => { stop(); stopSync(); selection = null; };
+}
+
+export const columnPanel = { open: (id: string, event: MouseEvent) => show(id, event), add: (event: MouseEvent) => show("add", event), composer: (event: MouseEvent) => show("composer", event), init };
