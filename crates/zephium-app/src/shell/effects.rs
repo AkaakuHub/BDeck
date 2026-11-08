@@ -55,12 +55,13 @@ pub(super) fn mutation_result(native: NativeWork) -> OperationDisposition {
 }
 
 impl Shell {
-    pub(super) fn commit(&mut self, effects: Vec<Effect>) -> NativeWork {
+    pub(super) fn commit(&mut self, mut effects: Vec<Effect>) -> NativeWork {
         // Every ordinary committed mutation may change focus, view
         // residency, or split topology. A captured divider path cannot cross
         // that boundary; resize/sidebar geometry updates deliberately bypass
         // `commit` and remain draggable through path-based recomputation.
         self.drop_divider();
+        effects.extend(self.ensure_visible_deck_views());
         let mut native = self.apply(effects);
         self.schedule_persist();
         // Visibility has to land before dormancy. WebView2 only accepts a
@@ -74,9 +75,10 @@ impl Shell {
     }
 
     pub(super) fn apply(&mut self, effects: Vec<Effect>) -> NativeWork {
+        let extension_surfaces = self.sync_extension_browser_surfaces();
         // Deletion quarantine dominates every other profile policy.
         let mut admitted = Vec::with_capacity(effects.len());
-        let mut native = NativeWork::default();
+        let mut native = extension_surfaces.native;
         for effect in effects {
             match effect {
                 Effect::CreateView { id, .. } if self.profile_deletion_quarantines_item(id) => {

@@ -6,6 +6,7 @@
     "dev": "vite",
     "build": "vite build",
     "test:ipc": "node --test tests/ipc/operation.test.mjs",
+    "test:deck": "node --test tests/deck/*.test.mjs",
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings && tsc6 --project tsconfig.node.json"
   },
   "dependencies": {

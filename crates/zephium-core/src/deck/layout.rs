@@ -2,7 +2,7 @@ use super::{Deck, DeckLayout};
 use crate::geometry::Rect;
 use crate::ids::DeckColumnId;
 
-pub const COLUMN_HEADER_HEIGHT: f64 = 40.0;
+pub const COLUMN_HEADER_HEIGHT: f64 = 30.0;
 
 pub fn header_rect(pane: Rect) -> Rect {
     Rect::new(
@@ -145,8 +145,8 @@ mod tests {
         let pane = Rect::new(62.0, 420.0, 320.0, 380.0);
         let header = header_rect(pane);
         let page = content_rect(pane);
-        assert_eq!(header, Rect::new(62.0, 420.0, 320.0, 40.0));
-        assert_eq!(page, Rect::new(62.0, 460.0, 320.0, 340.0));
+        assert_eq!(header, Rect::new(62.0, 420.0, 320.0, 30.0));
+        assert_eq!(page, Rect::new(62.0, 450.0, 320.0, 350.0));
         assert_eq!(header.height + page.height, pane.height);
     }
     #[test]

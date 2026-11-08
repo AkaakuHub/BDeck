@@ -231,6 +231,11 @@ enum Cmd {
         Sender<ProfileDeletionAuthorizeOutcome>,
     ),
     FinalizeProfileDeletion(ProfileId, Sender<ProfileDeletionFinalizeOutcome>),
+    ImportDeck(
+        SessionState,
+        zephium_core::deck::DeckState,
+        Box<dyn FnOnce(zephium_core::ports::store::DeckImportOutcome) + Send>,
+    ),
     Flush(Sender<bool>),
     Shutdown(Sender<bool>),
 }
@@ -447,6 +452,19 @@ impl SqliteStore {
 }
 
 impl Store for SqliteStore {
+    fn import_deck(
+        &self,
+        session: SessionState,
+        deck: zephium_core::deck::DeckState,
+        done: Box<dyn FnOnce(zephium_core::ports::store::DeckImportOutcome) + Send>,
+    ) {
+        if let Err(error) = self.tx.try_send(Cmd::ImportDeck(session, deck, done)) {
+            let (mpsc::TrySendError::Full(command) | mpsc::TrySendError::Disconnected(command)) = error;
+            if let Cmd::ImportDeck(_, _, done) = command {
+                done(zephium_core::ports::store::DeckImportOutcome::Rejected);
+            }
+        }
+    }
     fn save_session(&self, session: SessionState) {
         if !admissible_session(&session) {
             return;
@@ -990,6 +1008,17 @@ fn actor(
                     let _ = flush(&mut hub, &mut pending);
                 }
                 let _ = flush_settings(&mut hub, &pending_settings, &mut setting_retry, false);
+            }
+            Some(Cmd::ImportDeck(session, deck, done)) => {
+                let outcome =
+                    if flush_settings(&mut hub, &pending_settings, &mut setting_retry, true)
+                        && flush(&mut hub, &mut pending)
+                    {
+                        hub.import_deck(&session, &deck)
+                    } else {
+                        zephium_core::ports::store::DeckImportOutcome::Rejected
+                    };
+                done(outcome);
             }
             Some(Cmd::SaveWake) => {}
             Some(Cmd::SettingWake) => {}

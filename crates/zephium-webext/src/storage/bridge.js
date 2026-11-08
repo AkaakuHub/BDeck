@@ -17,6 +17,7 @@
   const listeners = new Set(), areaListeners = new Map(), proxies = new Map();
   const pending = new Map();
   let connection, port, next = 1, reconnects = 0;
+  let tail = Promise.resolve(), queued = 0, queuedBytes = 0;
   const observed = () => listeners.size || proxies.size || [...areaListeners.values()].some(set => set.size);
   const emit = message => {
     for (const listener of [...listeners]) { try { listener(message.changes, message.area); } catch (error) { console.error(error); } }
@@ -72,15 +73,25 @@
     });
     return connection;
   }
-  async function request(area, operation, untrusted = content) {
-    if (pending.size >= 32) throw new Error("Too many pending storage requests");
+  function request(area, operation, untrusted = content) {
+    let serialized;
+    try { serialized = JSON.stringify({area, operation, contentScript:untrusted}); }
+    catch (error) { return Promise.reject(error); }
+    const bytes = serialized.length * 2;
+    if (queued >= 512 || queuedBytes + bytes > 64 * 1024 * 1024) return Promise.reject(new Error("Extension storage queue is full"));
+    queued++; queuedBytes += bytes;
+    const result = tail.then(() => send(JSON.parse(serialized)));
+    tail = result.catch(() => {}).finally(() => { queued--; queuedBytes -= bytes; });
+    return result;
+  }
+  async function send(message) {
     const opened = await connect();
-    if (pending.size >= 32 || next > Number.MAX_SAFE_INTEGER) throw new Error("Too many storage requests");
+    if (next > Number.MAX_SAFE_INTEGER) throw new Error("Too many storage requests");
     const id = next++;
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => { pending.delete(id); reject(new Error("Extension storage request timed out")); }, 15000);
       pending.set(id, {resolve, reject, timeout});
-      try { opened.postMessage({request:id, area, operation, contentScript:untrusted}); }
+      try { opened.postMessage({request:id, ...message}); }
       catch (error) { clearTimeout(timeout); pending.delete(id); reject(error); }
     });
   }

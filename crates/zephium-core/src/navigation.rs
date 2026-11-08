@@ -264,6 +264,18 @@ pub fn is_browser_target_str(target: &str) -> bool {
     Url::parse(target).is_ok_and(|url| is_browser_target(&url))
 }
 
+pub fn extension_document_id(url: &Url) -> Option<&str> {
+    let id = url.host_str()?;
+    (url.scheme() == "chrome-extension"
+        && id.len() == 32
+        && id.bytes().all(|byte| (b'a'..=b'p').contains(&byte))
+        && url.username().is_empty()
+        && url.password().is_none()
+        && url.port().is_none()
+        && url.as_str().len() <= MAX_URL_BYTES)
+        .then_some(id)
+}
+
 fn looks_like_host(s: &str) -> bool {
     if s.contains(char::is_whitespace) {
         return false;
