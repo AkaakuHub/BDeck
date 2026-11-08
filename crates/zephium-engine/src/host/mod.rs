@@ -144,6 +144,8 @@ struct ObservedView {
     // The DevTools window id of this exact controller, which never changes:
     // asked once instead of on every extension toolbar refresh.
     #[cfg(target_os = "windows")]
+    extension_window: Cell<Option<i64>>,
+    #[cfg(target_os = "windows")]
     windows_final_discard: Option<Arc<discard::WindowsFinalDiscard>>,
     #[cfg(target_os = "windows")]
     discard_deadline: Option<crate::platform::imp::ContentPolicyTimeout>,

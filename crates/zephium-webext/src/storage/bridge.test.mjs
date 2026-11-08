@@ -112,3 +112,47 @@ test('other extensions cannot reach the background proxy and restricted changes 
   client.postMessage({request:1,area:'local',operation:{method:'get',keys:null}}); await tick();
   assert.equal(server.requests.length,count); client.disconnect();
 });
+
+test('startup bursts wait in order instead of failing the native pending request limit', async t => {
+  let active = 0, peak = 0;
+  const server = backend(async message => {
+    peak = Math.max(peak, ++active);
+    await tick();
+    active--;
+    return message.operation.keys;
+  });
+  const page = context(server); t.after(() => page.dispose());
+  const expected = Array.from({length:96}, (_, index) => `key-${index}`);
+  assert.deepEqual(await Promise.all(expected.map(key => page.chrome.storage.local.get(key))), expected);
+  assert.equal(peak, 1);
+  assert.deepEqual(server.requests.map(request => request.operation.keys), expected);
+});
+
+test('queued writes capture the call value and an error does not block later requests', async t => {
+  const server = backend(message => {
+    if (message.operation.method === 'remove') throw new Error('rejected');
+    return message.operation.items;
+  });
+  const page = context(server); t.after(() => page.dispose());
+  const items = {theme:'dark'};
+  const write = page.chrome.storage.local.set(items);
+  items.theme = 'light';
+  const rejected = page.chrome.storage.local.remove('blocked');
+  const after = page.chrome.storage.local.set({theme:'after'});
+  await Promise.all([write, assert.rejects(rejected, /rejected/), after]);
+  assert.deepEqual(server.requests.map(request => request.operation.method), ['set','remove','set']);
+  assert.deepEqual(server.requests[0].operation.items, {theme:'dark'});
+  assert.deepEqual(server.requests[2].operation.items, {theme:'after'});
+});
+
+test('the bounded queue rejects overflow while admitted requests still settle', async t => {
+  const server = backend(message => message.operation.keys);
+  const page = context(server); t.after(() => page.dispose());
+  const calls = Array.from({length:513}, (_, index) => page.chrome.storage.local.get(String(index)));
+  const results = await Promise.allSettled(calls);
+  assert.equal(results.filter(result => result.status === 'fulfilled').length, 512);
+  assert.equal(results[512].status, 'rejected');
+  assert.match(results[512].reason.message, /queue is full/);
+  assert.equal(server.requests.length, 512);
+  assert.equal(await page.chrome.storage.local.get('after'), 'after');
+});

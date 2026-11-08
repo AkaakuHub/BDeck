@@ -90,7 +90,7 @@ impl ColumnDraft {
                 .iter()
                 .any(|account| account.id == self.account)
             && (MIN_COLUMN_WIDTH..=MAX_COLUMN_WIDTH).contains(&self.width)
-            && self.row <= u8::from(view.two_rows)
+            && self.row <= 1
             && target.valid()
     }
 }
