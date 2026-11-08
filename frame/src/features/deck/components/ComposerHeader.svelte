@@ -1,31 +1,29 @@
 <script lang="ts">
   import { Cancel01Icon } from "@hugeicons/core-free-icons";
   import { layout } from "$domain/layout";
-  import { accountAvatars, columnPanel, deck } from "$domain/deck";
+  import { accountAvatars, deck } from "$domain/deck";
   import { commands } from "$shared/ipc/bindings";
   import IconButton from "$shared/ui/IconButton";
-  import Button from "$shared/ui/Button";
   import AccountAvatar from "./accounts/AccountAvatar.svelte";
   import AccountPanel from "./AccountPanel.svelte";
-  let menuFailed = $state(false);
-  async function openMenu(event: MouseEvent) {
-    menuFailed = false;
-    try { await columnPanel.composer(event); } catch { menuFailed = true; }
-  }
   const frame = $derived(layout.composer());
-  const account = $derived(deck.state()?.accounts.find((account) => account.id === frame?.account));
 </script>
 {#if frame?.managing}
   <AccountPanel {frame} />
 {:else if frame}
   <header class="composer-header" data-tauri-drag-region="deep" style:left={`${frame.x}px`} style:top={`${frame.y}px`} style:width={`${frame.width}px`}>
-    <strong>新しいポスト</strong>
-    <div class="account"><Button aria-label={menuFailed ? "アカウントメニューを開けませんでした" : "投稿するアカウントを選択"} onclick={(event) => void openMenu(event)}><AccountAvatar url={account ? accountAvatars.url(account.profile) : null} size={22} />{deck.displayName(frame.account)}</Button></div>
+    <div class="accounts" role="group" aria-label="投稿するアカウント">
+      {#each deck.state()?.accounts ?? [] as account (account.id)}
+        <button class="account" aria-label={deck.displayName(account.id)} title={deck.displayName(account.id)} aria-pressed={frame.account === account.id} onclick={() => void commands.composerOpen(account.id)}><AccountAvatar url={accountAvatars.url(account.profile)} size={24} /></button>
+      {/each}
+    </div>
     <IconButton icon={Cancel01Icon} label="投稿パネルを閉じる" buttonSize={26} size={15} onclick={() => void commands.runCommand("composer.close")} />
   </header>
 {/if}
 <style>
-  .composer-header { position: absolute; z-index: 3; display: flex; align-items: center; gap: 10px; height: 40px; padding-inline: 12px 6px; box-sizing: border-box; background: var(--color-surface); color: var(--color-text); border-block-end: 1px solid var(--color-border); }
-  strong { flex: 1; font-size: 13px; font-weight: 600; white-space: nowrap; }
-  .account { min-width: 0; max-width: 160px; }
+  .composer-header { position: absolute; z-index: 3; display: flex; align-items: center; gap: 8px; height: 30px; padding-inline: 6px; box-sizing: border-box; background: var(--color-surface); color: var(--color-text); border-block-end: 1px solid var(--color-border); }
+  .accounts { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; overflow-x: auto; }
+  .account { display: inline-flex; flex: none; align-items: center; justify-content: center; padding: 1px; border: 1px solid transparent; border-radius: 50%; background: transparent; cursor: pointer; }
+  .account[aria-pressed="true"] { border-color: var(--color-ring); background: var(--color-fill); }
+  .account:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 1px; }
 </style>
