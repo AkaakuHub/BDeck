@@ -812,6 +812,7 @@ fn tracked_operation_command(command: &Command) -> bool {
             | Command::Space(_)
             | Command::DropTab { .. }
             | Command::DividerRelease { .. }
+            | Command::InvokeExtensionAction { .. }
             | Command::Run(_)
             | Command::RespondToPagePermissionPrompt { .. }
             | Command::SetSitePermission { .. }

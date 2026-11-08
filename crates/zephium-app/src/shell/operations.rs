@@ -6,6 +6,8 @@ impl Shell {
     pub(super) fn handle_operation(&mut self, command: Command) -> OperationDisposition {
         match command {
             Command::Open => self.operation_open(),
+            Command::InvokeExtensionAction { runtime, revision, anchor } =>
+                self.operation_invoke_extension_action(runtime, revision, anchor),
             Command::Activate(id) => self.operation_activate(id),
             Command::Close(id) => self.operation_close(id),
             Command::CreateProfile {
@@ -152,6 +154,52 @@ impl Shell {
         win.splits = tree.remove(id).filter(|rest| rest.tabs().len() > 1);
         self.drop_divider();
         mutation_result(self.commit(Vec::new()))
+    }
+
+    fn operation_invoke_extension_action(
+        &mut self,
+        runtime: zephium_core::extensions::ExtensionRuntimeInstance,
+        revision: zephium_core::extensions::ExtensionActionRevision,
+        anchor: zephium_core::extensions::ExtensionPopupAnchor,
+    ) -> OperationDisposition {
+        match self.invoke_extension_action(runtime, revision, anchor) {
+            Ok(_) => operation_result(
+                OperationOutcome::Deferred,
+                OperationReason::NativePending,
+            ),
+            Err(
+                reason @ zephium_core::extensions::ExtensionActionRejection::NativeAdmissionFailed,
+            ) => {
+                crate::diagnostic!(
+                    "extensions: toolbar action synchronously rejected with typed reason {reason:?}"
+                );
+                self.project_extension_action_failure(runtime.profile(), None, reason);
+                operation_result(
+                    OperationOutcome::NativeAdmissionFailed,
+                    OperationReason::NativeDispatchRejected,
+                )
+            }
+            Err(
+                reason @ (zephium_core::extensions::ExtensionActionRejection::UnsupportedPlatform
+                | zephium_core::extensions::ExtensionActionRejection::PopupUnavailable),
+            ) => {
+                crate::diagnostic!(
+                    "extensions: toolbar action synchronously rejected with typed reason {reason:?}"
+                );
+                self.project_extension_action_failure(runtime.profile(), None, reason);
+                operation_result(
+                    OperationOutcome::Rejected,
+                    OperationReason::UnsupportedCommand,
+                )
+            }
+            Err(reason) => {
+                crate::diagnostic!(
+                    "extensions: toolbar action synchronously rejected with typed reason {reason:?}"
+                );
+                self.project_extension_action_failure(runtime.profile(), None, reason);
+                operation_result(OperationOutcome::Rejected, OperationReason::InvalidScope)
+            }
+        }
     }
 
     pub(super) fn operation_open(&mut self) -> OperationDisposition {
