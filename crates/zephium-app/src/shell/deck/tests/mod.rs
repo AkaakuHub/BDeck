@@ -281,3 +281,16 @@ fn extension_toolbar_events_follow_the_selected_account_and_reject_another_accou
         }));
     }
 }
+
+#[test]
+fn reloading_chrome_replays_extension_actions_without_recreating_views() {
+    let mut fixture = Fixture::new(2);
+    let _ = fixture.shell.operation_activate(ItemId::from(102));
+    fixture.events.lock().unwrap().clear();
+    let views = fixture.engine.views.lock().unwrap().len();
+    fixture.shell.bootstrap();
+    assert_eq!(fixture.engine.views.lock().unwrap().len(), views);
+    assert!(fixture.events.lock().unwrap().iter().any(|event| matches!(event,
+        Projection::ExtensionActions(view) if view.profile_id == ProfileId::from(2).to_string()
+    )));
+}

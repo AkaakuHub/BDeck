@@ -74,9 +74,10 @@ impl Shell {
     }
 
     pub(super) fn apply(&mut self, effects: Vec<Effect>) -> NativeWork {
+        let extension_surfaces = self.sync_extension_browser_surfaces();
         // Deletion quarantine dominates every other profile policy.
         let mut admitted = Vec::with_capacity(effects.len());
-        let mut native = NativeWork::default();
+        let mut native = extension_surfaces.native;
         for effect in effects {
             match effect {
                 Effect::CreateView { id, .. } if self.profile_deletion_quarantines_item(id) => {

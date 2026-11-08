@@ -19,6 +19,7 @@ pub(super) struct TestEngine {
     pub extension_unloads: Mutex<Vec<(ProfileId, ExtensionInstallId)>>,
     pub extension_removals: Mutex<Vec<(ProfileId, ExtensionInstallId)>>,
     pub erasures: Mutex<Vec<(ProfileId, EraseDone)>>,
+    pub extension_surfaces: Mutex<Vec<zephium_core::extensions::ExtensionBrowserSurface>>,
 }
 impl TestEngine {
     pub fn verify_erasure(&self, profile: ProfileId) {
@@ -37,13 +38,27 @@ impl TestEngine {
     }
 }
 impl Engine for TestEngine {
+    fn set_extension_browser_surface(
+        &self,
+        surface: zephium_core::extensions::ExtensionBrowserSurface,
+    ) -> NativeDispatch {
+        self.extension_surfaces.lock().unwrap().push(surface);
+        NativeDispatch::Scheduled
+    }
+
     fn settle_extension_browser_request(
         &self,
         _profile: ProfileId,
         _request: ExtensionBrowserRequestId,
-        _settlement: ExtensionBrowserRequestSettlement,
+        settlement: ExtensionBrowserRequestSettlement,
         _first_url_after_reply: Option<(Arc<str>, NavigationRequestId)>,
     ) -> NativeDispatch {
+        if let ExtensionBrowserRequestSettlement::Applied(
+            zephium_core::extensions::ExtensionBrowserRequestResult::ExtensionPageAuthorized { tab, .. },
+        ) = settlement {
+            assert!(self.extension_surfaces.lock().unwrap().last().unwrap().windows()
+                .iter().any(|window| window.tabs().iter().any(|published| published.id() == tab)));
+        }
         NativeDispatch::Scheduled
     }
     fn load_web_extension(
