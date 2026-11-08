@@ -6,7 +6,15 @@ import { test } from "node:test";
 import vm from "node:vm";
 
 const source = readFileSync(new URL("../src/compat/compat.js", import.meta.url), "utf8");
-const event = () => ({ addListener() {}, removeListener() {}, hasListener: () => false });
+const event = () => {
+  const listeners = new Set();
+  return {
+    addListener: (listener) => void listeners.add(listener),
+    removeListener: (listener) => void listeners.delete(listener),
+    hasListener: (listener) => listeners.has(listener),
+    dispatch: (...args) => [...listeners].map(listener => listener(...args)),
+  };
+};
 
 function context(kind, nativeOffscreen = false) {
   const invalid = (name) => new Error(`Invalid call. The 'permissions' value is invalid, because '${name}' is not a valid permission.`);
@@ -39,7 +47,7 @@ function context(kind, nativeOffscreen = false) {
       },
       onMessage: event(),
       onConnect: event(),
-      getManifest: () => ({ name: "__MSG_name__", version: "1.2", permissions: ["tabs", "https://a.test/*"], options_page: "options.html" }),
+      getManifest: () => ({ name: "__MSG_name__", version: "1.2", permissions: ["tabs", "https://a.test/*"], options_page: "options.html", background: { service_worker: "background.js" } }),
       getURL: (path) => `chrome-extension://abcdefghijklmnopabcdefghijklmnop/${path}`,
     },
     i18n: { getMessage: (key) => (key === "name" ? "Probe" : "") },
@@ -253,4 +261,27 @@ test("content scripts keep the page's identity", () => {
   const g = context("content");
   assert.doesNotMatch(g.navigator.userAgent, / Chrome\//);
   assert.equal(typeof g.chrome.storage.managed, "object");
+});
+
+test("worker messages carry the manifest URL without changing page or content-script senders", () => {
+  const { chrome } = context("page");
+  const origin = chrome.runtime.getURL("").slice(0, -1);
+  const received = (_message, sender) => sender;
+  chrome.runtime.onMessage.addListener(received);
+  assert.equal(chrome.runtime.onMessage.hasListener(received), true);
+  const worker = { id: chrome.runtime.id, url: origin, origin, documentId: "worker-context" };
+  const delivered = chrome.runtime.onMessage.dispatch({}, worker)[0];
+  assert.equal(delivered.id, worker.id);
+  assert.equal(delivered.origin, worker.origin);
+  assert.equal(delivered.url, chrome.runtime.getURL("background.js"));
+  for (const sender of [
+    { ...worker, url: `${origin}/`, documentId: "root-page" },
+    { ...worker, tab: { id: 1 } },
+    { ...worker, id: "another-extension" },
+    { ...worker, url: "https://example.test" },
+    { ...worker, url: chrome.runtime.getURL("popup.html") },
+  ]) assert.equal(chrome.runtime.onMessage.dispatch({}, sender)[0], sender);
+  chrome.runtime.onMessage.removeListener(received);
+  assert.equal(chrome.runtime.onMessage.hasListener(received), false);
+  assert.deepEqual(chrome.runtime.onMessage.dispatch({}, worker), []);
 });

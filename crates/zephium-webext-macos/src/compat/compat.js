@@ -220,6 +220,51 @@
     );
   };
 
+  const wrapListeners = (event, invoke) => {
+    if (!event || typeof event.addListener !== "function") return;
+    kept.push(event);
+    const wrappers = new WeakMap();
+    const add = event.addListener;
+    const remove = event.removeListener;
+    const has = event.hasListener;
+    pin(event, "addListener", function (listener, ...rest) {
+      if (typeof listener !== "function") return add.call(this, listener, ...rest);
+      let wrapper = wrappers.get(listener);
+      if (!wrapper) {
+        wrapper = function (...args) {
+          return invoke(listener, this, args);
+        };
+        wrappers.set(listener, wrapper);
+      }
+      return add.call(this, wrapper, ...rest);
+    });
+    pin(event, "removeListener", function (listener) {
+      return remove.call(this, wrappers.get(listener) || listener);
+    });
+    pin(event, "hasListener", function (listener) {
+      return has.call(this, wrappers.get(listener) || listener);
+    });
+  };
+
+  // WebKit reports service-worker senders as a bare extension origin. Restore
+  // the manifest path only for that native, same-extension sender.
+  if (!isContent) {
+    const background = runtime.getManifest().background;
+    const worker = background && background.service_worker;
+    if (typeof worker === "string") {
+      const root = runtime.getURL("").replace(/\/$/, "");
+      const workerUrl = runtime.getURL(worker);
+      namespace("runtime");
+      wrapListeners(runtime.onMessage, (listener, receiver, args) => {
+        const sender = args[1];
+        if (sender && sender.id === runtime.id && !sender.tab && sender.url === root) {
+          args[1] = { ...sender, url: workerUrl };
+        }
+        return listener.apply(receiver, args);
+      });
+    }
+  }
+
   const makeEvent = () => {
     const listeners = new Set();
     return {
@@ -754,32 +799,10 @@
       setTimeout(() => (lastReported = ""), 0);
       Z.report("info", text);
     };
-    const traced = (event, describe) => {
-      if (!event || typeof event.addListener !== "function") return;
-      kept.push(event);
-      const wrappers = new WeakMap();
-      const add = event.addListener;
-      const remove = event.removeListener;
-      const has = event.hasListener;
-      pin(event, "addListener", function (listener, ...rest) {
-        if (typeof listener !== "function") return add.call(this, listener, ...rest);
-        let wrapper = wrappers.get(listener);
-        if (!wrapper) {
-          wrapper = function (...args) {
-            if (tracing) reportOnce(describe(...args));
-            return listener.apply(this, args);
-          };
-          wrappers.set(listener, wrapper);
-        }
-        return add.call(this, wrapper, ...rest);
-      });
-      pin(event, "removeListener", function (listener) {
-        return remove.call(this, wrappers.get(listener) || listener);
-      });
-      pin(event, "hasListener", function (listener) {
-        return has.call(this, wrappers.get(listener) || listener);
-      });
-    };
+    const traced = (event, describe) => wrapListeners(event, (listener, receiver, args) => {
+      if (tracing) reportOnce(describe(...args));
+      return listener.apply(receiver, args);
+    });
     namespace("runtime");
     traced(runtime.onMessage, (message, sender) => `message ${label(message)} from ${origin(sender)}`);
     const watched = new WeakSet();
