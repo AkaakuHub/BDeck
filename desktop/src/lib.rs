@@ -962,6 +962,8 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             deck::accounts::profiles_create,
             deck::accounts::account_open,
             deck::accounts::account_delete,
+            deck::portable::deck_layout_export,
+            deck::portable::deck_layout_import,
             setting_get,
             setting_set,
             run_command,

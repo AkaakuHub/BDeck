@@ -381,6 +381,19 @@ impl Shell {
                     return;
                 }
                 let command = *command;
+                if self.deck.pending_import.is_some() {
+                    let mut completion = operation_result(OperationOutcome::Rejected, OperationReason::StorePending);
+                    completion.operation_id = operation_id;
+                    (self.emit)(Projection::OperationProcessed(completion));
+                    return;
+                }
+                if let Command::ImportDeck(archive) = &command {
+                    if let Some(mut completion) = self.begin_deck_import(archive, operation_id.clone()) {
+                        completion.operation_id = operation_id;
+                        (self.emit)(Projection::OperationProcessed(completion));
+                    }
+                    return;
+                }
                 if let Command::RespondToPagePermissionPrompt {
                     profile,
                     item,
@@ -743,7 +756,8 @@ impl Shell {
             }
             // These mutations are accepted only through `Command::Operation`
             // so every foreground request has one truthful terminal identity.
-            Command::DeleteProfile(_) => {}
+            Command::DeleteProfile(_) | Command::ImportDeck(_) => {}
+            Command::DeckImported(outcome) => self.finish_deck_import(outcome),
             Command::TabMetadata {
                 profile,
                 ids,

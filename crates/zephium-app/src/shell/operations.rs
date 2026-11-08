@@ -615,6 +615,9 @@ impl Shell {
         key: String,
         value: String,
     ) -> OperationDisposition {
+        if self.deck.pending_import.is_some() {
+            return operation_result(OperationOutcome::Rejected, OperationReason::StorePending);
+        }
         if !zephium_core::preferences::value_allowed(&key, &value) {
             return operation_result(OperationOutcome::Rejected, OperationReason::InvalidInput);
         }

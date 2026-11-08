@@ -26,6 +26,11 @@ export const commands = {
 	operation_id: string | null,
 	accepted: boolean,
 } | null>("account_delete", { account }),
+	deckLayoutExport: () => __TAURI_INVOKE<boolean>("deck_layout_export"),
+	deckLayoutImport: () => __TAURI_INVOKE<{
+	operation_id: string | null,
+	accepted: boolean,
+} | null>("deck_layout_import"),
 	settingGet: (key: string) => __TAURI_INVOKE<string | null>("setting_get", { key }),
 	settingSet: (key: string, value: string) => __TAURI_INVOKE<OperationAdmission>("setting_set", { key, value }),
 	runCommand: (id: string) => __TAURI_INVOKE<OperationAdmission>("run_command", { id }),
