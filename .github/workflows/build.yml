@@ -35,6 +35,7 @@ jobs:
       - run: ruby scripts/ci/check_action_pins.rb
       - run: pnpm --dir frame typecheck
       - run: pnpm --dir frame test:ipc
+      - run: pnpm --dir frame test:deck
       - name: Extension transport tests
         run: node --test crates/zephium-webext/src/storage/bridge.test.mjs crates/zephium-webext/src/windows/*.test.mjs crates/zephium-webext-macos/tests/compat.test.mjs
       - name: Check workflow syntax
