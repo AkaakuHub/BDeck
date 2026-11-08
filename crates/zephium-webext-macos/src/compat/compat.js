@@ -731,7 +731,7 @@
   // Development builds started with ZEPHIUM_WEBEXT_TRACE=1 record the names of
   // messages and ports the worker handles, never their content. Listeners
   // are wrapped at startup, when extensions register them.
-  if (isWorker && Z.report) {
+  if (!isContent && Z.report) {
     let tracing = false;
     native("trace", {})
       .then((enabled) => (tracing = enabled === true))
