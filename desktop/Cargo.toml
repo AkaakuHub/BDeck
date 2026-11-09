@@ -41,6 +41,7 @@ tauri-plugin-dialog = "2"
 base64.workspace = true
 minisign-verify = "=0.3.0"
 tempfile.workspace = true
+tauri-plugin-updater = "=2.12.0"
 
 [dev-dependencies]
 async-io = "=2.6.0"

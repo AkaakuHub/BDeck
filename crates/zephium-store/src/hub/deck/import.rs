@@ -1,13 +1,18 @@
 use super::super::{invalid_data, Hub, MAX_SETTING_VALUE_BYTES};
-use zephium_core::{deck::DeckState, ports::store::DeckImportOutcome, session::SessionState};
+use zephium_core::{
+    deck::{portable::Preferences, DeckState},
+    ports::store::DeckImportOutcome,
+    session::SessionState,
+};
 
 impl Hub {
     pub(crate) fn import_deck(
         &mut self,
         session: &SessionState,
         deck: &DeckState,
+        preferences: &Preferences,
     ) -> DeckImportOutcome {
-        let result = self.commit_deck_import(session, deck);
+        let result = self.commit_deck_import(session, deck, preferences);
         match result {
             Ok(()) => DeckImportOutcome::Applied,
             Err(error) => {
@@ -21,7 +26,10 @@ impl Hub {
                 let Ok(stored_deck) = serde_json::from_str::<DeckState>(&stored_deck) else {
                     return DeckImportOutcome::Unavailable;
                 };
-                if stored == *session && stored_deck == *deck {
+                if stored == *session
+                    && stored_deck == *deck
+                    && Preferences::read(|key| self.app_setting(key)) == *preferences
+                {
                     DeckImportOutcome::Applied
                 } else {
                     DeckImportOutcome::Rejected
@@ -34,9 +42,11 @@ impl Hub {
         &mut self,
         session: &SessionState,
         deck: &DeckState,
+        preferences: &Preferences,
     ) -> rusqlite::Result<()> {
         let prepared = self.prepare_session(session)?;
-        if !deck.valid()
+        if !preferences.valid()
+            || !deck.valid()
             || self
                 .registry
                 .difference(&prepared.registry)
@@ -70,6 +80,6 @@ impl Hub {
             return Err(invalid_data("imported layout exceeds persistence limit"));
         }
         self.validate_session_transition(&prepared.registry)?;
-        self.commit_prepared_session(prepared, None, Some(&encoded))
+        self.commit_prepared_session(prepared, None, Some((&encoded, preferences)))
     }
 }

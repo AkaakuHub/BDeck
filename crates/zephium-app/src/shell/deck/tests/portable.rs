@@ -1,6 +1,6 @@
 use super::*;
 use zephium_core::deck::account::AccountIdentity;
-use zephium_core::deck::portable::LayoutArchive;
+use zephium_core::deck::portable::SettingsArchive;
 use zephium_core::ports::store::Store;
 
 #[test]
@@ -17,7 +17,10 @@ fn importing_waits_for_durable_profiles_before_adopting_the_layout() {
         screen_name: "imported".into(),
     });
     incoming.decks[0].columns[0].width = 440;
-    let archive = LayoutArchive::export(&incoming).unwrap();
+    let mut preferences = zephium_core::deck::portable::Preferences::read(|_| None);
+    preferences.appearance.font_size = 18;
+    preferences.hide_advertisements = true;
+    let archive = SettingsArchive::export(&incoming, preferences.clone()).unwrap();
     assert!(fixture
         .shell
         .begin_deck_import(&archive, "import-layout".into())
@@ -43,6 +46,10 @@ fn importing_waits_for_durable_profiles_before_adopting_the_layout() {
     else {
         panic!("expected committed session")
     };
+    assert_eq!(
+        zephium_core::deck::portable::Preferences::read(|key| fixture.store.app_setting(key)),
+        preferences
+    );
     assert_eq!(durable.profiles.len(), 2);
     assert!(durable.items.is_empty());
     let Command::DeckImported(outcome) = queue.recv().unwrap() else {

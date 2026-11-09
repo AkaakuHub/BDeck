@@ -1,3 +1,5 @@
+mod preferences;
+pub use preferences::Preferences;
 use std::collections::{HashMap, HashSet};
 
 use super::{account::AccountIdentity, Deck, DeckAccount, DeckState, MAX_ACCOUNTS};
@@ -7,8 +9,9 @@ pub const MAX_LAYOUT_BYTES: usize = 64 * 1024;
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct LayoutArchive {
+pub struct SettingsArchive {
     version: u8,
+    preferences: Preferences,
     accounts: Vec<Account>,
     decks: Vec<Deck>,
     active: DeckId,
@@ -34,10 +37,11 @@ pub struct ImportPlan {
     pub new_accounts: Vec<DeckAccount>,
 }
 
-impl LayoutArchive {
-    pub fn export(state: &DeckState) -> Option<Self> {
-        state.valid().then(|| Self {
-            version: 1,
+impl SettingsArchive {
+    pub fn export(state: &DeckState, preferences: Preferences) -> Option<Self> {
+        (state.valid() && preferences.valid()).then(|| Self {
+            version: 2,
+            preferences,
             accounts: state
                 .accounts
                 .iter()
@@ -49,6 +53,10 @@ impl LayoutArchive {
             decks: state.decks.clone(),
             active: state.active,
         })
+    }
+
+    pub fn preferences(&self) -> &Preferences {
+        &self.preferences
     }
 
     pub fn decode(bytes: &[u8]) -> Result<Self, ImportError> {
@@ -63,7 +71,8 @@ impl LayoutArchive {
     }
 
     fn valid(&self) -> bool {
-        self.version == 1
+        self.version == 2
+            && self.preferences.valid()
             && DeckState {
                 accounts: self
                     .accounts

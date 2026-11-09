@@ -28,7 +28,7 @@ fn state(account: u128, profile: u128, user: &str) -> DeckState {
     }
 }
 
-fn plan(archive: &LayoutArchive, local: &DeckState) -> Result<ImportPlan, ImportError> {
+fn plan(archive: &SettingsArchive, local: &DeckState) -> Result<ImportPlan, ImportError> {
     let mut profile = 100;
     let mut account = 100;
     let mut column = 100;
@@ -53,14 +53,14 @@ fn plan(archive: &LayoutArchive, local: &DeckState) -> Result<ImportPlan, Import
 #[test]
 fn archive_roundtrips_layout_and_identity_without_local_profile_authority() {
     let original = state(10, 999, "9007199254740993");
-    let archive = LayoutArchive::export(&original).unwrap();
+    let archive = SettingsArchive::export(&original, Preferences::read(|_| None)).unwrap();
     let encoded = serde_json::to_vec(&archive).unwrap();
     let value: serde_json::Value = serde_json::from_slice(&encoded).unwrap();
     let account = value["accounts"][0].as_object().unwrap();
     assert_eq!(account.len(), 2);
     assert!(account.contains_key("id"));
     assert!(account.contains_key("identity"));
-    assert_eq!(LayoutArchive::decode(&encoded).unwrap(), archive);
+    assert_eq!(SettingsArchive::decode(&encoded).unwrap(), archive);
     let imported = plan(&archive, &state(20, 888, "2")).unwrap();
     assert_eq!(imported.new_accounts.len(), 1);
     assert_ne!(
@@ -76,7 +76,8 @@ fn archive_roundtrips_layout_and_identity_without_local_profile_authority() {
 
 #[test]
 fn unchanged_x_identity_reuses_local_partition_after_rename() {
-    let archive = LayoutArchive::export(&state(10, 999, "1")).unwrap();
+    let archive =
+        SettingsArchive::export(&state(10, 999, "1"), Preferences::read(|_| None)).unwrap();
     let mut local = state(20, 888, "1");
     let identity = local.accounts[0].identity.as_mut().unwrap();
     identity.display_name = "Renamed".into();
@@ -96,7 +97,8 @@ fn unchanged_x_identity_reuses_local_partition_after_rename() {
 
 #[test]
 fn matching_names_or_conflicting_bdeck_ids_never_reuse_another_account() {
-    let archive = LayoutArchive::export(&state(10, 999, "1")).unwrap();
+    let archive =
+        SettingsArchive::export(&state(10, 999, "1"), Preferences::read(|_| None)).unwrap();
     for local in [state(20, 888, "2"), state(10, 888, "2")] {
         let imported = plan(&archive, &local).unwrap();
         assert_eq!(imported.new_accounts.len(), 1);
@@ -108,7 +110,8 @@ fn matching_names_or_conflicting_bdeck_ids_never_reuse_another_account() {
 
 #[test]
 fn repeated_import_does_not_create_more_partitions() {
-    let archive = LayoutArchive::export(&state(10, 999, "1")).unwrap();
+    let archive =
+        SettingsArchive::export(&state(10, 999, "1"), Preferences::read(|_| None)).unwrap();
     let first = plan(&archive, &state(20, 888, "2")).unwrap();
     let second = plan(&archive, &first.state).unwrap();
     assert!(second.new_accounts.is_empty());
@@ -125,7 +128,7 @@ fn distinct_bdeck_accounts_keep_distinct_partitions_even_for_the_same_x_identity
     column.id = DeckColumnId::from(2);
     column.account = DeckAccountId::from(11);
     original.decks[0].columns.push(column);
-    let archive = LayoutArchive::export(&original).unwrap();
+    let archive = SettingsArchive::export(&original, Preferences::read(|_| None)).unwrap();
     let imported = plan(&archive, &state(20, 888, "2")).unwrap();
     assert_eq!(imported.new_accounts.len(), 2);
     assert_ne!(
@@ -139,7 +142,8 @@ fn distinct_bdeck_accounts_keep_distinct_partitions_even_for_the_same_x_identity
 
 #[test]
 fn ambiguous_accounts_and_id_exhaustion_fail_without_a_partial_plan() {
-    let archive = LayoutArchive::export(&state(10, 999, "1")).unwrap();
+    let archive =
+        SettingsArchive::export(&state(10, 999, "1"), Preferences::read(|_| None)).unwrap();
     let mut local = state(20, 888, "1");
     local.accounts.push(state(30, 777, "1").accounts.remove(0));
     assert!(matches!(
@@ -161,10 +165,11 @@ fn ambiguous_accounts_and_id_exhaustion_fail_without_a_partial_plan() {
 
 #[test]
 fn rejects_invalid_or_unsupported_archives_and_excessive_accounts() {
-    let archive = LayoutArchive::export(&state(10, 999, "1")).unwrap();
+    let archive =
+        SettingsArchive::export(&state(10, 999, "1"), Preferences::read(|_| None)).unwrap();
     for mutate in [
         |value: &mut serde_json::Value| {
-            value["version"] = 2.into();
+            value["version"] = 1.into();
         },
         |value: &mut serde_json::Value| {
             value["accounts"][0]["profile"] = "local".into();
@@ -178,9 +183,9 @@ fn rejects_invalid_or_unsupported_archives_and_excessive_accounts() {
     ] {
         let mut value = serde_json::to_value(&archive).unwrap();
         mutate(&mut value);
-        assert!(LayoutArchive::decode(&serde_json::to_vec(&value).unwrap()).is_err());
+        assert!(SettingsArchive::decode(&serde_json::to_vec(&value).unwrap()).is_err());
     }
-    assert!(LayoutArchive::decode(&vec![b' '; MAX_LAYOUT_BYTES + 1]).is_err());
+    assert!(SettingsArchive::decode(&vec![b' '; MAX_LAYOUT_BYTES + 1]).is_err());
     let mut local = state(20, 888, "2");
     for id in 100..100 + MAX_ACCOUNTS as u128 - 1 {
         local.accounts.push(DeckAccount::new(
@@ -192,4 +197,26 @@ fn rejects_invalid_or_unsupported_archives_and_excessive_accounts() {
         plan(&archive, &local),
         Err(ImportError::AccountLimit)
     ));
+}
+
+#[test]
+fn settings_roundtrip_preserves_display_and_update_preferences() {
+    let mut preferences = Preferences::read(|_| None);
+    preferences.appearance.font_size = 18;
+    preferences.appearance.density = crate::deck::appearance::Density::Compact;
+    preferences.hide_advertisements = true;
+    preferences.theme = "dark".into();
+    preferences.automatic_updates = false;
+    let archive = SettingsArchive::export(&state(10, 999, "1"), preferences.clone()).unwrap();
+    let encoded = serde_json::to_vec(&archive).unwrap();
+    assert_eq!(
+        SettingsArchive::decode(&encoded).unwrap().preferences(),
+        &preferences
+    );
+    let mut invalid = serde_json::to_value(&archive).unwrap();
+    invalid["preferences"]["cookies"] = "secret".into();
+    assert!(SettingsArchive::decode(&serde_json::to_vec(&invalid).unwrap()).is_err());
+    invalid = serde_json::to_value(&archive).unwrap();
+    invalid["preferences"]["appearance"]["font_size"] = 255.into();
+    assert!(SettingsArchive::decode(&serde_json::to_vec(&invalid).unwrap()).is_err());
 }

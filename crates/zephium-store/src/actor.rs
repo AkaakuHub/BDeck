@@ -234,6 +234,7 @@ enum Cmd {
     ImportDeck(
         SessionState,
         zephium_core::deck::DeckState,
+        zephium_core::deck::portable::Preferences,
         Box<dyn FnOnce(zephium_core::ports::store::DeckImportOutcome) + Send>,
     ),
     Flush(Sender<bool>),
@@ -456,11 +457,16 @@ impl Store for SqliteStore {
         &self,
         session: SessionState,
         deck: zephium_core::deck::DeckState,
+        preferences: zephium_core::deck::portable::Preferences,
         done: Box<dyn FnOnce(zephium_core::ports::store::DeckImportOutcome) + Send>,
     ) {
-        if let Err(error) = self.tx.try_send(Cmd::ImportDeck(session, deck, done)) {
-            let (mpsc::TrySendError::Full(command) | mpsc::TrySendError::Disconnected(command)) = error;
-            if let Cmd::ImportDeck(_, _, done) = command {
+        if let Err(error) = self
+            .tx
+            .try_send(Cmd::ImportDeck(session, deck, preferences, done))
+        {
+            let (mpsc::TrySendError::Full(command) | mpsc::TrySendError::Disconnected(command)) =
+                error;
+            if let Cmd::ImportDeck(_, _, _, done) = command {
                 done(zephium_core::ports::store::DeckImportOutcome::Rejected);
             }
         }
@@ -1009,12 +1015,12 @@ fn actor(
                 }
                 let _ = flush_settings(&mut hub, &pending_settings, &mut setting_retry, false);
             }
-            Some(Cmd::ImportDeck(session, deck, done)) => {
+            Some(Cmd::ImportDeck(session, deck, preferences, done)) => {
                 let outcome =
                     if flush_settings(&mut hub, &pending_settings, &mut setting_retry, true)
                         && flush(&mut hub, &mut pending)
                     {
-                        hub.import_deck(&session, &deck)
+                        hub.import_deck(&session, &deck, &preferences)
                     } else {
                         zephium_core::ports::store::DeckImportOutcome::Rejected
                     };

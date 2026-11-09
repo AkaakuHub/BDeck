@@ -4,6 +4,9 @@ import { invoke as __TAURI_INVOKE } from "@tauri-apps/api/core";
 
 /** Commands */
 export const commands = {
+	updaterStatus: () => __TAURI_INVOKE<UpdateStatus>("updater_status"),
+	updaterCheck: () => __TAURI_INVOKE<null>("updater_check"),
+	updaterInstall: () => __TAURI_INVOKE<null>("updater_install"),
 	diagnosticsShowLogs: () => __TAURI_INVOKE<boolean>("diagnostics_show_logs"),
 	tabsBootstrap: () => __TAURI_INVOKE<void>("tabs_bootstrap"),
 	tabsActivate: (id: string) => __TAURI_INVOKE<OperationAdmission>("tabs_activate", { id }),
@@ -26,11 +29,11 @@ export const commands = {
 	operation_id: string | null,
 	accepted: boolean,
 } | null>("account_delete", { account }),
-	deckLayoutExport: () => __TAURI_INVOKE<boolean>("deck_layout_export"),
-	deckLayoutImport: () => __TAURI_INVOKE<{
+	deckSettingsExport: () => __TAURI_INVOKE<boolean>("deck_settings_export"),
+	deckSettingsImport: () => __TAURI_INVOKE<{
 	operation_id: string | null,
 	accepted: boolean,
-} | null>("deck_layout_import"),
+} | null>("deck_settings_import"),
 	settingGet: (key: string) => __TAURI_INVOKE<string | null>("setting_get", { key }),
 	settingSet: (key: string, value: string) => __TAURI_INVOKE<OperationAdmission>("setting_set", { key, value }),
 	runCommand: (id: string) => __TAURI_INVOKE<OperationAdmission>("run_command", { id }),
@@ -579,6 +582,18 @@ export type TabView = {
 	zoom?: number | null,
 	/**  Present while the page plays sound, and for as long as it is muted. */
 	audio?: TabAudioView | null,
+};
+
+export type UpdatePhase = "idle" | "checking" | "current" | "available" | "downloading" | "verifying" | "installing" | "failed";
+
+export type UpdateStatus = {
+	revision: number,
+	phase: UpdatePhase,
+	current_version: string,
+	version: string | null,
+	downloaded: number | null,
+	total: number | null,
+	error: string | null,
 };
 
 export type WebExtensionAccessRequestView = {

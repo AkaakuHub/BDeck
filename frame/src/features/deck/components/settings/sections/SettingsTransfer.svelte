@@ -2,13 +2,13 @@
   import Button from "$shared/ui/Button";
   import SettingsGroup from "$shared/ui/SettingsGroup";
   import SettingsRow from "$shared/ui/SettingsRow";
-  import { createLayoutTransfer } from "../../../lib/layout-transfer.svelte";
+  import { createSettingsTransfer } from "../../../lib/settings-transfer.svelte";
 
-  const transfer = createLayoutTransfer();
+  const transfer = createSettingsTransfer();
 </script>
 
-<SettingsGroup title="カラム配置の入出力">
-  <SettingsRow title="配置ファイル">
+<SettingsGroup title="設定の入出力">
+  <SettingsRow title="設定ファイル">
     <div class="actions">
       <Button pending={transfer.pending() === "import"} disabled={transfer.pending() !== null} onclick={() => void transfer.transfer("import")}>読み込む</Button>
       <Button pending={transfer.pending() === "export"} disabled={transfer.pending() !== null} onclick={() => void transfer.transfer("export")}>書き出す</Button>

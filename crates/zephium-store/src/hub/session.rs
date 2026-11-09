@@ -1703,7 +1703,7 @@ impl Hub {
         &mut self,
         prepared: PreparedSession,
         authorize_deletion: Option<ProfileId>,
-        deck: Option<&str>,
+        deck: Option<(&str, &zephium_core::deck::portable::Preferences)>,
     ) -> rusqlite::Result<()> {
         let PreparedSession {
             state,
@@ -1782,13 +1782,16 @@ impl Hub {
              ON CONFLICT(id) DO UPDATE SET schema_version = ?1, data = ?2",
             params![SESSION_SCHEMA_VERSION, snapshot],
         )?;
-        if let Some(deck) = deck {
+        if let Some((deck, preferences)) = deck {
             if tx.execute(
                 "UPDATE settings SET value = ?1 WHERE key = 'deck.state'",
                 [deck],
             )? != 1
             {
                 return Err(invalid_data("deck state disappeared during layout import"));
+            }
+            for (key, value) in preferences.values() {
+                tx.execute("INSERT INTO settings(key,value) VALUES (?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value", params![key,value])?;
             }
         }
         tx.commit()?;

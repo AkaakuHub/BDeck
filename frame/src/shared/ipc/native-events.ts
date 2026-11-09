@@ -1,4 +1,4 @@
-import type { ExtensionActionsView, ExtensionActionFailedView, ExtensionActionShortcutView, WebExtensionAccessRequestView, OperationDisposition, PanelView, PanelAction, ItemsState, LayoutState, ProfilesView, TabView } from "./bindings";
+import type { UpdateStatus, ExtensionActionsView, ExtensionActionFailedView, ExtensionActionShortcutView, WebExtensionAccessRequestView, OperationDisposition, PanelView, PanelAction, ItemsState, LayoutState, ProfilesView, TabView } from "./bindings";
 
 type PayloadEvent<T> = { payload: T };
 type Listener<T> = (event: PayloadEvent<T>) => void;
@@ -14,6 +14,7 @@ function scopedEvent<T>(name: string) {
 }
 
 export const events = {
+  updater: scopedEvent<UpdateStatus>("bdeck:updater"),
   extensionActionsChanged: scopedEvent<ExtensionActionsView>("zephium:extension-actions"),
   extensionActionFailed: scopedEvent<ExtensionActionFailedView>("zephium:extension-action-failed"),
   extensionActionShortcut: scopedEvent<ExtensionActionShortcutView>("zephium:extension-action-shortcut"),

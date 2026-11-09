@@ -89,6 +89,19 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "createUpdaterArtifacts": false
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDUzQTAxNTgwMDkxQzlFNkEKUldScW5od0pnQldnVTB5d1RCYng1MG02WUN6MGphNDNwdE5IRUx1bFlVd1lTcEptRFMxR3VTMTIK",
+      "endpoints": [
+        "https://github.com/AkaakuHub/BDeck/releases/latest/download/latest.json"
+      ],
+      "requireSignedVersion": true,
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

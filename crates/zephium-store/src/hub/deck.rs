@@ -238,6 +238,11 @@ mod tests {
         hub.save(&original_session).unwrap();
         let original_deck = serde_json::to_string(&deck()).unwrap();
         hub.set_app_setting("deck.state", &original_deck).unwrap();
+        let mut preferences = zephium_core::deck::portable::Preferences::read(|_| None);
+        preferences.appearance.font_size = 18;
+        preferences.hide_advertisements = true;
+        preferences.theme = "dark".into();
+        preferences.automatic_updates = false;
         let mut imported_session = original_session.clone();
         imported_session.profiles.push(PersistedProfile {
             id: ProfileId::from(3),
@@ -255,19 +260,25 @@ mod tests {
             .accounts
             .push(DeckAccount::new(DeckAccountId::from(3), ProfileId::from(3)));
         imported_deck.decks[0].columns[0].width = 440;
-        hub.meta.execute_batch("CREATE TRIGGER reject_deck BEFORE UPDATE ON settings WHEN NEW.key = 'deck.state' BEGIN SELECT RAISE(ABORT, 'write failure'); END;").unwrap();
+        hub.meta.execute_batch("CREATE TRIGGER reject_deck BEFORE INSERT ON settings WHEN NEW.key = 'deck.appearance' BEGIN SELECT RAISE(ABORT, 'write failure'); END;").unwrap();
         assert_eq!(
-            hub.import_deck(&imported_session, &imported_deck),
+            hub.import_deck(&imported_session, &imported_deck, &preferences),
             DeckImportOutcome::Rejected
         );
         assert_eq!(hub.load().unwrap(), Some(original_session));
         assert_eq!(hub.app_setting("deck.state"), Some(original_deck));
+        assert!(hub.app_setting("deck.appearance").is_none());
+        assert!(hub.app_setting("appearance").is_none());
         hub.meta.execute_batch("DROP TRIGGER reject_deck").unwrap();
         assert_eq!(
-            hub.import_deck(&imported_session, &imported_deck),
+            hub.import_deck(&imported_session, &imported_deck, &preferences),
             DeckImportOutcome::Applied
         );
         assert_eq!(hub.load().unwrap(), Some(imported_session));
+        assert_eq!(
+            zephium_core::deck::portable::Preferences::read(|key| hub.app_setting(key)),
+            preferences
+        );
         assert_eq!(
             hub.app_setting("deck.state"),
             Some(serde_json::to_string(&imported_deck).unwrap())
@@ -286,7 +297,11 @@ mod tests {
         imported.accounts[0].profile = ProfileId::from(1);
         imported.accounts[1].profile = ProfileId::from(2);
         assert_eq!(
-            hub.import_deck(&session(), &imported),
+            hub.import_deck(
+                &session(),
+                &imported,
+                &zephium_core::deck::portable::Preferences::read(|_| None)
+            ),
             DeckImportOutcome::Rejected
         );
         assert_eq!(hub.app_setting("deck.state"), Some(original));

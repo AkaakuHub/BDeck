@@ -173,6 +173,7 @@ pub trait Store {
         &self,
         _session: SessionState,
         _deck: crate::deck::DeckState,
+        _preferences: crate::deck::portable::Preferences,
         done: Box<dyn FnOnce(DeckImportOutcome) + Send>,
     ) {
         done(DeckImportOutcome::Rejected);

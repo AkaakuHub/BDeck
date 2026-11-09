@@ -1,12 +1,13 @@
 use super::*;
 use std::collections::HashSet;
-use zephium_core::deck::portable::LayoutArchive;
+use zephium_core::deck::portable::SettingsArchive;
 use zephium_core::ports::store::DeckImportOutcome;
 use zephium_core::session::{PersistedProfile, PersistedSpace};
 
 pub(in crate::shell) struct PendingImport {
     operation_id: String,
     state: zephium_core::deck::DeckState,
+    preferences: zephium_core::deck::portable::Preferences,
     profiles: Vec<PersistedProfile>,
     spaces: Vec<PersistedSpace>,
 }
@@ -14,7 +15,7 @@ pub(in crate::shell) struct PendingImport {
 impl Shell {
     pub(in crate::shell) fn begin_deck_import(
         &mut self,
-        archive: &LayoutArchive,
+        archive: &SettingsArchive,
         operation_id: String,
     ) -> Option<OperationDisposition> {
         let rejected = || {
@@ -97,12 +98,14 @@ impl Shell {
         self.deck.pending_import = Some(PendingImport {
             operation_id,
             state: plan.state.clone(),
+            preferences: archive.preferences().clone(),
             profiles: added_profiles,
             spaces: added_spaces,
         });
         self.store.import_deck(
             session,
             plan.state,
+            archive.preferences().clone(),
             Box::new(move |outcome| {
                 let _ = callback.dispatch(Command::DeckImported(outcome));
             }),
@@ -152,6 +155,18 @@ impl Shell {
                 } else {
                     for profile in &pending.profiles {
                         self.apply_shared_web_extensions_for(profile.id, None);
+                    }
+                    self.engine.set_deck_appearance(
+                        pending.preferences.appearance,
+                        pending.preferences.hide_advertisements,
+                    );
+                    for (key, value) in pending.preferences.values() {
+                        let command = if key == "appearance" {
+                            format!("theme.{value}")
+                        } else {
+                            format!("preference.{key}={value}")
+                        };
+                        (self.emit)(Projection::UiCommand(command));
                     }
                     let result = self.apply_deck_state(pending.state).map_or_else(
                         || {

@@ -1,6 +1,7 @@
 //! Composition root: the only crate that knows Tauri. Wires the dependency graph
 //! (window -> chrome positioning, engine, shell) and the command surface.
 
+mod updater;
 mod deck;
 mod diagnostics;
 #[cfg(any(target_os = "macos", target_os = "windows"))]
@@ -952,6 +953,9 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
     tauri_specta::Builder::<tauri::Wry>::new()
         .error_handling(tauri_specta::ErrorHandlingMode::Throw)
         .commands(collect_commands![
+            updater::updater_status,
+            updater::updater_check,
+            updater::updater_install,
             diagnostics::diagnostics_show_logs,
             tabs_bootstrap,
             tabs_activate,
@@ -962,8 +966,8 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             deck::accounts::profiles_create,
             deck::accounts::account_open,
             deck::accounts::account_delete,
-            deck::portable::deck_layout_export,
-            deck::portable::deck_layout_import,
+            deck::portable::deck_settings_export,
+            deck::portable::deck_settings_import,
             setting_get,
             setting_set,
             run_command,
@@ -1555,7 +1559,9 @@ fn ui_ready(caller: WebviewWindow, gate: State<'_, UiStartupGate>) -> bool {
     if !authorize(&caller, CallerPolicy::Main, "ui_ready") {
         return false;
     }
-    gate.mark_frontend_ready(&caller)
+    let ready = gate.mark_frontend_ready(&caller);
+    if ready { updater::startup(caller.app_handle()); }
+    ready
 }
 
 #[tauri::command]
@@ -1778,6 +1784,8 @@ pub fn run() {
         // Every Tauri-managed webview is zone 2. It may load only the bundled
         // application origin (or the exact Vite origin in debug builds).
         .plugin(navigation_lock())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(updater::UpdateManager::default())
         .plugin(tauri_plugin_dialog::init())
         // Must register first: a second launch (file association, dock, a
         // stale instance holding the global hotkey and the profile dbs)
