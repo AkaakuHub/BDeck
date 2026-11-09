@@ -122,6 +122,10 @@ jobs:
           pnpm --dir desktop exec tauri build --ci
           --target ${{ matrix.target }} --bundles ${{ matrix.bundle }}
           --config '{"bundle":{"createUpdaterArtifacts":${{ startsWith(github.ref, 'refs/tags/v') }},"macOS":{"signingIdentity":"-"},"resources":{"../target/THIRD_PARTY_NOTICES.txt":"licenses/THIRD_PARTY_NOTICES.txt"}}}' -- --locked
+      - name: Collect the installer
+        run: |
+          mkdir -p target/installers
+          cp target/${{ matrix.target }}/release/bundle/${{ matrix.installer }}/*.${{ matrix.extension }} target/installers/
       - name: Prepare signed update artifacts
         if: startsWith(github.ref, 'refs/tags/v')
         run: >-
@@ -130,9 +134,7 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: installers-${{ matrix.platform }}
-          path: |
-            target/${{ matrix.target }}/release/bundle/${{ matrix.installer }}/*.${{ matrix.extension }}
-            target/updater/${{ matrix.target }}/*
+          path: target/installers/*
           if-no-files-found: error
           retention-days: 14
           compression-level: 0

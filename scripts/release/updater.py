@@ -22,11 +22,10 @@ def prepare(target, tag, repository):
     signature = Path(f"{archive}.sig").read_text().strip()
     if not signature:
         raise ValueError("Missing updater signature")
-    destination = Path("target/updater") / target
+    destination = Path("target/installers")
     destination.mkdir(parents=True, exist_ok=True)
     filename = archive.name if platform.startswith("windows") else f"BDeck_{tag}_{platform}.app.tar.gz"
-    if not platform.startswith("windows"):
-        shutil.copyfile(archive, destination / filename)
+    shutil.copyfile(archive, destination / filename)
     shutil.copyfile(Path(f"{archive}.sig"), destination / f"{filename}.sig")
     (destination / f"{platform}.json").write_text(json.dumps({
         "version": tag.removeprefix("v"),
