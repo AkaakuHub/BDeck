@@ -66,17 +66,20 @@ jobs:
           - platform: macos-arm64
             runner: macos-15
             target: aarch64-apple-darwin
-            bundle: dmg
+            bundle: app,dmg
+            installer: dmg
             extension: dmg
           - platform: macos-x64
             runner: macos-15-intel
             target: x86_64-apple-darwin
-            bundle: dmg
+            bundle: app,dmg
+            installer: dmg
             extension: dmg
           - platform: windows-x64
             runner: windows-2025
             target: x86_64-pc-windows-msvc
             bundle: nsis
+            installer: nsis
             extension: exe
     defaults:
       run:
@@ -128,7 +131,7 @@ jobs:
         with:
           name: installers-${{ matrix.platform }}
           path: |
-            target/${{ matrix.target }}/release/bundle/${{ matrix.bundle }}/*.${{ matrix.extension }}
+            target/${{ matrix.target }}/release/bundle/${{ matrix.installer }}/*.${{ matrix.extension }}
             target/updater/${{ matrix.target }}/*
           if-no-files-found: error
           retention-days: 14
