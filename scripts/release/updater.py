@@ -17,7 +17,7 @@ def prepare(target, tag, repository):
     pattern = "nsis/*.exe" if platform.startswith("windows") else "macos/*.app.tar.gz"
     archives = list(root.glob(pattern))
     if len(archives) != 1:
-        raise ValueError(f"Expected one updater archive for {target}")
+        raise ValueError(f"Expected one updater archive for {target}, found {len(archives)} matching {pattern} under {root}")
     archive = archives[0]
     signature = Path(f"{archive}.sig").read_text().strip()
     if not signature:
