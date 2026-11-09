@@ -149,6 +149,9 @@ fn check(app: tauri::AppHandle, notify: bool) {
 }
 
 fn install(app: tauri::AppHandle) {
+    if crate::shutdown_started(&app) {
+        return;
+    }
     if app
         .state::<UpdateManager>()
         .busy
@@ -202,8 +205,11 @@ async fn install_update(app: &tauri::AppHandle) -> Result<(), String> {
         .await
         .map_err(|error| error.to_string())?;
     publish(app, |status| status.phase = UpdatePhase::Installing);
-    app.state::<crate::ShutdownCoordinator>()
-        .mark_terminal_start();
+    let coordinator = app.state::<crate::ShutdownCoordinator>();
+    if coordinator.started.swap(true, Ordering::AcqRel) {
+        return Err("終了処理中です。".into());
+    }
+    coordinator.mark_terminal_start();
     let request = app.state::<zephium_app::Handle>().shutdown();
     let outcome = tauri::async_runtime::spawn_blocking(move || {
         crate::shutdown_receive_outcome(request.recv_until_deadline())
@@ -211,7 +217,7 @@ async fn install_update(app: &tauri::AppHandle) -> Result<(), String> {
     .await
     .map_err(|error| error.to_string())?;
     if !matches!(outcome, zephium_app::ShutdownOutcome::Clean) {
-        app.exit(1);
+        coordinator.schedule_authorized_exit(app.clone(), 1);
         return Err("更新前の保存を完了できませんでした。".into());
     }
     if let Err(error) = update.install(bytes) {
@@ -220,7 +226,10 @@ async fn install_update(app: &tauri::AppHandle) -> Result<(), String> {
         app.dialog()
             .message("更新を適用できませんでした。BDeckを起動し直してください。")
             .title("BDeckの更新")
-            .show(move |_| exit.exit(1));
+            .show(move |_| {
+                exit.state::<crate::ShutdownCoordinator>()
+                    .schedule_authorized_exit(exit.clone(), 1);
+            });
         return Err(error.to_string());
     }
     app.restart();
