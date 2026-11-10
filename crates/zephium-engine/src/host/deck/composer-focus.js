@@ -4,6 +4,7 @@
   const editors = [...document.querySelectorAll('[data-testid="tweetTextarea_0"][contenteditable="true"]')];
   const editor = editors.find(node => node.closest('[role="dialog"]')) || editors.find(node => node.getClientRects().length && !node.closest('[aria-hidden="true"]'));
   if (!(editor instanceof HTMLElement)) return;
+  if (mention !== undefined) composerOverlay(true);
   if (mention !== undefined) editor.dataset.bdeckMention = mention || "";
   if (Object.hasOwn(editor.dataset, "bdeckMention")) {
     const cleanup = () => {
@@ -12,9 +13,7 @@
     };
     const update = () => {
       if (!editor.isConnected || !Object.hasOwn(editor.dataset, "bdeckMention")) { cleanup(); return; }
-      if (!document.hasFocus()) return;
-      composerOverlay(true);
-      if (document.activeElement !== editor) return;
+      if (!document.hasFocus() || document.activeElement !== editor) return;
       const recipient = editor.dataset.bdeckMention;
       const previous = editor.dataset.bdeckInsertedMention;
       const text = editor.textContent || "";

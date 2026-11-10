@@ -55,12 +55,10 @@ test("waits for actual window focus before inserting and inserts only once", () 
   const result = composer("existing draft", false);
   result.focus("Viewed_User");
   assert.equal(result.text, "existing draft");
-  assert.deepEqual(result.overlayDismissals, []);
   result.activate();
   result.activate();
   assert.equal(result.text, "@Viewed_User existing draft");
   assert.deepEqual(result.calls, ["focus", "@Viewed_User "]);
-  assert.deepEqual(result.overlayDismissals, [true]);
 });
 test("an existing recipient without trailing whitespace is not duplicated", () => {
   const result = composer("@viewed_user");

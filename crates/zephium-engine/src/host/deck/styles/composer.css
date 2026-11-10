@@ -44,3 +44,17 @@
   inset: auto !important;
   flex-shrink: 0 !important;
 }
+
+[data-bdeck-compose] [data-testid="hoverCardParent"]:has([role="radiogroup"]) {
+  position: fixed !important;
+  inset: 8px 8px auto !important;
+  inline-size: auto !important;
+  min-inline-size: 0 !important;
+  max-block-size: calc(100dvh - 16px) !important;
+  overflow-y: auto !important;
+}
+[data-bdeck-compose] [data-testid="HoverCard"]:has([role="radiogroup"]) {
+  inline-size: 100% !important;
+  min-inline-size: 0 !important;
+  max-inline-size: 100% !important;
+}

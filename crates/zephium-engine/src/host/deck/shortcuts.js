@@ -66,7 +66,11 @@
     if (!editor.getBoundingClientRect().width || !toolbar.getBoundingClientRect().height) return;
     if (toolbar.getBoundingClientRect().top < editor.getBoundingClientRect().bottom) return;
     if (editor !== readyElement) { readyElement = editor; send("composer.ready"); }
-    const height = Math.max(160, Math.min(640, Math.ceil(toolbar.getBoundingClientRect().bottom + 12)));
+    const menu = document.querySelector('[data-testid="HoverCard"]:has([role="radiogroup"])');
+    const height = Math.max(160, Math.min(640, Math.ceil(Math.max(
+      toolbar.getBoundingClientRect().bottom + 12,
+      menu instanceof HTMLElement ? menu.scrollHeight + 16 : 0,
+    ))));
     if (height !== lastHeight) { lastHeight = height; send(`composer.height=${height}`); }
   };
   let lastHeight = 0;
