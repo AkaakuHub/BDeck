@@ -130,9 +130,10 @@ fn profile_shortcut_uses_the_source_account_and_defers_the_mention_until_ready()
         source,
         url::Url::parse("https://x.com/Viewed_User").unwrap(),
     );
-    fixture
-        .shell
-        .handle_deck_shortcut(source, "composer.open".into());
+    fixture.shell.handle_deck_shortcut(
+        source,
+        r#"composer.open="https://x.com/Viewed_User""#.into(),
+    );
     let editor = fixture.shell.composer.active_item().unwrap();
     assert_eq!(
         fixture.shell.composer.profile_for_item(editor),
@@ -168,9 +169,10 @@ fn profile_shortcut_uses_the_source_account_and_defers_the_mention_until_ready()
 fn home_shortcut_does_not_insert_an_account_name_as_a_recipient() {
     let mut fixture = Fixture::new(1);
     fixture.authenticate_accounts();
-    fixture
-        .shell
-        .handle_deck_shortcut(ItemId::from(101), "composer.open".into());
+    fixture.shell.handle_deck_shortcut(
+        ItemId::from(101),
+        r#"composer.open="https://x.com/home""#.into(),
+    );
     let editor = fixture.shell.composer.active_item().unwrap();
     fixture.shell.composer_ready(editor);
     assert_eq!(
@@ -191,9 +193,10 @@ fn repeated_profile_shortcuts_return_to_the_originating_column_and_reuse_the_edi
     fixture.shell.operation_activate(ItemId::from(102));
     let mut cached = None;
     for _ in 0..3 {
-        fixture
-            .shell
-            .handle_deck_shortcut(source, "composer.open".into());
+        fixture.shell.handle_deck_shortcut(
+            source,
+            r#"composer.open="https://x.com/Viewed_User""#.into(),
+        );
         let editor = fixture.shell.composer.active_item().unwrap();
         assert_eq!(fixture.shell.composer.return_to, Some(source));
         if let Some(previous) = cached {
@@ -214,7 +217,7 @@ fn repeated_profile_shortcuts_return_to_the_originating_column_and_reuse_the_edi
 }
 
 #[test]
-fn each_shortcut_replaces_the_previous_recipient_context_using_the_source_url() {
+fn each_shortcut_uses_its_live_url_even_before_native_navigation_is_committed() {
     let mut fixture = Fixture::new(2);
     fixture.authenticate_accounts();
     let profile = ItemId::from(101);
@@ -223,9 +226,10 @@ fn each_shortcut_replaces_the_previous_recipient_context_using_the_source_url() 
         profile,
         url::Url::parse("https://x.com/Viewed_User").unwrap(),
     );
-    fixture
-        .shell
-        .handle_deck_shortcut(profile, "composer.open".into());
+    fixture.shell.handle_deck_shortcut(
+        profile,
+        r#"composer.open="https://x.com/Viewed_User""#.into(),
+    );
     let editor = fixture.shell.composer.active_item().unwrap();
     fixture.shell.composer_ready(editor);
     fixture.shell.operation_close_composer();
@@ -233,9 +237,10 @@ fn each_shortcut_replaces_the_previous_recipient_context_using_the_source_url() 
         notifications,
         url::Url::parse("https://x.com/notifications").unwrap(),
     );
-    fixture
-        .shell
-        .handle_deck_shortcut(notifications, "composer.open".into());
+    fixture.shell.handle_deck_shortcut(
+        notifications,
+        r#"composer.open="https://x.com/notifications""#.into(),
+    );
     let notification_editor = fixture.shell.composer.active_item().unwrap();
     fixture.shell.composer_ready(notification_editor);
     assert_eq!(
@@ -245,11 +250,7 @@ fn each_shortcut_replaces_the_previous_recipient_context_using_the_source_url() 
     fixture.shell.operation_close_composer();
     fixture
         .shell
-        .items
-        .set_committed_url(profile, url::Url::parse("https://x.com/home").unwrap());
-    fixture
-        .shell
-        .handle_deck_shortcut(profile, "composer.open".into());
+        .handle_deck_shortcut(profile, r#"composer.open="https://x.com/home""#.into());
     assert_eq!(fixture.shell.composer.active_item(), Some(editor));
     assert_eq!(
         fixture.engine.composer_focus.lock().unwrap().last(),

@@ -47,7 +47,14 @@ impl Shell {
                     let _ = self.operation_run_command(&format!("deck.scroll={offset}"));
                 }
             }
-            "composer.open" => {
+            value if value.starts_with("composer.open=") => {
+                let Some(source_url) = value
+                    .strip_prefix("composer.open=")
+                    .and_then(|encoded| serde_json::from_str::<String>(encoded).ok())
+                    .and_then(|value| url::Url::parse(&value).ok())
+                else {
+                    return;
+                };
                 let profile = self.profile_of_item(item);
                 let account = self
                     .deck
@@ -59,10 +66,15 @@ impl Shell {
                             .find(|account| Some(account.profile) == profile)
                     })
                     .map(|account| account.id);
-                let mention = self.items.tab(item).and_then(|tab| tab.url.as_ref()).and_then(super::profile::mention);
+                let mention = super::profile::mention(&source_url);
                 let result = self.operation_open_composer(account, mention);
                 if self.deck.profile_for_item(item).is_some()
-                    && matches!(result.outcome, OperationOutcome::Applied | OperationOutcome::Deferred | OperationOutcome::NoOp)
+                    && matches!(
+                        result.outcome,
+                        OperationOutcome::Applied
+                            | OperationOutcome::Deferred
+                            | OperationOutcome::NoOp
+                    )
                 {
                     self.composer.return_to = Some(item);
                 }

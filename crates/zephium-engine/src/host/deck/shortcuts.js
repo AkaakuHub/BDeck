@@ -18,7 +18,7 @@
     if (event.key === "n" && !editable && !event.shiftKey) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      send("composer.open");
+      send(`composer.open=${JSON.stringify(location.href)}`);
     } else if (event.key === "Escape" && location.pathname.startsWith("/compose/")) {
       event.preventDefault();
       event.stopImmediatePropagation();

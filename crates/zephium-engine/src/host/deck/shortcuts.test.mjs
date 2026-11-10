@@ -10,8 +10,9 @@ function shortcuts(pathname = "/Viewed_User") {
   class Element { closest() { return this.editable ? this : null; } }
   const window = { ipc: { postMessage: value => messages.push(value) } };
   window.top = window;
-  runInNewContext(source, { window, document: { addEventListener: (name, callback) => listeners.set(name, callback), body: null }, location: { hostname: "x.com", pathname }, Element, requestAnimationFrame: callback => { frames.push(callback); return frames.length; } });
-  return { messages, dispatch(name, values = {}) {
+  const location = { hostname: "x.com", pathname, href: `https://x.com${pathname}` };
+  runInNewContext(source, { window, document: { addEventListener: (name, callback) => listeners.set(name, callback), body: null }, location, Element, requestAnimationFrame: callback => { frames.push(callback); return frames.length; } });
+  return { messages, navigate(path) { location.href = `https://x.com${path}`; location.pathname = path; }, dispatch(name, values = {}) {
     const target = new Element();
     target.editable = values.editable ?? false;
     let prevented = false;
@@ -38,11 +39,24 @@ test("N continues to work after repeated opens and closes", () => {
     assert.equal(profile.dispatch("keydown", { key: "n" }), true);
     assert.equal(composer.dispatch("keydown", { key: "Escape", editable: true }), true);
   }
-  assert.deepEqual(profile.messages, Array(3).fill("composer.open"));
+  assert.deepEqual(profile.messages, Array(3).fill('composer.open="https://x.com/Viewed_User"'));
   assert.deepEqual(composer.messages, Array(3).fill("composer.close"));
 });
 test("typing N in a draft or input does not open a new composer", () => {
   const page = shortcuts();
   assert.equal(page.dispatch("keydown", { key: "n", editable: true }), false);
   assert.deepEqual(page.messages, []);
+});
+
+test("N reads the current URL on every keypress after same-document navigation", () => {
+  const page = shortcuts();
+  for (const path of ["/Viewed_User", "/home", "/notifications"]) {
+    page.navigate(path);
+    page.dispatch("keydown", { key: "n" });
+  }
+  assert.deepEqual(page.messages, [
+    'composer.open="https://x.com/Viewed_User"',
+    'composer.open="https://x.com/home"',
+    'composer.open="https://x.com/notifications"',
+  ]);
 });

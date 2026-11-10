@@ -28,7 +28,14 @@ pub(in crate::host) fn accepts_command(command: &str) -> bool {
         .strip_prefix("deck.scrollBy=")
         .and_then(|value| value.parse::<f64>().ok())
         .is_some_and(|delta| delta.is_finite() && delta.abs() <= 1000.0);
+    let composer = command
+        .strip_prefix("composer.open=")
+        .filter(|encoded| encoded.len() <= 8192)
+        .and_then(|encoded| serde_json::from_str::<String>(encoded).ok())
+        .and_then(|value| url::Url::parse(&value).ok())
+        .is_some_and(|url| allows_origin(&url));
     identity
+        || composer
         || avatar
         || scroll
         || command
@@ -37,11 +44,7 @@ pub(in crate::host) fn accepts_command(command: &str) -> bool {
             .is_some_and(|height| height.is_finite() && (160.0..=640.0).contains(&height))
         || matches!(
             command,
-            "composer.open"
-                | "composer.close"
-                | "composer.ready"
-                | "account.logged-in"
-                | "account.logged-out"
+            "composer.close" | "composer.ready" | "account.logged-in" | "account.logged-out"
         )
 }
 
@@ -69,7 +72,10 @@ mod tests {
 
     #[test]
     fn admits_bounded_ui_gestures_without_social_actions() {
-        assert!(accepts_command("composer.open"));
+        assert!(accepts_command(
+            r#"composer.open="https://x.com/Viewed_User""#
+        ));
+        assert!(accepts_command(r#"composer.open="https://x.com/home""#));
         assert!(accepts_command("composer.ready"));
         assert!(accepts_command("composer.height=320"));
         assert!(accepts_command("deck.scrollBy=-10.5"));
@@ -80,6 +86,10 @@ mod tests {
             "account.avatar=\"https://evil.test/avatar.jpg\""
         ));
         for command in [
+            "composer.open",
+            "composer.open=not-json",
+            r#"composer.open="https://x.com.evil.test/user""#,
+            r#"composer.open="http://x.com/user""#,
             "tweet.send",
             "account.follow",
             "deck.scrollBy=NaN",
