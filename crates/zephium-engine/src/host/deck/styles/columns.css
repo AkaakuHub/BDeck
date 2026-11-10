@@ -1,4 +1,5 @@
 html, body { overflow-x: clip !important; }
+html.bdeck-scaled-content { zoom: var(--bdeck-content-scale); }
 [data-bdeck-profile] [data-bdeck-profile-header] {
   block-size: 41px !important;
   min-block-size: 41px !important;
@@ -73,21 +74,12 @@ html[data-bdeck-home] [data-testid="primaryColumn"] > div > div:has(.bdeck-home-
   font-size: var(--bdeck-font-size) !important;
   line-height: 1.4 !important;
 }
-[data-testid="tweet"] .bdeck-post-avatar {
-  flex-basis: calc(var(--bdeck-font-size) * 2.857143) !important;
-  inline-size: calc(var(--bdeck-font-size) * 2.857143) !important;
-  margin-inline-end: calc(var(--bdeck-font-size) * 0.571429) !important;
-}
-[data-testid="tweet"] [data-testid^="UserAvatar-Container"] {
-  inline-size: calc(var(--bdeck-font-size) * 2.857143) !important;
-  block-size: calc(var(--bdeck-font-size) * 2.857143) !important;
-}
-[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) { margin-block-start: calc(var(--bdeck-font-size) * 0.571429) !important; }
-[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) :is(button, a, span) { font-size: calc(var(--bdeck-font-size) * 0.785714) !important; }
-[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) svg { width: calc(var(--bdeck-font-size) * 1.142857) !important; height: calc(var(--bdeck-font-size) * 1.142857) !important; }
+[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) { margin-block-start: 8px !important; }
+[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) :is(button, a, span) { font-size: 11px !important; }
+[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) svg { width: 16px !important; height: 16px !important; }
 [data-testid="tweet"] [role="group"]:has([data-testid="reply"]) span { padding-inline: 0 !important; }
 
-[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) :is(button, a) { min-height: calc(var(--bdeck-font-size) * 2) !important; }
+[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) :is(button, a) { min-height: 28px !important; }
 
 [data-testid="primaryColumn"] nav:has([role="tab"]):not([data-testid="tweet"] nav) [data-testid="ScrollSnap-List"] {
   flex-wrap: nowrap !important;

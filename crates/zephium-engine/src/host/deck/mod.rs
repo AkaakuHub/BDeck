@@ -52,16 +52,17 @@ impl super::EngineHost {
 
 fn stylesheet(appearance: DeckAppearance, hide_advertisements: bool) -> String {
     let padding = if appearance.density == Density::Compact {
-        "calc(var(--bdeck-font-size) * 0.285714) calc(var(--bdeck-font-size) * 0.571429)"
+        "4px 8px"
     } else {
-        "calc(var(--bdeck-font-size) * 0.571429) calc(var(--bdeck-font-size) * 0.714286)"
+        "8px 10px"
     };
     let radius = if appearance.avatars == AvatarShape::Square {
         "4px"
     } else {
         "50%"
     };
-    let mut css = format!(":root{{--bdeck-font-size:{}px;--bdeck-post-padding:{padding};--bdeck-avatar-radius:{radius};}}", appearance.font_size);
+    let scale = f64::from(appearance.font_size) / 14.0;
+    let mut css = format!(":root{{--bdeck-content-scale:{scale};--bdeck-font-size:14px;--bdeck-post-padding:{padding};--bdeck-avatar-radius:{radius};}}");
     css.push_str(include_str!("styles/columns.css"));
     css.push_str(include_str!("styles/avatars.css"));
     css.push_str(include_str!("styles/composer.css"));

@@ -66,14 +66,11 @@ const applyPostSpacing = article => {
   const avatar = article.querySelector('[data-testid^="UserAvatar-Container"]');
   let body = null;
   let context = null;
-  let avatarColumn = null;
   if (name && avatar) {
     for (let row = name.parentElement; row && row !== article; row = row.parentElement) {
       if (!row.contains(avatar)) continue;
       body = name;
       while (body.parentElement && body.parentElement !== row) body = body.parentElement;
-      avatarColumn = avatar;
-      while (avatarColumn.parentElement && avatarColumn.parentElement !== row) avatarColumn = avatarColumn.parentElement;
       const previous = row.previousElementSibling;
       if (previous && !previous.textContent.trim() && !previous.querySelector('img, svg, a, button, [role="button"]')) context = previous;
       break;
@@ -82,17 +79,14 @@ const applyPostSpacing = article => {
   article.querySelectorAll(".bdeck-post-body").forEach(node => {
     if (node !== body) node.classList.remove("bdeck-post-body");
   });
-  article.querySelectorAll(".bdeck-post-avatar").forEach(node => {
-    if (node !== avatarColumn) node.classList.remove("bdeck-post-avatar");
-  });
   article.querySelectorAll(".bdeck-empty-context").forEach(node => {
     if (node !== context) node.classList.remove("bdeck-empty-context");
   });
   if (body && !body.classList.contains("bdeck-post-body")) body.classList.add("bdeck-post-body");
-  if (avatarColumn && !avatarColumn.classList.contains("bdeck-post-avatar")) avatarColumn.classList.add("bdeck-post-avatar");
   if (context && !context.classList.contains("bdeck-empty-context")) context.classList.add("bdeck-empty-context");
 };
 const apply = () => {
+  document.documentElement.classList.toggle("bdeck-scaled-content", !location.pathname.startsWith("/compose/"));
   const style = document.getElementById("bdeck-column-style") || document.createElement("style");
   style.id = "bdeck-column-style";
   if (style.textContent !== columnCss) style.textContent = columnCss;

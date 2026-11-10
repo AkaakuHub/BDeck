@@ -11,9 +11,9 @@
   const active = $derived(deck.active());
 </script>
 
-<SettingsGroup title="投稿の表示">
+<SettingsGroup title="コンテンツの表示">
   <SettingsRow title="文字サイズ">
-    <div class="range-control"><ResettableRange label="投稿の文字サイズ" labelHidden value={deck.appearance().font_size} defaultValue={DEFAULT_APPEARANCE.font_size} min={12} max={18} unit="px" onchange={(value) => void deck.setAppearance({ font_size: value })} /></div>
+    <div class="range-control"><ResettableRange label="カラム内の文字サイズ" labelHidden value={deck.appearance().font_size} defaultValue={DEFAULT_APPEARANCE.font_size} min={12} max={18} unit="px" onchange={(value) => void deck.setAppearance({ font_size: value })} /></div>
   </SettingsRow>
   <SettingsRow title="投稿の余白">
     <SegmentedControl label="投稿の余白" size="compact" value={deck.appearance().density} options={[{ value: "comfortable", label: "標準" }, { value: "compact", label: "狭く" }]} onchange={(value) => { if (value === "comfortable" || value === "compact") void deck.setAppearance({ density: value }); }} />
