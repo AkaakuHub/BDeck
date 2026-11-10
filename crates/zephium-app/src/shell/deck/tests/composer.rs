@@ -3,6 +3,24 @@ use zephium_core::deck::account::AccountIdentity;
 use zephium_core::ports::engine::ComposerFocus;
 
 #[test]
+fn expanding_a_composer_menu_does_not_shrink_or_recreate_the_editor_after_closing_it() {
+    let mut fixture = Fixture::new(1);
+    fixture.authenticate_accounts();
+    fixture.shell.operation_open_composer(None, None);
+    let item = fixture.shell.composer.active_item().unwrap();
+    fixture.shell.composer_height(item, 560.0);
+    let expanded = fixture.shell.composer_frame().unwrap().height;
+    fixture.shell.composer_height(item, 260.0);
+    assert_eq!(fixture.shell.composer_frame().unwrap().height, expanded);
+    fixture.shell.composer_height(item, 700.0);
+    assert_eq!(fixture.shell.composer_frame().unwrap().height, expanded);
+    fixture.shell.operation_close_composer();
+    fixture.shell.operation_open_composer(None, None);
+    assert_eq!(fixture.shell.composer.active_item(), Some(item));
+    assert_eq!(fixture.shell.composer_frame().unwrap().height, expanded);
+}
+
+#[test]
 fn preparing_account_composers_keeps_focus_and_reuses_each_isolated_view() {
     let mut fixture = Fixture::new(2);
     fixture.authenticate_accounts();

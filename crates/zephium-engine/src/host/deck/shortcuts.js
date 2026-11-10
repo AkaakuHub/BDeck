@@ -68,7 +68,7 @@
     if (editor !== readyElement) { readyElement = editor; send("composer.ready"); }
     const menu = document.querySelector('[data-testid="HoverCard"]:has([role="radiogroup"])');
     const height = Math.max(160, Math.min(640, Math.ceil(Math.max(
-      toolbar.getBoundingClientRect().bottom + 12,
+      toolbar.getBoundingClientRect().bottom + scrollY + 12,
       menu instanceof HTMLElement ? menu.scrollHeight + 16 : 0,
     ))));
     if (height !== lastHeight) { lastHeight = height; send(`composer.height=${height}`); }

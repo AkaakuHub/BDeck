@@ -144,7 +144,7 @@ impl Shell {
 
     pub(in crate::shell) fn composer_height(&mut self, item: ItemId, height: f64) {
         if let Some(tab) = self.composer.tabs.iter_mut().find(|tab| tab.item == item) {
-            if (tab.height - height).abs() >= 1.0 {
+            if height > tab.height && height <= 640.0 {
                 tab.height = height;
                 if self.composer.active_item() == Some(item) {
                     let _ = self.relayout();
