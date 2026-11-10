@@ -28,7 +28,8 @@ impl super::EngineHost {
                 }
             };
             let script = format!(
-                "(() => {{ const mention = {mention}; {} }})();",
+                "(() => {{ const mention = {mention}; const composerOverlay = {}; {} }})();",
+                include_str!("composer-overlay.js"),
                 include_str!("composer-focus.js")
             );
             let _ = view.evaluate_script(&script);

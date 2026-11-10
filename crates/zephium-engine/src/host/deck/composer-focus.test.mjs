@@ -5,6 +5,7 @@ import { runInNewContext } from "node:vm";
 const source = readFileSync(new URL("./composer-focus.js", import.meta.url), "utf8");
 function composer(text, focused = true) {
   const calls = [];
+  const overlayDismissals = [];
   class HTMLElement {}
   const listeners = new Set();
   const editor = new HTMLElement();
@@ -27,9 +28,10 @@ function composer(text, focused = true) {
   const window = { getSelection: () => selection, addEventListener: (_, listener) => listeners.add(listener), removeEventListener: (_, listener) => listeners.delete(listener) };
   return {
     calls,
+    overlayDismissals,
     get text() { return editor.textContent; },
     edit(value) { editor.textContent = value; },
-    focus(mention) { runInNewContext(source, { mention, HTMLElement, NodeFilter: { SHOW_TEXT: 4 }, document, window, location: { hostname: "x.com", pathname: "/compose/post" } }); },
+    focus(mention) { runInNewContext(source, { mention, composerOverlay: dismiss => overlayDismissals.push(dismiss), HTMLElement, NodeFilter: { SHOW_TEXT: 4 }, document, window, location: { hostname: "x.com", pathname: "/compose/post" } }); },
     activate() { focused = true; for (const listener of listeners) listener(); },
   };
 }
@@ -53,10 +55,12 @@ test("waits for actual window focus before inserting and inserts only once", () 
   const result = composer("existing draft", false);
   result.focus("Viewed_User");
   assert.equal(result.text, "existing draft");
+  assert.deepEqual(result.overlayDismissals, []);
   result.activate();
   result.activate();
   assert.equal(result.text, "@Viewed_User existing draft");
   assert.deepEqual(result.calls, ["focus", "@Viewed_User "]);
+  assert.deepEqual(result.overlayDismissals, [true]);
 });
 test("an existing recipient without trailing whitespace is not duplicated", () => {
   const result = composer("@viewed_user");
@@ -98,4 +102,12 @@ test("a nonbreaking space after an automatic recipient is removed with it", () =
   result.edit("@First\u00a0draft");
   result.focus(null);
   assert.equal(result.text, "draft");
+});
+
+test("a new composer request dismisses retained menus while ordinary refocus preserves them", () => {
+  const result = composer("draft");
+  result.focus(null);
+  result.focus(undefined);
+  result.focus("Viewed_User");
+  assert.deepEqual(result.overlayDismissals, [true, true]);
 });

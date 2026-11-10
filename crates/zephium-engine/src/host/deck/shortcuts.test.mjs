@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 const source = readFileSync(new URL("./shortcuts.js", import.meta.url), "utf8");
-function shortcuts(pathname = "/Viewed_User") {
+function shortcuts(pathname = "/Viewed_User", overlayOpen = false) {
   const listeners = new Map();
   const frames = [];
   const messages = [];
@@ -11,7 +11,7 @@ function shortcuts(pathname = "/Viewed_User") {
   const window = { ipc: { postMessage: value => messages.push(value) } };
   window.top = window;
   const location = { hostname: "x.com", pathname, href: `https://x.com${pathname}` };
-  runInNewContext(source, { window, document: { addEventListener: (name, callback) => listeners.set(name, callback), body: null }, location, Element, requestAnimationFrame: callback => { frames.push(callback); return frames.length; } });
+  runInNewContext(source, { composerOverlay: () => overlayOpen, window, document: { addEventListener: (name, callback) => listeners.set(name, callback), body: null }, location, Element, requestAnimationFrame: callback => { frames.push(callback); return frames.length; } });
   return { messages, navigate(path) { location.href = `https://x.com${path}`; location.pathname = path; }, dispatch(name, values = {}) {
     const target = new Element();
     target.editable = values.editable ?? false;
@@ -59,4 +59,10 @@ test("N reads the current URL on every keypress after same-document navigation",
     'composer.open="https://x.com/home"',
     'composer.open="https://x.com/notifications"',
   ]);
+});
+
+test("Escape is left to X while a composer menu is open", () => {
+  const page = shortcuts("/compose/post", true);
+  assert.equal(page.dispatch("keydown", { key: "Escape", editable: true }), false);
+  assert.deepEqual(page.messages, []);
 });

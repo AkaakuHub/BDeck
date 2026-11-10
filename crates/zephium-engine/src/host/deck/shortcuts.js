@@ -20,6 +20,7 @@
       event.stopImmediatePropagation();
       send(`composer.open=${JSON.stringify(location.href)}`);
     } else if (event.key === "Escape" && location.pathname.startsWith("/compose/")) {
+      if (composerOverlay()) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       send("composer.close");

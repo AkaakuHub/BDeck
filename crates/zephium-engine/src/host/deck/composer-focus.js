@@ -12,7 +12,9 @@
     };
     const update = () => {
       if (!editor.isConnected || !Object.hasOwn(editor.dataset, "bdeckMention")) { cleanup(); return; }
-      if (!document.hasFocus() || document.activeElement !== editor) return;
+      if (!document.hasFocus()) return;
+      composerOverlay(true);
+      if (document.activeElement !== editor) return;
       const recipient = editor.dataset.bdeckMention;
       const previous = editor.dataset.bdeckInsertedMention;
       const text = editor.textContent || "";
