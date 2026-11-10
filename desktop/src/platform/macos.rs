@@ -1,4 +1,5 @@
 mod log;
+mod app_icon;
 pub use log::redirect_stderr;
 
 use std::cell::RefCell;
@@ -193,6 +194,7 @@ impl PrivilegedUIDelegate {
 }
 
 pub fn init(window: &WebviewWindow) -> bool {
+    if !app_icon::install() { return false; }
     crate::material::install(window);
     super::window_controls::install(window);
     if !harden_privileged(window) {
