@@ -74,7 +74,7 @@
   .compose-button { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border-radius: 50%; background: var(--color-compose); color: var(--color-on-compose); cursor: pointer; }
   .compose-button:hover { background: var(--color-compose-hover); }
   .compose-button:focus-visible { outline: 2px solid var(--color-compose); outline-offset: 3px; }
-  .deck-rail { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 56px; height: calc(100% - 48px); margin-block-start: 48px; box-sizing: border-box; padding-block: 12px; border-inline-end: 1px solid var(--color-border); color: var(--color-muted); }
+  .deck-rail { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 56px; height: calc(100% - 48px); margin-block-start: 48px; box-sizing: border-box; padding-block: 12px;  color: var(--color-muted); }
   .rail-columns { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; padding-block: 6px; }
   .column-link { position: relative; display: grid; place-items: center; width: 36px; height: 38px; flex: none; border-radius: var(--radius-control); background: transparent; color: inherit; cursor: grab; touch-action: none; user-select: none; }
   .column-link:hover, .column-link:focus-visible { background: var(--row-hover); color: var(--color-text); }

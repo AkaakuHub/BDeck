@@ -22,7 +22,7 @@
 </header>
 
 <style>
-  .window-toolbar { position: absolute; z-index: 5; inset: 0 0 auto; display: flex; align-items: center; gap: 16px; height: 48px; padding-inline: 16px 12px; box-sizing: border-box; border-block-end: 1px solid var(--color-border); color: var(--color-text); user-select: none; }
+  .window-toolbar { position: absolute; z-index: 5; inset: 0 0 auto; display: flex; align-items: center; gap: 16px; height: 48px; padding-inline: 16px 12px; box-sizing: border-box; border-block-end: 1px solid var(--color-border-strong); color: var(--color-text); user-select: none; }
   .window-toolbar.mac { padding-inline-start: 96px; }
   strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; pointer-events: none; }
   .window-actions { display: flex; align-items: center; gap: 6px; }

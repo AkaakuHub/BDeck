@@ -21,6 +21,7 @@
 </div>
 
 <style>
+  .bdeck-shell::before { content: ""; position: absolute; inset: 48px auto 0 55px; width: 1px; background: var(--color-border-strong); pointer-events: none; z-index: 2; }
   .bdeck-shell {
     position: relative;
     display: flex;
