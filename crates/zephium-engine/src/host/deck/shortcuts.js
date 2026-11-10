@@ -28,8 +28,8 @@
   let horizontal = 0;
   let scrollFrame = 0;
   document.addEventListener("wheel", (event) => {
-    if (!event.isTrusted || event.ctrlKey || event.metaKey || location.pathname.startsWith("/compose/")) return;
-    const delta = event.shiftKey ? (event.deltaX || event.deltaY) : Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : 0;
+    if (!event.isTrusted || !event.shiftKey || event.ctrlKey || event.metaKey || location.pathname.startsWith("/compose/")) return;
+    const delta = event.deltaX || event.deltaY;
     if (!Number.isFinite(delta) || Math.abs(delta) < 0.5) return;
     event.preventDefault();
     const scale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? innerWidth : 1;
