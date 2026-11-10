@@ -42,7 +42,7 @@
 
   canvas { width: var(--guide-width); height: auto; aspect-ratio: 128 / 156; pointer-events: none; }
   .left canvas { margin-inline-start: calc(18px - var(--guide-width) * 0.1875); }
-  .left button { margin-inline-start: 56px; text-align: start; white-space: nowrap; }
+  .left button { margin-inline-start: 56px; max-width: none; text-align: start; white-space: nowrap; font-size: 16px; font-weight: 500; line-height: 1.5; }
   button { padding: 8px 0; border: 0; background: transparent; color: inherit; font-size: 12px; cursor: pointer; }
   @media (max-height: 600px), (max-width: 760px) {  .account-guide { --guide-width: 48px; } button { max-width: 140px; text-align: end; font-size: 11px; } .left button { text-align: start; } }
   button:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 4px; }
