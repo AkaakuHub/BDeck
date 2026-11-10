@@ -156,6 +156,9 @@ impl Shell {
             return;
         };
         tab.ready = false;
+        if self.composer.active_item() == Some(item) && self.accounts.active_item().is_none() {
+            let _ = self.operation_close_composer();
+        }
         let effects = self.items.navigate(item, COMPOSE_URL);
         self.apply(effects);
     }

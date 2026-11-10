@@ -73,3 +73,37 @@ fn only_a_prepared_editor_returning_home_is_reset_for_the_next_post() {
         request
     );
 }
+
+#[test]
+fn completing_a_post_closes_the_panel_but_retains_the_editor_for_reuse() {
+    let mut fixture = Fixture::new(1);
+    fixture.authenticate_accounts();
+    let previous = fixture.shell.windows.focused().unwrap().active;
+    fixture.shell.operation_open_composer(None);
+    let item = fixture.shell.composer.active_item().unwrap();
+    fixture.shell.composer_ready(item);
+    let home = url::Url::parse("https://x.com/home").unwrap();
+    fixture.shell.items.set_committed_url(item, home.clone());
+    fixture.shell.reset_composer_after_navigation(item, &home);
+    assert!(fixture.shell.composer.active_item().is_none());
+    assert!(fixture.shell.composer_frame().is_none());
+    assert_eq!(fixture.shell.windows.focused().unwrap().active, previous);
+    assert!(fixture.shell.items.tab(item).is_some());
+    assert!(!fixture.engine.closed.lock().unwrap().contains(&item));
+    fixture.shell.operation_open_composer(None);
+    assert_eq!(fixture.shell.composer.active_item(), Some(item));
+}
+
+#[test]
+fn a_background_editors_home_navigation_does_not_close_another_accounts_panel() {
+    let mut fixture = Fixture::new(2);
+    fixture.authenticate_accounts();
+    fixture.shell.operation_open_composer(Some(DeckAccountId::from(1)));
+    let background = fixture.shell.composer.active_item().unwrap();
+    fixture.shell.composer_ready(background);
+    fixture.shell.operation_open_composer(Some(DeckAccountId::from(2)));
+    let active = fixture.shell.composer.active_item().unwrap();
+    fixture.shell.reset_composer_after_navigation(background, &url::Url::parse("https://x.com/home").unwrap());
+    assert_eq!(fixture.shell.composer.active_item(), Some(active));
+    assert!(!fixture.engine.closed.lock().unwrap().contains(&background));
+}
