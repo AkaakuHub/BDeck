@@ -37,10 +37,11 @@ function target(draft: ColumnDraft): ColumnTarget {
 
 async function apply(id: string | null, action: PanelAction) {
   if (action.kind === "account" && id === null && selection === "add") {
-    const result = await runOperation(() => commands.settingSet(ACCOUNT_SETTING, action.value));
-    if (!accepted(result)) throw new Error("column account selection was not saved");
-    lastAccount = action.value;
-    await commands.columnPanelSync(snapshot());
+    try {
+      const result = await runOperation(() => commands.settingSet(ACCOUNT_SETTING, action.value));
+      if (!accepted(result)) throw new Error("column account selection was not saved");
+      lastAccount = action.value;
+    } finally { await commands.columnPanelSync(snapshot()); }
     return;
   }
   if (action.kind === "create") {
