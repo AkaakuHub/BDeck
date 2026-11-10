@@ -5,6 +5,7 @@
   import { surface } from "$domain/surface";
   import { accepted, runOperation } from "$shared/ipc/operation";
   import { commands } from "$shared/ipc/bindings";
+  import AccountGuide from "./accounts/AccountGuide.svelte";
   import IconButton from "$shared/ui/IconButton";
   import Icon from "$shared/ui/Icon";
   import { createPointerDrag, type DragPosition } from "$shared/lib/pointer-drag.svelte";
@@ -56,7 +57,10 @@
       </button>
     {/each}
   </div>
+  <div class="column-add">
   <IconButton icon={Add01Icon} label="カラムを追加" buttonSize={36} size={20} onclick={(event) => void columnPanel.add(event)} />
+    {#if columns.length === 0 && !surface.visible()}<AccountGuide side="left" label="ここからカラムを追加" onclick={(event) => void columnPanel.add(event)} />{/if}
+  </div>
 </nav>
 {/if}
 {#if carried}
@@ -66,6 +70,7 @@
 {/if}
 
 <style>
+  .column-add { position: relative; }
   .compose-button { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border-radius: 50%; background: var(--color-compose); color: var(--color-on-compose); cursor: pointer; }
   .compose-button:hover { background: var(--color-compose-hover); }
   .compose-button:focus-visible { outline: 2px solid var(--color-compose); outline-offset: 3px; }
