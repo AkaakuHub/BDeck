@@ -6,6 +6,9 @@
   let followingSortPending = false;
   let sortMenuArmed = false;
   let deadline = 0;
+  let extensionBody = null;
+  let initializedSettings = null;
+  let extensionObserver = null;
   const tabKey = tab => {
     if (tab.closest("#cpftSeparatedTweetsTab")) return "cpft:separated";
     const property = Object.keys(tab).find(key => key.startsWith("__reactFiber$"));
@@ -24,7 +27,23 @@
   };
   const configureExtension = () => {
     const settings = document.getElementById("cpftSettings");
-    if (!settings?.textContent) return;
+    if (!settings?.textContent) {
+      extensionObserver?.disconnect();
+      extensionBody = null;
+      initializedSettings = null;
+      return;
+    }
+    if (document.body && extensionBody !== document.body) {
+      extensionObserver ??= new MutationObserver(configureExtension);
+      extensionObserver.disconnect();
+      extensionBody = document.body;
+      extensionObserver.observe(extensionBody, { attributes: true, attributeFilter: ["class"] });
+    }
+    if (initializedSettings !== settings && (extensionBody?.classList.contains("Desktop") || extensionBody?.classList.contains("Mobile"))) {
+      initializedSettings = settings;
+      // The extension begins handling navigation after its initial title callback.
+      queueMicrotask(() => { document.title = document.title; refresh(); });
+    }
     let config;
     try { config = JSON.parse(settings.textContent); } catch { return; }
     if (config.alwaysUseLatestTweets === false && config.sortFollowing === preference.get().sort) return;
