@@ -38,6 +38,7 @@ pub const KEYS: &[&str] = &[
     "zoom.default",
     "privacy.smartscreen",
     "deck.state",
+    "deck.column-account",
     "deck.appearance",
     crate::deck::appearance::HIDE_ADVERTISEMENTS_SETTING,
 ];
@@ -146,6 +147,7 @@ pub fn value_allowed(key: &str, value: &str) -> bool {
                 && serde_json::from_str::<crate::deck::DeckState>(value)
                     .is_ok_and(|state| state.valid())
         }
+        "deck.column-account" => crate::ids::DeckAccountId::parse(value).is_some(),
         "deck.appearance" => serde_json::from_str::<crate::deck::DeckAppearance>(value)
             .is_ok_and(|appearance| appearance.valid()),
         "appearance" => matches!(value, "system" | "light" | "dark"),

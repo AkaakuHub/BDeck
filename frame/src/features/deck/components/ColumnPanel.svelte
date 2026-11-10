@@ -19,7 +19,7 @@
   const adding = $derived(view?.id === null && !view?.composer);
   $effect(() => { if (view && !view.accounts.some((account) => account.id === draft.account)) draft.account = view.account; });
   function fields(update: Partial<ColumnDraft>) {
-    if (adding) { draft = { ...draft, ...update }; return; }
+    if (adding) { draft = { ...draft, ...update }; if (update.account !== undefined) void action({ kind: "account", value: update.account }); return; }
     if (update.account !== undefined) void action({ kind: "account", value: update.account });
     if (update.width !== undefined) void action({ kind: "width", value: update.width });
     if (update.row !== undefined) void action({ kind: "row", value: update.row });
@@ -40,6 +40,7 @@
       resize?.disconnect();
       if (!next?.composer) { view = null; await tick(); }
       view = next;
+      if (next?.id === null && !next.composer) draft.account = next.account;
       pending = false;
       failed = false;
       await tick();
