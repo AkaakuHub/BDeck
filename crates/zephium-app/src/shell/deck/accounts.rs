@@ -9,12 +9,7 @@ struct AccountView {
     profile: ProfileId,
     item: ItemId,
     return_to: Option<ItemId>,
-}
-
-impl AccountView {
-    fn completes_login(&self, item: ItemId, state: AccountLoginState) -> bool {
-        self.item == item && state == AccountLoginState::LoggedIn
-    }
+    identity_verified: bool,
 }
 
 #[derive(Default)]
@@ -57,17 +52,36 @@ impl AccountRuntime {
 }
 
 impl Shell {
-    pub(in crate::shell) fn register_deck_account(&mut self, profile: ProfileId) {
-        let Some(mut state) = self.deck.state().cloned() else {
-            return;
-        };
+    pub(in crate::shell) fn account_available(&self, account: &zephium_core::deck::DeckAccount) -> bool {
+        account.identity.is_some()
+            && self.accounts.sessions.get(&account.profile) == Some(&AccountLoginState::LoggedIn)
+            && self.accounts.active.as_ref().is_none_or(|view| view.profile != account.profile || view.identity_verified)
+            && self.profiles.get(account.profile).is_some()
+            && !self.profile_deletion_quarantines(account.profile)
+    }
+
+    fn complete_account_login(&mut self, profile: ProfileId) {
+        let connected = self.accounts.active.as_ref()
+            .filter(|view| view.profile == profile)
+            .and_then(|view| self.deck.state()?.account(view.account))
+            .filter(|account| self.account_available(account))
+            .map(|account| account.id);
+        if let Some(account) = connected {
+            let _ = self.operation_close_account();
+            (self.emit)(Projection::UiCommand(format!("account.connected={account}")));
+        }
+    }
+
+    pub(in crate::shell) fn register_deck_account(&mut self, profile: ProfileId) -> Option<DeckAccountId> {
+        let mut state = self.deck.state().cloned()?;
+        let id = DeckAccountId::generate();
         state.accounts.push(zephium_core::deck::DeckAccount::new(
-            zephium_core::ids::DeckAccountId::generate(),
+            id,
             profile,
         ));
-        if let Ok(encoded) = serde_json::to_string(&state) {
-            let _ = self.operation_set_app_setting("deck.state".into(), encoded);
-        }
+        let encoded = serde_json::to_string(&state).ok()?;
+        let result = self.operation_set_app_setting("deck.state".into(), encoded);
+        (result.outcome != OperationOutcome::Rejected).then_some(id)
     }
     pub(in crate::shell) fn account_identity_observed(
         &mut self,
@@ -105,7 +119,11 @@ impl Shell {
             self.accounts.sessions.remove(&profile);
             self.project_account_sessions();
         }
+        if let Some(view) = self.accounts.active.as_mut().filter(|view| view.item == item) {
+            view.identity_verified = true;
+        }
         if account.identity.as_ref() == Some(&identity) {
+            self.complete_account_login(profile);
             return;
         }
         account.identity = Some(identity);
@@ -113,6 +131,7 @@ impl Shell {
             return;
         };
         let _ = self.operation_set_app_setting("deck.state".into(), encoded);
+        self.complete_account_login(profile);
     }
     pub(in crate::shell) fn account_frame(&self) -> Option<zephium_ipc::ComposerFrame> {
         let view = self.accounts.active.as_ref()?;
@@ -180,7 +199,10 @@ impl Shell {
             profile: account.profile,
             item,
             return_to,
+            identity_verified: false,
         });
+        self.accounts.sessions.insert(account.profile, AccountLoginState::Unknown);
+        self.project_account_sessions();
         let effects = self.focus_tab(item);
         let native = self.commit(effects);
         if !native.rejected {
@@ -193,6 +215,10 @@ impl Shell {
         let Some(view) = self.accounts.active.take() else {
             return operation_result(OperationOutcome::NoOp, OperationReason::StateUnchanged);
         };
+        if !view.identity_verified && self.accounts.sessions.get(&view.profile) == Some(&AccountLoginState::LoggedIn) {
+            self.accounts.sessions.insert(view.profile, AccountLoginState::Unknown);
+        }
+        self.project_account_sessions();
         let mut effects = self.items.remove(view.item);
         let target = view
             .return_to
@@ -223,18 +249,12 @@ impl Shell {
         if self.accounts.sessions.insert(profile, state) != Some(state) {
             self.project_account_sessions();
         }
-        let connected = self
-            .accounts
-            .active
-            .as_ref()
-            .filter(|view| view.completes_login(item, state))
-            .map(|view| view.account);
-        if let Some(account) = connected {
-            let _ = self.operation_close_account();
-            (self.emit)(Projection::UiCommand(format!(
-                "account.connected={account}"
-            )));
+        if state != AccountLoginState::LoggedIn
+            && self.composer.active_item().is_some_and(|item| self.composer.profile_for_item(item) == Some(profile))
+        {
+            let _ = self.operation_close_composer();
         }
+        self.complete_account_login(profile);
     }
 
     pub(in crate::shell) fn project_account_sessions(&self) {
@@ -246,12 +266,15 @@ impl Shell {
             return;
         };
         for account in &state.accounts {
-            let login = self
+            let mut login = self
                 .accounts
                 .sessions
                 .get(&account.profile)
                 .copied()
                 .unwrap_or_default();
+            if login == AccountLoginState::LoggedIn && self.accounts.active.as_ref().is_some_and(|view| view.profile == account.profile && !view.identity_verified) {
+                login = AccountLoginState::Unknown;
+            }
             (self.emit)(Projection::UiCommand(format!(
                 "account.status={}:{}",
                 account.id,
@@ -286,6 +309,7 @@ mod tests {
             profile: second,
             item: ItemId::from(2),
             return_to: None,
+            identity_verified: false,
         });
         runtime.retire_profile(first);
         assert!(!runtime.sessions.contains_key(&first));
@@ -305,17 +329,4 @@ mod tests {
         assert_eq!(runtime.active_item(), None);
     }
 
-    #[test]
-    fn only_the_login_view_completes_its_own_sign_in() {
-        let view = AccountView {
-            account: DeckAccountId::from(1),
-            profile: ProfileId::from(1),
-            item: ItemId::from(1),
-            return_to: None,
-        };
-        assert!(!view.completes_login(ItemId::from(1), AccountLoginState::Unknown));
-        assert!(!view.completes_login(ItemId::from(1), AccountLoginState::LoggedOut));
-        assert!(!view.completes_login(ItemId::from(2), AccountLoginState::LoggedIn));
-        assert!(view.completes_login(ItemId::from(1), AccountLoginState::LoggedIn));
-    }
 }

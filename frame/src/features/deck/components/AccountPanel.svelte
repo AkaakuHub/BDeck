@@ -7,7 +7,7 @@
 </script>
 
 <div class="account-backdrop" aria-hidden="true"></div>
-<div class="account-panel" role="dialog" aria-modal="true" aria-label={`${deck.displayName(frame.account)}のアカウント管理`} tabindex="-1" style:left={`${frame.x}px`} style:top={`${frame.y}px`} style:width={`${frame.width}px`} style:height={`${frame.height}px`}>
+<div class="account-panel" role="dialog" aria-modal="true" aria-label={deck.displayName(frame.account) ? `${deck.displayName(frame.account)}のアカウント管理` : "Xにログイン"} tabindex="-1" style:left={`${frame.x}px`} style:top={`${frame.y}px`} style:width={`${frame.width}px`} style:height={`${frame.height}px`}>
   <header data-tauri-drag-region="deep">
     <IconButton icon={ArrowLeft02Icon} label="アカウント画面で戻る" buttonSize={28} onclick={() => void commands.tabsBack(frame.tab)} />
     <IconButton icon={Refresh01Icon} label="アカウント画面を更新" buttonSize={28} onclick={() => void commands.tabsReload(frame.tab)} />

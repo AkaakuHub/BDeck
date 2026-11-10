@@ -4,6 +4,7 @@ use zephium_core::deck::account::AccountIdentity;
 #[test]
 fn preparing_account_composers_keeps_focus_and_reuses_each_isolated_view() {
     let mut fixture = Fixture::new(2);
+    fixture.authenticate_accounts();
     let mut state = fixture.shell.deck.state().unwrap().clone();
     for (index, account) in state.accounts.iter_mut().enumerate() {
         account.identity = Some(AccountIdentity {
@@ -48,6 +49,7 @@ fn preparing_account_composers_keeps_focus_and_reuses_each_isolated_view() {
 #[test]
 fn only_a_prepared_editor_returning_home_is_reset_for_the_next_post() {
     let mut fixture = Fixture::new(1);
+    fixture.authenticate_accounts();
     fixture
         .shell
         .operation_open_composer(Some(DeckAccountId::from(1)));

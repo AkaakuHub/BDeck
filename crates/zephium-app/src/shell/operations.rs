@@ -629,6 +629,14 @@ impl Shell {
             if !self.can_apply_deck(&state) {
                 return operation_result(OperationOutcome::Rejected, OperationReason::InvalidScope);
             }
+            if state.decks.iter().flat_map(|deck| &deck.columns).any(|column| {
+                let existing = self.deck.state().is_some_and(|previous| previous.decks.iter()
+                    .flat_map(|deck| &deck.columns)
+                    .any(|saved| saved.id == column.id && saved.account == column.account));
+                !existing && state.account(column.account).is_none_or(|account| !self.account_available(account))
+            }) {
+                return operation_result(OperationOutcome::Rejected, OperationReason::InvalidScope);
+            }
             Some(state)
         } else {
             None

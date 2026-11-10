@@ -2,6 +2,7 @@ use zephium_core::extensions::ExtensionBrowserRequestId;
 mod support;
 mod portable;
 mod composer;
+mod authentication;
 use super::*;
 use support::Fixture;
 use zephium_core::ids::DeckAccountId;
@@ -9,6 +10,7 @@ use zephium_core::ids::DeckAccountId;
 #[test]
 fn closing_a_cached_composer_after_the_last_column_is_removed_leaves_no_main_pane() {
     let mut fixture = Fixture::new(1);
+    fixture.authenticate_accounts();
     let shell = &mut fixture.shell;
     let _ = shell.operation_open_composer(Some(DeckAccountId::from(1)));
     let cached = shell.composer.active_item().unwrap();
@@ -43,6 +45,7 @@ fn account_deletion_waits_for_native_proof_and_preserves_other_profiles() {
     use zephium_core::ports::store::Store;
     for count in [1, 2] {
         let mut fixture = Fixture::new(count);
+        fixture.authenticate_accounts();
         let target = ProfileId::from(1);
         let _ = fixture
             .shell

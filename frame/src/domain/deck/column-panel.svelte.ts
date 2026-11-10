@@ -14,9 +14,9 @@ let queue: Promise<void> = Promise.resolve();
 function snapshot(): PanelView | null {
   const active = deck.active();
   if (!active || !selection) return null;
-  const accounts = (deck.state()?.accounts ?? []).map((account) => ({ id: account.id, title: deck.displayName(account.id), screen_name: account.identity?.screen_name ?? null, avatar: accountAvatars.url(account.profile) }));
+  const accounts = deck.readyAccounts().map((account) => ({ id: account.id, title: deck.displayName(account.id), screen_name: account.identity?.screen_name ?? null, avatar: accountAvatars.url(account.profile) }));
   const column = active.columns.find((column) => column.id === selection);
-  if (!column && selection !== "add") return null;
+  if ((!column && selection !== "add") || accounts.length === 0) return null;
   return {
     composer: false, content_height: null, id: column?.id ?? null, title: column ? targetName(column.target) : "カラムを追加", index: column ? active.columns.indexOf(column) : 0, count: active.columns.length,
     account: column?.account ?? accounts.find((account) => account.id === lastAccount)?.id ?? accounts[0]?.id ?? "", accounts,

@@ -195,7 +195,8 @@ impl Shell {
                     .composer
                     .last_account
                     .and_then(|id| state.account(id))
-                    .or_else(|| state.accounts.first()),
+                    .filter(|account| self.account_available(account))
+                    .or_else(|| state.accounts.iter().find(|account| self.account_available(account))),
             })
             .cloned()
         else {
@@ -204,10 +205,7 @@ impl Shell {
         if self.windows.focused().is_none() {
             return operation_result(OperationOutcome::Rejected, OperationReason::NoFocusedWindow);
         }
-        if self.profile_deletion_quarantines(account.profile)
-            || self.profiles.get(account.profile).is_none()
-            || self.accounts.account_changed(account.profile)
-        {
+        if !self.account_available(&account) {
             return operation_result(OperationOutcome::Rejected, OperationReason::InvalidScope);
         }
         if self.composer.active.is_none() {

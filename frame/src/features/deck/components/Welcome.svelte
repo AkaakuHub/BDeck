@@ -3,17 +3,18 @@
   import { deck } from "$domain/deck";
   import Icon from "$shared/ui/Icon";
   import icon from "../../../../../desktop/icons/128x128@2x.png";
-  const hasAccount = $derived((deck.state()?.accounts.length ?? 0) > 0);
+  const hasAccount = $derived(deck.readyAccounts().length > 0);
+  const needsLogin = $derived(!hasAccount && (deck.state()?.accounts.length ?? 0) > 0);
 </script>
 <section class="welcome" aria-labelledby="welcome-title">
   <div class="welcome-card">
     <img class="app-icon" src={icon} width="64" height="64" alt="" />
-    <h1 id="welcome-title">{hasAccount ? "最初のカラムを追加" : "BDeckへようこそ"}</h1>
-    <p>{hasAccount ? "左の＋から、ホームや通知のカラムを追加できます。" : "Xのホームや通知を、ひとつの画面に。"}<br />{hasAccount ? "カラムはあとから追加・並べ替えできます。" : "アカウントごとに、見たい情報を並べられます。"}</p>
+    <h1 id="welcome-title">{hasAccount ? "最初のカラムを追加" : needsLogin ? "Xにログインしましょう" : "BDeckへようこそ"}</h1>
+    <p>{hasAccount ? "左の＋から、ホームや通知のカラムを追加できます。" : needsLogin ? "右上のアカウントから、Xにログインしてください。" : "Xのホームや通知を、ひとつの画面に。"}<br />{hasAccount ? "カラムはあとから追加・並べ替えできます。" : needsLogin ? "ログイン後に、カラムの追加や投稿ができます。" : "アカウントごとに、見たい情報を並べられます。"}</p>
     <ol aria-label="はじめるまでの手順">
       <li class:completed={hasAccount} aria-current={!hasAccount ? "step" : undefined}>
         <span class="step-number">{#if hasAccount}<Icon icon={Tick02Icon} size={14} />{:else}1{/if}</span>
-        アカウントを追加
+        Xにログイン
       </li>
       <li class:upcoming={!hasAccount} aria-current={hasAccount ? "step" : undefined}>
         <span class="step-number">2</span>カラムを追加

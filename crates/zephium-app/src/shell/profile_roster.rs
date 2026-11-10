@@ -197,12 +197,17 @@ impl Shell {
         // Register the profile with the Store before anything is written
         // under it, as first run does for the default profile.
         self.persist();
-        self.register_deck_account(profile);
+        let account = self.register_deck_account(profile);
         self.apply_shared_web_extensions_for(profile, None);
         self.save_avatar(profile, avatar, photo);
         self.project_profiles();
         if switch {
             return self.operation_switch_profile(profile);
+        }
+        if self.settings_visible() {
+            if let Some(account) = account {
+                let _ = self.operation_open_account(account);
+            }
         }
         operation_result(OperationOutcome::Applied, OperationReason::MutationApplied)
     }

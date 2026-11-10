@@ -39,7 +39,7 @@
 </script>
 
 <svelte:window onkeydown={(event) => { if (event.key === "Escape" && drag.item) { event.preventDefault(); drag.cancel(); } }} onblur={() => drag.cancel()} />
-{#if deck.state()?.accounts.length}
+{#if deck.readyAccounts().length}
 <nav class="deck-rail" data-tauri-drag-region="deep" aria-label="カラム操作">
   <button class="compose-button" type="button" aria-label={composerFailed ? "投稿パネルを開けませんでした" : "新しいポスト (N)"} title={composerFailed ? "投稿パネルを開けませんでした" : "新しいポスト (N)"} onclick={async () => { composerFailed = !await deck.openComposer(); }}><Icon icon={Edit02Icon} size={20} /></button>
   <div class="rail-columns" bind:this={list} data-tauri-drag-region="false">

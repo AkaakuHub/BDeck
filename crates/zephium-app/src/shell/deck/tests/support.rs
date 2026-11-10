@@ -211,6 +211,19 @@ pub(super) struct Fixture {
     pub events: Arc<Mutex<Vec<Projection>>>,
 }
 impl Fixture {
+    pub(super) fn authenticate_accounts(&mut self) {
+        let mut state = self.shell.deck.state().unwrap().clone();
+        for (index, account) in state.accounts.iter_mut().enumerate() {
+            account.identity = Some(zephium_core::deck::account::AccountIdentity {
+                user_id: (index + 1).to_string(),
+                display_name: "Account".into(),
+                screen_name: format!("account{index}"),
+            });
+            self.shell.account_login_observed(ItemId::from(101 + index as u128), zephium_core::deck::account::AccountLoginState::LoggedIn);
+        }
+        self.shell.deck.set_state(state);
+    }
+
     pub fn new(accounts: u128) -> Self {
         let engine = Arc::new(TestEngine::default());
         let store = Arc::new(zephium_store::SqliteStore::in_memory().unwrap());

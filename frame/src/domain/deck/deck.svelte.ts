@@ -266,13 +266,14 @@ export const deck = {
   init, dispose,
   state: () => deckState,
   active: () => activeDeck,
+  readyAccounts: () => (deckState?.accounts ?? []).filter((account) => account.identity !== null && accountSessions.status(account.id) === "logged_in" && !accountSessions.deleting()),
   appearance: () => appearance,
   hideAdvertisements: () => hideAdvertisements,
   setHideAdvertisements,
   failed: () => saveError,
   displayName: (id: string): string => {
     const account = deckState?.accounts.find((account) => account.id === id);
-    return account?.identity?.display_name ?? (deckState?.accounts[0]?.id === id ? "main" : "アカウント");
+    return account?.identity?.display_name ?? "";
   },
   save, setAppearance, addColumn, updateColumn, removeColumn, duplicateColumn, moveColumn, reorderColumn,
   toggleSuspended, columnAction, setRowRatio, setColumnRow, createAccount, openComposer,

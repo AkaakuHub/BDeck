@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { accountDeletion, accountAvatars, accountSessions, deck, type DeckAccount } from "$domain/deck";
+  import { accountDeletion, accountAvatars, accountSessions, type DeckAccount } from "$domain/deck";
   import { commands } from "$shared/ipc/bindings";
   import AccountAvatar from "../accounts/AccountAvatar.svelte";
   import Button from "$shared/ui/Button";
@@ -15,7 +15,7 @@
 
 <li>
   <AccountAvatar url={accountAvatars.url(account.profile)} size={32} />
-  <div class="identity"><strong>{deck.displayName(account.id)}</strong>{#if account.identity}<span class="screen-name">@{account.identity.screen_name}</span>{/if}</div>
+  <div class="identity">{#if account.identity}<strong>{account.identity.display_name}</strong><span class="screen-name">@{account.identity.screen_name}</span>{/if}</div>
   <span class="login-state">{status === "logged_in" ? "ログイン済み" : status === "logged_out" ? "未ログイン" : status === "account_changed" ? "アカウントが一致しません" : "未確認"}</span>
   <div class="actions">
     {#if status !== "logged_in"}<Button disabled={accountDeletion.pending()} onclick={() => void login()}>ログイン</Button>{/if}
