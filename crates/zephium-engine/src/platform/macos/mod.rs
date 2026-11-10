@@ -40,7 +40,7 @@ use dispatch2::DispatchObject as _;
 
 pub(crate) use location::blocked_by_system as location_blocked_by_system;
 pub(crate) use native::permission_owner_is_focused;
-pub(crate) use native::set_warm_spare_layout;
+pub(crate) use native::{managed_autoresizing, set_warm_spare_layout};
 pub(crate) use native::webkit as native_webview;
 pub use native::{
     configure, go_to_history_entry, history_session, query_document_playback,

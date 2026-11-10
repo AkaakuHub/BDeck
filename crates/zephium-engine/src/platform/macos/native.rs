@@ -1,3 +1,4 @@
+use objc2_app_kit::NSAutoresizingMaskOptions;
 use objc2_foundation::MainThreadMarker;
 use zephium_core::ports::engine::Partition;
 
@@ -7,15 +8,18 @@ pub fn webkit(view: &wry::WebView) -> objc2::rc::Retained<objc2_web_kit::WKWebVi
     unsafe { objc2::rc::Retained::cast_unchecked(view.webview()) }
 }
 
+pub(crate) fn managed_autoresizing() -> NSAutoresizingMaskOptions {
+    // Fixed margins become window minimums, including for hidden zero-sized views.
+    NSAutoresizingMaskOptions::all()
+}
+
 pub(crate) fn set_warm_spare_layout(webview: &wry::WebView, spare: bool) {
     use objc2_app_kit::NSAutoresizingMaskOptions as Mask;
-    // A zero-sized spare must flex its margins, not its dimensions. Otherwise
-    // AppKit derives a minimum content size from its fixed launch-size margins,
-    // preventing the entire window from shrinking below its initial dimensions.
+    // Keep the parked spare at zero size while its parent changes size.
     webkit(webview).setAutoresizingMask(if spare {
         Mask::ViewMaxXMargin | Mask::ViewMinYMargin
     } else {
-        Mask::ViewWidthSizable | Mask::ViewHeightSizable
+        managed_autoresizing()
     });
 }
 
@@ -25,7 +29,7 @@ pub fn configure(
     partition: Partition,
     expected_ephemeral_store: Option<&super::WebsiteDataStore>,
 ) -> Result<(), String> {
-    use objc2_app_kit::{NSAutoresizingMaskOptions as Mask, NSView};
+    use objc2_app_kit::NSView;
 
     let wk = webkit(webview);
     let data_store = unsafe { wk.configuration().websiteDataStore() };
@@ -48,9 +52,9 @@ pub fn configure(
     // Pinch magnifies the page the way Safari's does; page zoom stays separate.
     unsafe { wk.setAllowsMagnification(true) };
     let view: &NSView = &wk;
-    // Fill the assigned region and follow window resize in AppKit's layout pass.
+    // The stage owns final frames; AppKit must allow every margin to shrink.
     view.setTranslatesAutoresizingMaskIntoConstraints(true);
-    view.setAutoresizingMask(Mask::ViewWidthSizable | Mask::ViewHeightSizable);
+    view.setAutoresizingMask(managed_autoresizing());
     round_page(view, radius);
     Ok(())
 }

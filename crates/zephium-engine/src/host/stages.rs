@@ -387,6 +387,11 @@ impl EngineHost {
             return !stage.has_terminal_failure();
         }
         let applied = stage.finish_content_update(update_epoch);
+        if applied {
+            if let Some(content) = content_view(parent) {
+                content.layoutSubtreeIfNeeded();
+            }
+        }
         applied
     }
 
@@ -661,8 +666,7 @@ impl EngineHost {
                 }
             }),
         );
-        use objc2_app_kit::NSAutoresizingMaskOptions as Mask;
-        stage.setAutoresizingMask(Mask::ViewWidthSizable | Mask::ViewHeightSizable);
+        stage.setAutoresizingMask(crate::platform::imp::managed_autoresizing());
         let sink = self.sink.clone();
         stage.set_on_ratio(Box::new(move |tree| {
             sink.emit(EngineEvent::SplitChanged { window, tree })
