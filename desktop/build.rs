@@ -4,7 +4,7 @@ use serde_json::Value;
 use tauri_utils::platform::Target;
 
 const MAIN_LABEL: &str = "main";
-const LINUX_APP_ID: &str = "app.bdeck";
+const LINUX_APP_ID: &str = "net.akaaku.bdeck";
 const LINUX_DESKTOP_TEMPLATE: &str = "linux/bdeck.desktop.hbs";
 const PACKAGE_LICENSE: &str = "MPL-2.0";
 const LEGAL_RESOURCES: [(&str, &str); 1] = [("../LICENSE", "licenses/BDeck-MPL-2.0.txt")];
@@ -159,7 +159,7 @@ fn validate_linux_desktop_template(path: &Path) -> io::Result<()> {
     let template = fs::read_to_string(path)?;
     for exact in [
         "Exec={{exec}} %U",
-        "StartupWMClass=app.bdeck",
+        "StartupWMClass=net.akaaku.bdeck",
         "Icon={{icon}}",
         "Name=BDeck",
         "Terminal=false",

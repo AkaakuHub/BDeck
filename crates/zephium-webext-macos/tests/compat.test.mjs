@@ -241,7 +241,7 @@ test("interactive authentication retains the complete native redirect result", a
   const redirect = chrome.identity.getRedirectURL("cb") + "?code=synthetic&state=fixture#fragment";
   let request;
   chrome.runtime.sendNativeMessage = async (application, message) => {
-    assert.equal(application, "app.zephium.webext");
+    assert.equal(application, "net.akaaku.bdeck.webext");
     request = message;
     return { url: redirect };
   };

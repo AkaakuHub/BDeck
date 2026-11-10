@@ -17,7 +17,7 @@ use zephium_webext::storage::{
 
 use crate::{json, runtime::Shared};
 
-pub(crate) const APPLICATION: &str = "app.zephium.storage";
+pub(crate) const APPLICATION: &str = "net.akaaku.bdeck.storage";
 static NEXT_PORT: AtomicUsize = AtomicUsize::new(1);
 const MAX_PORTS: usize = 128;
 const MAX_PENDING: usize = 8;

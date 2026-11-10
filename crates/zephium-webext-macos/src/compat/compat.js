@@ -26,7 +26,7 @@
   // WebKit prefixes the browser's errors with its own; extensions compare
   // against Chrome's text.
   const native = (api, fields) =>
-    runtime.sendNativeMessage("app.zephium.webext", Object.assign({ api }, fields)).catch((error) => {
+    runtime.sendNativeMessage("net.akaaku.bdeck.webext", Object.assign({ api }, fields)).catch((error) => {
       const message = String((error && error.message) || error).replace(/^Invalid call to runtime\.sendNativeMessage\(\)\. /, "");
       if (api !== "log" && Z.report) Z.report("error", `${api}: ${message}`);
       throw new Error(message);
@@ -940,7 +940,7 @@
         this.extensions = "";
         this.bufferedAmount = 0;
         this.onopen = this.onmessage = this.onerror = this.onclose = null;
-        const port = runtime.connectNative("app.zephium.socket");
+        const port = runtime.connectNative("net.akaaku.bdeck.socket");
         this.#port = port;
         port.onMessage.addListener((message) => this.#receive(message));
         port.onDisconnect.addListener(() => this.#finish(1006, ""));

@@ -1,6 +1,6 @@
 {
   "productName": "BDeck Performance",
-  "identifier": "app.bdeck.performance",
+  "identifier": "net.akaaku.bdeck.performance",
   "build": { "devUrl": null },
   "app": {
     "windows": [

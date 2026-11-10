@@ -39,7 +39,7 @@
       let ready = false, hello, attempts = 0;
       const start = () => {
         try {
-          const opened = native && !content ? runtime.connectNative("app.zephium.storage") : runtime.connect({name: channel});
+          const opened = native && !content ? runtime.connectNative("net.akaaku.bdeck.storage") : runtime.connect({name: channel});
           port = opened;
           const fail = error => {
             if (port !== opened) return;

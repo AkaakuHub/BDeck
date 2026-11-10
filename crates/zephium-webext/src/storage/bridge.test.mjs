@@ -38,7 +38,7 @@ function context(server, {worker=false, url=origin+'page.html', background=null,
   const timers = new Set(), opened = new Set();
   const runtime = {id:extension, getURL:path => origin+path.replace(/^\//,''), onConnect:event()};
   Object.defineProperty(runtime, 'lastError', {configurable:true, get:() => undefined});
-  runtime.connectNative = name => { assert.equal(name, 'app.zephium.storage'); const port = server.connect(); opened.add(port); return port; };
+  runtime.connectNative = name => { assert.equal(name, 'net.akaaku.bdeck.storage'); const port = server.connect(); opened.add(port); return port; };
   runtime.connect = ({name}) => {
     const [client, host] = pair(); host.name = name; host.sender = {id:extension, url}; opened.add(client);
     queueMicrotask(() => { if (failedConnections-- > 0) client.disconnect(); else background.runtime.onConnect.emit(host); });
