@@ -1,15 +1,49 @@
 <script lang="ts">
+  import { Add01Icon, ArrowRight02Icon, Tick02Icon } from "@hugeicons/core-free-icons";
+  import { deck } from "$domain/deck";
+  import { surface } from "$domain/surface";
+  import Button from "$shared/ui/Button";
+  import Icon from "$shared/ui/Icon";
   import icon from "../../../../../desktop/icons/128x128@2x.png";
+  const hasAccount = $derived((deck.state()?.accounts.length ?? 0) > 0);
 </script>
-<section class="welcome" aria-label="BDeckへようこそ">
-  <div class="brand">
-    <img src={icon} width="80" height="80" alt="" />
-    <h1>BDeck</h1>
+<section class="welcome" aria-labelledby="welcome-title">
+  <div class="welcome-card">
+    <img class="app-icon" src={icon} width="64" height="64" alt="" />
+    <h1 id="welcome-title">{hasAccount ? "最初のカラムを追加" : "BDeckへようこそ"}</h1>
+    <p>{hasAccount ? "左の＋から、ホームや通知のカラムを追加できます。" : "Xのホームや通知を、ひとつの画面に。"}<br />{hasAccount ? "カラムはあとから追加・並べ替えできます。" : "アカウントごとに、見たい情報を並べられます。"}</p>
+    <ol aria-label="はじめるまでの手順">
+      <li class:completed={hasAccount} aria-current={!hasAccount ? "step" : undefined}>
+        <span class="step-number">{#if hasAccount}<Icon icon={Tick02Icon} size={14} />{:else}1{/if}</span>
+        アカウントを追加
+      </li>
+      <li class:upcoming={!hasAccount} aria-current={hasAccount ? "step" : undefined}>
+        <span class="step-number">2</span>カラムを追加
+      </li>
+    </ol>
+    {#if !hasAccount}
+    <div class="welcome-action">
+      <Button variant="primary" size="large" shape="capsule" onclick={() => void surface.open("accounts")}>
+        <Icon icon={Add01Icon} size={16} />アカウントを追加<Icon icon={ArrowRight02Icon} size={16} />
+      </Button>
+    </div>
+    {/if}
   </div>
 </section>
 <style>
-  .welcome { position: absolute; inset: 48px 0 0 56px; display: grid; place-items: center; pointer-events: none; color: var(--color-text); }
-  .brand { display: flex; flex-direction: column; align-items: center; gap: 32px; transform: translateY(-24px); }
-  img { width: 80px; height: 80px; filter: drop-shadow(0 16px 24px rgb(0 0 0 / 0.16)); }
-  h1 { margin: 0; padding-inline-start: 0.16em; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; font-size: clamp(40px, 6vw, 64px); font-weight: 300; line-height: 1; letter-spacing: 0.16em; }
+  .welcome { position: absolute; inset: 48px 0 0 56px; display: grid; place-items: center; padding: 32px; box-sizing: border-box; overflow-y: auto; color: var(--color-text); }
+  .welcome-card { width: min(100%, 432px); box-sizing: border-box; padding: 36px 32px 32px; text-align: center; border: 1px solid var(--color-border-strong); border-radius: 28px; background: linear-gradient(160deg, color-mix(in srgb, var(--color-surface) 90%, transparent), color-mix(in srgb, var(--color-surface) 50%, transparent)); box-shadow: 0 24px 64px -32px rgb(0 0 0 / 0.2), 0 4px 12px -6px rgb(0 0 0 / 0.08), inset 0 1px 0 var(--color-control); }
+  .app-icon { display: block; margin: 0 auto 24px; width: 64px; height: 64px; filter: drop-shadow(0 8px 12px rgb(0 0 0 / 0.12)); }
+  h1 { margin: 0; font-size: 25px; line-height: 1.4; font-weight: 600; letter-spacing: -0.035em; }
+  p { margin: 12px 0 0; font-size: 13px; line-height: 1.85; color: var(--color-muted); }
+  ol { display: flex; justify-content: center; gap: 24px; padding: 24px 0; margin: 24px 0 0; border-block-start: 1px solid var(--color-border); list-style: none; }
+  li { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 500; }
+  .step-number { display: grid; place-items: center; width: 22px; height: 22px; flex: none; border: 1px solid var(--color-border-strong); border-radius: 50%; font-size: 10px; font-variant-numeric: tabular-nums; }
+  li[aria-current="step"] .step-number { background: var(--color-lit); border-color: var(--color-lit); color: var(--color-on-lit); }
+  .upcoming, .completed { color: var(--color-muted); }
+  .welcome-action { display: flex; justify-content: center; }
+  .welcome-action :global(button) { min-height: 40px; gap: 10px; padding-inline: 20px; }
+  @media (max-height: 600px) { .welcome { padding: 20px; } .welcome-card { padding-block: 24px; } .app-icon { width: 48px; height: 48px; margin-block-end: 16px; } ol { margin-block-start: 16px; padding-block: 16px; } }
+  @media (max-width: 760px) { .welcome-card { width: min(100%, 400px); padding-inline: 24px; } ol { gap: 16px; } }
+  @media (forced-colors: active) { .welcome-card { border-color: CanvasText; background: Canvas; box-shadow: none; } }
 </style>
