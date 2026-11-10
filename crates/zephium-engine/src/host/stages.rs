@@ -291,6 +291,9 @@ impl EngineHost {
         let Some(parent) = parent else {
             return false;
         };
+        if window == super::COMPOSER_WINDOW {
+            stage.setAutoresizingMask(objc2_app_kit::NSAutoresizingMaskOptions::ViewMinYMargin);
+        }
         if !stage_set_frame(&stage, parent, r, motion) {
             stage.abort_content_update(update_epoch);
             return false;
@@ -326,6 +329,9 @@ impl EngineHost {
                     }
                 }
                 if let Some(native_view) = webview_nsview(view) {
+                    if window == super::COMPOSER_WINDOW {
+                        native_view.setAutoresizingMask(objc2_app_kit::NSAutoresizingMaskOptions::empty());
+                    }
                     if !stage.insert_view(*id, native_view, view.presentation_permit.clone()) {
                         stage.abort_content_update(update_epoch);
                         return false;
