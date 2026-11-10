@@ -10,7 +10,7 @@
 
 <header class="window-toolbar" class:mac={IS_MAC} data-tauri-drag-region="deep">
   <div class="window-actions">
-    <ExtensionActions />
+    <div class="extension-actions"><ExtensionActions /></div>
     <IconButton icon={PuzzleIcon} label="拡張機能" buttonSize={30} size={18} active={surface.visible() && surface.section() === "extensions"} onclick={() => void surface.toggle("extensions")} />
     <div class="account-action">
     <IconButton icon={UserCircleIcon} label="アカウント" buttonSize={30} size={18} active={surface.visible() && surface.section() === "accounts"} onclick={() => void surface.toggle("accounts")} />
@@ -23,6 +23,8 @@
 <style>
   .window-toolbar { position: absolute; z-index: 5; inset: 0 0 auto; display: flex; align-items: center; justify-content: flex-end; gap: 16px; height: 48px; padding-inline: 16px 12px; box-sizing: border-box; border-block-end: 1px solid var(--color-border-strong); color: var(--color-text); user-select: none; }
   .window-toolbar.mac { padding-inline-start: 96px; }
-  .window-actions { display: flex; align-items: center; gap: 6px; }
-  .account-action { position: relative; display: flex; }
+  .window-actions { display: flex; align-items: center; gap: 6px; min-inline-size: 0; max-inline-size: 100%; }
+  .extension-actions { flex: 0 1 auto; min-inline-size: 0; }
+  .window-actions > :global(button) { flex: none; }
+  .account-action { flex: none; position: relative; display: flex; }
 </style>

@@ -78,11 +78,16 @@
 
   .actions {
     display: flex;
-    flex: 1 1 0;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    flex: 0 1 auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
     gap: 2px;
     min-inline-size: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-block: 6px;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
   }
 
   .actions:empty {
@@ -90,6 +95,7 @@
   }
 
   .actions .tile {
+    flex: none;
     display: grid;
     place-items: center;
     width: 28px;

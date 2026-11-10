@@ -3,6 +3,8 @@
   import { columnPanel, deck, targetName } from "$domain/deck";
   import { tabs } from "$domain/tabs";
   import { surface } from "$domain/surface";
+  import { updater } from "$domain/updater";
+  import UpdateNotice from "./updates/UpdateNotice.svelte";
   import { accepted, runOperation } from "$shared/ipc/operation";
   import { commands } from "$shared/ipc/bindings";
   import AccountGuide from "./accounts/AccountGuide.svelte";
@@ -39,8 +41,9 @@
 </script>
 
 <svelte:window onkeydown={(event) => { if (event.key === "Escape" && drag.item) { event.preventDefault(); drag.cancel(); } }} onblur={() => drag.cancel()} />
-{#if deck.readyAccounts().length}
+{#if deck.readyAccounts().length || updater.available()}
 <nav class="deck-rail" data-tauri-drag-region="deep" aria-label="カラム操作">
+  {#if deck.readyAccounts().length}
   <button class="compose-button" type="button" aria-label={composerFailed ? "投稿パネルを開けませんでした" : "新しいポスト (N)"} title={composerFailed ? "投稿パネルを開けませんでした" : "新しいポスト (N)"} onclick={async () => { composerFailed = !await deck.openComposer(); }}><Icon icon={Edit02Icon} size={20} /></button>
   <div class="rail-columns" bind:this={list} data-tauri-drag-region="false">
     {#each columns as column, index (column.id)}
@@ -61,6 +64,8 @@
   <IconButton icon={Add01Icon} label="カラムを追加" buttonSize={36} size={20} onclick={(event) => void columnPanel.add(event)} />
     {#if columns.length === 0 && !surface.visible()}<AccountGuide side="left" label="ここからカラムを追加" />{/if}
   </div>
+  {/if}
+  {#if updater.available()}<div class="rail-footer"><UpdateNotice /></div>{/if}
 </nav>
 {/if}
 {#if carried}
@@ -70,11 +75,12 @@
 {/if}
 
 <style>
-  .column-add { position: relative; }
+  .column-add { position: relative; flex: none; }
+  .rail-footer { flex: none; margin-block-start: auto; }
   .compose-button { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border-radius: 50%; background: var(--color-compose); color: var(--color-on-compose); cursor: pointer; }
   .compose-button:hover { background: var(--color-compose-hover); }
   .compose-button:focus-visible { outline: 2px solid var(--color-compose); outline-offset: 3px; }
-  .deck-rail { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 56px; height: calc(100% - 48px); margin-block-start: 48px; box-sizing: border-box; padding-block: 12px;  color: var(--color-muted); }
+  .deck-rail { flex: none; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 56px; height: calc(100% - 48px); margin-block-start: 48px; box-sizing: border-box; padding-block: 12px;  color: var(--color-muted); }
   .rail-columns { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; padding-block: 6px; }
   .column-link { position: relative; display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: var(--radius-control); background: transparent; color: inherit; cursor: grab; touch-action: none; user-select: none; }
   .column-link:hover, .column-link:focus-visible { background: var(--row-hover); color: var(--color-text); }

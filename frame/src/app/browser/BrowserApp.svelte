@@ -9,6 +9,7 @@
   import { extensions } from "$domain/extensions";
   import { webext } from "$domain/webext";
   import { layout } from "$domain/layout";
+  import { updater } from "$domain/updater";
   import Shell from "./Shell.svelte";
 
   onMount(() => {
@@ -37,7 +38,8 @@
       if (disposed) { webext.release(); return; }
       await extensions.init();
       await tabs.init();
-      await Promise.all([deck.init(), layout.init()]);
+      if (disposed) return;
+      await Promise.all([deck.init(), layout.init(), updater.init()]);
     });
 
     void (async () => {
@@ -62,6 +64,7 @@
       stopPanel?.();
       deck.dispose();
       layout.dispose();
+      updater.dispose();
     };
   });
 </script>

@@ -1,14 +1,15 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { commands, type UpdateStatus } from "$shared/ipc/bindings";
+  import { commands } from "$shared/ipc/bindings";
   import { events } from "$shared/ipc/native-events";
+  import { updater } from "$domain/updater";
   import { accepted, runOperation } from "$shared/ipc/operation";
   import SettingsGroup from "$shared/ui/SettingsGroup";
   import SettingsRow from "$shared/ui/SettingsRow";
   import Button from "$shared/ui/Button";
   import Switch from "$shared/ui/Switch";
 
-  let status = $state<UpdateStatus | null>(null);
+  const status = $derived(updater.status());
   let automatic = $state(true);
   let saving = $state(false);
   let error = $state("");
@@ -21,18 +22,13 @@
     : status?.phase === "installing" ? "更新を適用して再起動しています…"
     : status?.error ?? "");
 
-  function receive(next: UpdateStatus) {
-    if (status === null || next.revision >= status.revision) status = next;
-  }
   onMount(() => {
     let disposed = false;
-    const listening = events.updater.listen(({ payload }) => { if (!disposed) receive(payload); });
     const preferences = events.uiCommand.listen(({ payload }) => {
       if (payload.startsWith("preference.updates.auto-check=")) automatic = payload.endsWith("=true");
     });
-    void commands.updaterStatus().then((value) => { if (!disposed) receive(value); }).catch(() => { if (!disposed) error = "更新状態を取得できませんでした。"; });
     void commands.settingGet("updates.auto-check").then((value) => { if (!disposed) automatic = value !== "false"; }).catch(() => { if (!disposed) error = "設定を取得できませんでした。"; });
-    return () => { disposed = true; void listening.then((stop) => stop()); void preferences.then((stop) => stop()); };
+    return () => { disposed = true; void preferences.then((stop) => stop()); };
   });
   async function setAutomatic(value: boolean) {
     saving = true;
@@ -52,7 +48,7 @@
 
 <SettingsGroup title="BDeckの更新">
   <SettingsRow title="バージョン"><span>{status?.current_version ?? "…"}</span></SettingsRow>
-  <SettingsRow title="起動時に更新を確認"><Switch label="起動時に更新を確認" checked={automatic} disabled={saving} onchange={(value) => void setAutomatic(value)} /></SettingsRow>
+  <SettingsRow title="起動時と24時間ごとに確認"><Switch label="起動時と24時間ごとに確認" checked={automatic} disabled={saving} onchange={(value) => void setAutomatic(value)} /></SettingsRow>
   <div class="update-action">
     {#if status?.phase === "available"}
       <Button variant="primary" onclick={() => void update(true)}>更新して再起動</Button>
