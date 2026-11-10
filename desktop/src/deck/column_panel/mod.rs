@@ -232,12 +232,21 @@ pub(crate) async fn column_panel_composer_sync(
     }
     let Some(view) = view else {
         let panel = caller.app_handle().state::<Panel>();
-        let mut current = panel.view.lock().map_err(|_| "unavailable")?;
-        if current.as_ref().is_some_and(|view| view.composer) {
-            *current = None;
-            if let Some(window) = caller.app_handle().get_webview_window(LABEL) {
-                let _ = window.hide();
+        let closed = {
+            let mut current = panel.view.lock().map_err(|_| "unavailable")?;
+            if current.as_ref().is_some_and(|view| view.composer) {
+                *current = None;
+                true
+            } else {
+                false
             }
+        };
+        if closed {
+            if let Some(window) = caller.app_handle().get_webview_window(LABEL) {
+                window.hide().map_err(|error| error.to_string())?;
+            }
+            crate::emit_to_privileged(caller.app_handle(), LABEL, "zephium:column-panel-view", &Option::<PanelView>::None);
+            caller.set_focus().map_err(|error| error.to_string())?;
         }
         return Ok(());
     };

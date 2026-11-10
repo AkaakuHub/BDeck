@@ -60,7 +60,12 @@ impl Shell {
                     })
                     .map(|account| account.id);
                 let mention = self.items.tab(item).and_then(|tab| tab.url.as_ref()).and_then(super::profile::mention);
-                let _ = self.operation_open_composer(account, mention);
+                let result = self.operation_open_composer(account, mention);
+                if self.deck.profile_for_item(item).is_some()
+                    && matches!(result.outcome, OperationOutcome::Applied | OperationOutcome::Deferred | OperationOutcome::NoOp)
+                {
+                    self.composer.return_to = Some(item);
+                }
             }
             "composer.close"
                 if self.composer.active_item() == Some(item)

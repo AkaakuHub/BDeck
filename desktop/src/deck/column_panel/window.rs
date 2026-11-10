@@ -131,6 +131,10 @@ pub(super) fn close(app: &tauri::AppHandle) -> Result<(), String> {
     app.get_webview_window(LABEL)
         .ok_or("unavailable")?
         .hide()
+        .map_err(|error| error.to_string())?;
+    app.get_webview_window(crate::MAIN_LABEL)
+        .ok_or("unavailable")?
+        .set_focus()
         .map_err(|error| error.to_string())
 }
 

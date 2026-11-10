@@ -136,3 +136,25 @@ fn home_shortcut_does_not_insert_an_account_name_as_a_recipient() {
     fixture.shell.composer_ready(editor);
     assert!(fixture.engine.composer_focus.lock().unwrap().iter().all(|(_, mention)| mention.is_none()));
 }
+
+#[test]
+fn repeated_profile_shortcuts_return_to_the_originating_column_and_reuse_the_editor() {
+    let mut fixture = Fixture::new(2);
+    fixture.authenticate_accounts();
+    let source = ItemId::from(101);
+    fixture.shell.items.set_committed_url(source, url::Url::parse("https://x.com/Viewed_User").unwrap());
+    fixture.shell.operation_activate(ItemId::from(102));
+    let mut cached = None;
+    for _ in 0..3 {
+        fixture.shell.handle_deck_shortcut(source, "composer.open".into());
+        let editor = fixture.shell.composer.active_item().unwrap();
+        assert_eq!(fixture.shell.composer.return_to, Some(source));
+        if let Some(previous) = cached { assert_eq!(editor, previous); }
+        cached = Some(editor);
+        fixture.shell.composer_ready(editor);
+        fixture.shell.handle_deck_shortcut(editor, "composer.close".into());
+        assert!(fixture.shell.composer.active_item().is_none());
+        assert_eq!(fixture.shell.windows.focused().unwrap().active, Some(source));
+        assert!(!fixture.engine.closed.lock().unwrap().contains(&editor));
+    }
+}
