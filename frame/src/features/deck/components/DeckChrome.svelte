@@ -76,12 +76,11 @@
   .compose-button:focus-visible { outline: 2px solid var(--color-compose); outline-offset: 3px; }
   .deck-rail { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 56px; height: calc(100% - 48px); margin-block-start: 48px; box-sizing: border-box; padding-block: 12px;  color: var(--color-muted); }
   .rail-columns { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; padding-block: 6px; }
-  .column-link { position: relative; display: grid; place-items: center; width: 36px; height: 38px; flex: none; border-radius: var(--radius-control); background: transparent; color: inherit; cursor: grab; touch-action: none; user-select: none; }
+  .column-link { position: relative; display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: var(--radius-control); background: transparent; color: inherit; cursor: grab; touch-action: none; user-select: none; }
   .column-link:hover, .column-link:focus-visible { background: var(--row-hover); color: var(--color-text); }
   .column-link.suspended { opacity: 0.5; }
   .column-link.active { background: var(--row-active); color: var(--color-compose); }
-  .column-link :global(svg) { transform: translate(-3px, 4px); }
-  .column-link span { position: absolute; inset-block-start: 5px; inset-inline-end: 5px; font-size: 9px; font-weight: 600; line-height: 10px; font-variant-numeric: tabular-nums; pointer-events: none; }
+  .column-link span { position: absolute; inset-block-start: 4px; inset-inline-end: 5px; font-size: 9px; font-weight: 500; line-height: 10px; font-variant-numeric: tabular-nums; pointer-events: none; }
   .column-link.dragging { opacity: 0.4; cursor: grabbing; }
   .column-link.drop-before::before, .column-link.drop-after::after { content: ""; position: absolute; inset-inline: 0; height: 2px; border-radius: 1px; background: var(--color-accent); pointer-events: none; }
   .column-link.drop-before::before { top: -5px; }
