@@ -2,6 +2,7 @@
   --color-compose: #1da1f2;
   --color-compose-hover: #1a8cd8;
   --color-on-compose: #fff;
+  --color-column-active: #505057;
   --accent: var(--color-accent);
   --border: var(--color-border);
   --color-accent: var(--color-lit);

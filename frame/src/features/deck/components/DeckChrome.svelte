@@ -79,11 +79,12 @@
   .column-link { position: relative; display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: var(--radius-control); background: transparent; color: inherit; cursor: grab; touch-action: none; user-select: none; }
   .column-link:hover, .column-link:focus-visible { background: var(--row-hover); color: var(--color-text); }
   .column-link.suspended { opacity: 0.5; }
-  .column-link.active { background: var(--row-active); color: var(--color-compose); }
+  .column-link.active { background: var(--color-column-active); color: var(--color-on-compose); }
   .column-link span { position: absolute; inset-block-start: 4px; inset-inline-end: 5px; font-size: 9px; font-weight: 500; line-height: 10px; font-variant-numeric: tabular-nums; pointer-events: none; }
   .column-link.dragging { opacity: 0.4; cursor: grabbing; }
   .column-link.drop-before::before, .column-link.drop-after::after { content: ""; position: absolute; inset-inline: 0; height: 2px; border-radius: 1px; background: var(--color-accent); pointer-events: none; }
   .column-link.drop-before::before { top: -5px; }
   .column-link.drop-after::after { bottom: -5px; }
   .drag-mark { position: fixed; inset-inline-start: 10px; z-index: 10; display: grid; place-items: center; width: 36px; height: 38px; border-radius: var(--radius-control); background: var(--color-raised); color: var(--color-text); box-shadow: var(--shadow-menu); pointer-events: none; cursor: grabbing; }
+  @media (forced-colors: active) { .column-link.active { background: Highlight; color: HighlightText; } }
 </style>
