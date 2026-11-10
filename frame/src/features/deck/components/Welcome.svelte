@@ -1,8 +1,6 @@
 <script lang="ts">
-  import { Add01Icon, ArrowRight02Icon, Tick02Icon } from "@hugeicons/core-free-icons";
+  import { Tick02Icon } from "@hugeicons/core-free-icons";
   import { deck } from "$domain/deck";
-  import { surface } from "$domain/surface";
-  import Button from "$shared/ui/Button";
   import Icon from "$shared/ui/Icon";
   import icon from "../../../../../desktop/icons/128x128@2x.png";
   const hasAccount = $derived((deck.state()?.accounts.length ?? 0) > 0);
@@ -21,13 +19,6 @@
         <span class="step-number">2</span>カラムを追加
       </li>
     </ol>
-    {#if !hasAccount}
-    <div class="welcome-action">
-      <Button variant="primary" size="large" shape="capsule" onclick={() => void surface.open("accounts")}>
-        <Icon icon={Add01Icon} size={16} />アカウントを追加<Icon icon={ArrowRight02Icon} size={16} />
-      </Button>
-    </div>
-    {/if}
   </div>
 </section>
 <style>
@@ -41,8 +32,6 @@
   .step-number { display: grid; place-items: center; width: 22px; height: 22px; flex: none; border: 1px solid var(--color-border-strong); border-radius: 50%; font-size: 10px; font-variant-numeric: tabular-nums; }
   li[aria-current="step"] .step-number { background: var(--color-lit); border-color: var(--color-lit); color: var(--color-on-lit); }
   .upcoming, .completed { color: var(--color-muted); }
-  .welcome-action { display: flex; justify-content: center; }
-  .welcome-action :global(button) { min-height: 40px; gap: 10px; padding-inline: 20px; }
   @media (max-height: 600px) { .welcome { padding: 20px; } .welcome-card { padding-block: 24px; } .app-icon { width: 48px; height: 48px; margin-block-end: 16px; } ol { margin-block-start: 16px; padding-block: 16px; } }
   @media (max-width: 760px) { .welcome-card { width: min(100%, 400px); padding-inline: 24px; } ol { gap: 16px; } }
   @media (forced-colors: active) { .welcome-card { border-color: CanvasText; background: Canvas; box-shadow: none; } }

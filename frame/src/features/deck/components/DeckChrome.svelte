@@ -59,7 +59,7 @@
   </div>
   <div class="column-add">
   <IconButton icon={Add01Icon} label="カラムを追加" buttonSize={36} size={20} onclick={(event) => void columnPanel.add(event)} />
-    {#if columns.length === 0 && !surface.visible()}<AccountGuide side="left" label="ここからカラムを追加" onclick={(event) => void columnPanel.add(event)} />{/if}
+    {#if columns.length === 0 && !surface.visible()}<AccountGuide side="left" label="ここからカラムを追加" />{/if}
   </div>
 </nav>
 {/if}

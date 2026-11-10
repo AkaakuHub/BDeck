@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  let { label, side = "right", onclick }: { label: string; side?: "left" | "right"; onclick: (event: MouseEvent) => void } = $props();
+  let { label, side = "right" }: { label: string; side?: "left" | "right" } = $props();
   let canvas: HTMLCanvasElement;
   onMount(() => {
     const context = canvas.getContext("2d");
@@ -34,16 +34,14 @@
 </script>
 <div class="account-guide" class:left={side === "left"}>
   <canvas bind:this={canvas} width="256" height="312" aria-hidden="true"></canvas>
-  <button {onclick}>{label}</button>
+  <p>{label}</p>
 </div>
 <style>
-  .account-guide { --guide-width: 96px; position: absolute; inset-block-start: 34px; inset-inline-end: -3px; display: flex; flex-direction: column; align-items: flex-end; width: max-content; max-width: calc(100vw - 80px); color: var(--color-text); }
+  .account-guide { --guide-width: 112px; position: absolute; inset-block-start: 34px; inset-inline-end: -3px; display: flex; flex-direction: column; align-items: flex-end; width: max-content; max-width: calc(100vw - 80px); color: var(--color-text); pointer-events: none; }
   .account-guide.left { inset-block-start: calc(100% + 4px); inset-inline-end: auto; inset-inline-start: 0; align-items: flex-start; }
 
-  canvas { width: var(--guide-width); height: auto; aspect-ratio: 128 / 156; pointer-events: none; }
-  .left canvas { margin-inline-start: calc(18px - var(--guide-width) * 0.1875); }
-  .left button { margin-inline-start: 56px; max-width: none; text-align: start; white-space: nowrap; font-size: 16px; font-weight: 500; line-height: 1.5; }
-  button { padding: 8px 0; border: 0; background: transparent; color: inherit; font-size: 12px; cursor: pointer; }
-  @media (max-height: 600px), (max-width: 760px) {  .account-guide { --guide-width: 48px; } button { max-width: 140px; text-align: end; font-size: 11px; } .left button { text-align: start; } }
-  button:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 4px; }
+  canvas { width: var(--guide-width); height: auto; aspect-ratio: 128 / 156; margin-inline-end: calc(18px - var(--guide-width) * 0.21875); pointer-events: none; }
+  .left canvas { margin-inline-end: 0; margin-inline-start: calc(18px - var(--guide-width) * 0.1875); }
+  .left p { margin-inline-start: 56px; max-width: none; text-align: start; white-space: nowrap; }
+  p { margin: 0; padding: 8px 0; color: inherit; font-size: 16px; font-weight: 500; line-height: 1.5; white-space: nowrap; }
 </style>
