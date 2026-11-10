@@ -84,46 +84,34 @@ impl Shell {
         let mut scroll = None;
         if filling.is_none() && !extension_page {
             if let Some(region) = l.content {
-                if let Some(initial) =
+                if let Some(viewport) =
                     self.deck_viewport(Rect::new(0.0, 0.0, region.width, region.height))
                 {
-                    let region = if initial.max_offset > 0.0 {
-                        Rect::new(
-                            region.x,
-                            region.y,
-                            region.width,
-                            (region.height - 16.0).max(0.0),
-                        )
-                    } else {
-                        region
-                    };
-                    l.content = Some(region);
-                    if let Some(viewport) =
-                        self.deck_viewport(Rect::new(0.0, 0.0, region.width, region.height))
-                    {
-                        if viewport.max_offset > 0.0 {
-                            scroll = Some(zephium_ipc::DeckScrollFrame {
-                                x: region.x,
-                                y: region.y + region.height,
-                                width: region.width,
-                                height: 16.0,
-                                offset: viewport.offset,
-                                max_offset: viewport.max_offset,
-                            });
-                        }
-                        tree = Some(Pane::Positioned(
-                            viewport
-                                .columns
-                                .into_iter()
-                                .filter(|(_, rect)| {
-                                    rect.x < region.width && rect.x + rect.width > 0.0
-                                })
-                                .filter_map(|(id, rect)| {
-                                    ItemId::parse(&id.to_string()).map(|id| (id, rect))
-                                })
-                                .collect(),
-                        ));
+                    if viewport.max_offset > 0.0 {
+                        let height = region.height.min(6.0);
+                        scroll = Some(zephium_ipc::DeckScrollFrame {
+                            x: region.x,
+                            y: region.y
+                                + region
+                                    .height
+                                    .min(zephium_core::deck::layout::COLUMN_HEADER_HEIGHT)
+                                - height,
+                            width: region.width,
+                            height,
+                            offset: viewport.offset,
+                            max_offset: viewport.max_offset,
+                        });
                     }
+                    tree = Some(Pane::Positioned(
+                        viewport
+                            .columns
+                            .into_iter()
+                            .filter(|(_, rect)| rect.x < region.width && rect.x + rect.width > 0.0)
+                            .filter_map(|(id, rect)| {
+                                ItemId::parse(&id.to_string()).map(|id| (id, rect))
+                            })
+                            .collect(),
+                    ));
                 }
             }
         }

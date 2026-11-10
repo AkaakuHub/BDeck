@@ -15,6 +15,7 @@ type EraseDone = Box<dyn FnOnce(ProfileDataErasureOutcome) + Send>;
 pub(super) struct TestEngine {
     pub views: Mutex<Vec<(ItemId, ProfileId)>>,
     pub navigations: Mutex<Vec<(ItemId, String)>>,
+    pub contents: Mutex<Vec<(Option<Pane>, Option<Rect>)>>,
     pub closed: Mutex<Vec<ItemId>>,
     pub composer_focus: Mutex<Vec<(ItemId, ComposerFocus)>>,
     pub extension_loads: Mutex<Vec<(ProfileId, ExtensionInstallId)>>,
@@ -62,15 +63,16 @@ impl Engine for TestEngine {
             },
         ) = settlement
         {
-            assert!(self
-                .extension_surfaces
-                .lock()
-                .unwrap()
-                .last()
-                .unwrap()
-                .windows()
-                .iter()
-                .any(|window| window.tabs().iter().any(|published| published.id() == tab)));
+            assert!(
+                self.extension_surfaces
+                    .lock()
+                    .unwrap()
+                    .last()
+                    .unwrap()
+                    .windows()
+                    .iter()
+                    .any(|window| window.tabs().iter().any(|published| published.id() == tab))
+            );
         }
         NativeDispatch::Scheduled
     }
@@ -134,9 +136,10 @@ impl Engine for TestEngine {
     fn set_content(
         &self,
         _window: WindowId,
-        _tree: Option<Pane>,
-        _region: Option<Rect>,
+        tree: Option<Pane>,
+        region: Option<Rect>,
     ) -> NativeDispatch {
+        self.contents.lock().unwrap().push((tree, region));
         NativeDispatch::Scheduled
     }
     fn set_composer(
