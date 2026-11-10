@@ -7,8 +7,8 @@ use std::sync::atomic::{AtomicU8, Ordering};
 
 use zephium_core::webview2::AdmissionError;
 
-const TITLE: &str = "Zephium couldn't start";
-const ISSUES_URL: &str = "https://github.com/zephium-browser/Zephium/issues";
+const TITLE: &str = "BDeck couldn't start";
+const ISSUES_URL: &str = "https://github.com/AkaakuHub/BDeck/issues";
 const WEBVIEW2_URL: &str = "https://developer.microsoft.com/microsoft-edge/webview2/";
 const SHOW_LOG: &str = "Show log folder";
 const CLOSE: &str = "Close";
@@ -39,7 +39,7 @@ pub(crate) enum StartupProblem {
     /// The runtime in use is a Beta, Dev or Canary build.
     #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     WebViewPreview,
-    /// The runtime lacks something Zephium requires.
+    /// The runtime lacks something BDeck requires.
     #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     WebViewOutdated,
     /// A WebView2 environment variable redirects the runtime.
@@ -47,7 +47,7 @@ pub(crate) enum StartupProblem {
     WebViewOverride,
     /// The profile's folder cannot be read or written.
     DataFolderUnavailable,
-    /// Another Zephium process still holds the profile.
+    /// Another BDeck process still holds the profile.
     ProfileInUse,
     Other,
 }
@@ -56,7 +56,7 @@ impl StartupProblem {
     fn title(self) -> &'static str {
         #[cfg(any(target_os = "macos", target_os = "windows"))]
         if self == Self::RendererFailed {
-            return "Zephium needs to restart";
+            return "BDeck needs to restart";
         }
         TITLE
     }
@@ -94,54 +94,54 @@ impl StartupProblem {
     fn message_with_log(self, detail: &str, log: Option<&Path>) -> String {
         let mut message = match self {
             #[cfg(any(target_os = "macos", target_os = "windows"))]
-            Self::RendererFailed => "Zephium couldn't restore its browser controls. \
-                Close this message and open Zephium again. Your saved browsing data is kept, \
+            Self::RendererFailed => "BDeck couldn't restore its browser controls. \
+                Close this message and open BDeck again. Your saved browsing data is kept, \
                 but edits that hadn't been saved may be lost."
                 .to_owned(),
-            Self::NewerProfile => "Your profile was last opened by a newer version of Zephium. \
-                 Install the latest version from zephium.app to open it. \
+            Self::NewerProfile => "Your profile was last opened by a newer version of BDeck. \
+                 Install the latest version from https://github.com/AkaakuHub/BDeck/releases/latest to open it. \
                  Nothing in your profile was changed."
                 .to_owned(),
             Self::DamagedProfile => format!(
-                "Zephium couldn't read your profile; it may be damaged. Nothing was deleted.\n\n\
+                "BDeck couldn't read your profile; it may be damaged. Nothing was deleted.\n\n\
                  Please report this at {ISSUES_URL}\n\nDetails: {detail}"
             ),
             Self::UnsupportedSystem => detail.to_owned(),
             Self::WebViewMissing => format!(
-                "Zephium needs the Microsoft Edge WebView2 Runtime, and this PC doesn't have it.\n\n\
+                "BDeck needs the Microsoft Edge WebView2 Runtime, and this PC doesn't have it.\n\n\
                  Install the Evergreen WebView2 Runtime from {WEBVIEW2_URL} \
-                 and open Zephium again."
+                 and open BDeck again."
             ),
             Self::WebViewPreview => format!(
-                "Zephium can't run on {}. It needs the stable Evergreen WebView2 Runtime \
+                "BDeck can't run on {}. It needs the stable Evergreen WebView2 Runtime \
                  from Microsoft.\n\n\
-                 Install it from {WEBVIEW2_URL} and open Zephium again. If the installer says \
+                 Install it from {WEBVIEW2_URL} and open BDeck again. If the installer says \
                  WebView2 is already installed, remove \"Microsoft Edge WebView2 Runtime\" in \
                  Settings > Apps and run the installer again.",
                 describe_preview(detail)
             ),
             Self::WebViewOutdated => format!(
-                "The Microsoft Edge WebView2 Runtime on this PC is older than Zephium needs.\n\n\
+                "The Microsoft Edge WebView2 Runtime on this PC is older than BDeck needs.\n\n\
                  Run Windows Update, or install the latest Evergreen WebView2 Runtime from \
-                 {WEBVIEW2_URL}, then open Zephium again.\n\nDetails: {detail}"
+                 {WEBVIEW2_URL}, then open BDeck again.\n\nDetails: {detail}"
             ),
             Self::WebViewOverride => format!(
-                "A WebView2 setting on this PC ({detail}) changes which browser engine Zephium \
-                 would run on, so Zephium won't start with it.\n\n\
+                "A WebView2 setting on this PC ({detail}) changes which browser engine BDeck \
+                 would run on, so BDeck won't start with it.\n\n\
                  Remove that environment variable (search Windows for \"Edit environment \
-                 variables\") and open Zephium again."
+                 variables\") and open BDeck again."
             ),
             Self::DataFolderUnavailable => format!(
-                "Zephium couldn't read or write its data folder. Check that the disk isn't full \
+                "BDeck couldn't read or write its data folder. Check that the disk isn't full \
                  and that the folder isn't read-only or blocked by security software, then open \
-                 Zephium again. Nothing was deleted.\n\nDetails: {detail}"
+                 BDeck again. Nothing was deleted.\n\nDetails: {detail}"
             ),
-            Self::ProfileInUse => "Zephium's data is still in use by another copy of Zephium that \
+            Self::ProfileInUse => "BDeck's data is still in use by another copy of BDeck that \
                  hasn't finished closing. Wait a few seconds and open it again; if it keeps \
-                 happening, end Zephium in Task Manager or restart your computer."
+                 happening, end BDeck in Task Manager or restart your computer."
                 .to_owned(),
             Self::Other => format!(
-                "Something went wrong while starting Zephium. Try opening it again.\n\n\
+                "Something went wrong while starting BDeck. Try opening it again.\n\n\
                  If it keeps happening, please report it at {ISSUES_URL}\n\nDetails: {detail}"
             ),
         };
@@ -239,7 +239,7 @@ pub(crate) fn runtime_failure(reported: &str, error: AdmissionError) -> StartupF
         }
         AdmissionError::InvalidVersion(_) => StartupFailure::new(
             StartupProblem::Other,
-            format!("the WebView2 runtime reported a version Zephium can't read ({reported:?}): {error}"),
+            format!("the WebView2 runtime reported a version BDeck can't read ({reported:?}): {error}"),
         ),
     }
 }

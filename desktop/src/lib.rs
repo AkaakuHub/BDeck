@@ -820,7 +820,7 @@ fn request_classified_startup_failure(
     detail: &str,
 ) {
     write_diagnostic(format_args!(
-        "startup: failed to initialize Zephium: {cause}"
+        "startup: failed to initialize BDeck: {cause}"
     ));
     startup_alert::show_then(app, problem, detail, request_orderly_terminal_failure);
 }
@@ -917,7 +917,7 @@ fn request_pre_shell_startup_failure_with_store(
     store: Arc<SqliteStore>,
 ) {
     write_diagnostic(format_args!(
-        "startup: failed to initialize Zephium: {error}"
+        "startup: failed to initialize BDeck: {error}"
     ));
     let store_owner = app
         .try_state::<StartupStore>()
@@ -1726,7 +1726,7 @@ fn install_async_runtime() {
 pub fn run() {
     if cfg!(all(unix, not(target_os = "macos"))) {
         diagnostic!(
-            "Zephium isn't available on Linux yet. We're working on it; follow https://zephium.app for news."
+            "BDeck supports macOS and Windows. Linux is not supported."
         );
         std::process::exit(1);
     }
@@ -2386,7 +2386,7 @@ pub fn run() {
         })
         .build(context)
         .unwrap_or_else(|error| {
-            diagnostic!("startup: failed to build Zephium: {error}");
+            diagnostic!("startup: failed to build BDeck: {error}");
             #[cfg(not(target_os = "linux"))]
             {
                 let error = error.to_string();
