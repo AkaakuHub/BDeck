@@ -112,6 +112,10 @@ impl Shell {
                 || self.accounts.active_profile() == Some(account.profile)
                 || self.profile_deletion_quarantines(account.profile)
                 || self.accounts.account_changed(account.profile)
+                || self.deck.item_profiles.iter().any(|(item, profile)| {
+                    *profile == account.profile
+                        && self.items.tab(*item).is_some_and(TabState::shows_page)
+                })
             {
                 continue;
             }

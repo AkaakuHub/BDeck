@@ -1,50 +1,54 @@
 use super::*;
-use zephium_core::deck::account::AccountIdentity;
 use zephium_core::ports::engine::ComposerFocus;
 
 #[test]
-fn preparing_account_composers_keeps_focus_and_reuses_each_isolated_view() {
+fn column_accounts_create_a_composer_on_first_use_and_reuse_each_isolated_view() {
     let mut fixture = Fixture::new(2);
     fixture.authenticate_accounts();
-    let mut state = fixture.shell.deck.state().unwrap().clone();
-    for (index, account) in state.accounts.iter_mut().enumerate() {
-        account.identity = Some(AccountIdentity {
-            user_id: (index + 1).to_string(),
-            display_name: "Account".into(),
-            screen_name: format!("account{index}"),
-        });
-    }
+    let state = fixture.shell.deck.state().unwrap().clone();
     let previous = fixture.shell.windows.focused().unwrap().active;
     assert!(fixture.shell.apply_deck_state(state).is_some());
     assert_eq!(fixture.shell.windows.focused().unwrap().active, previous);
-    let cached = fixture.shell.composer.retained_items().collect::<Vec<_>>();
-    assert_eq!(cached.len(), 2);
-    for (index, item) in cached.iter().enumerate() {
-        assert_eq!(
-            fixture.shell.composer.profile_for_item(*item),
-            Some(ProfileId::from(index as u128 + 1))
-        );
-        assert!(fixture
-            .engine
-            .views
-            .lock()
-            .unwrap()
-            .contains(&(*item, ProfileId::from(index as u128 + 1))));
+    assert_eq!(fixture.shell.composer.retained_items().count(), 0);
+    let views = fixture.engine.views.lock().unwrap().len();
+    for id in 1..=2 {
+        fixture.shell.operation_open_composer(Some(DeckAccountId::from(id)), None);
+        let item = fixture.shell.composer.active_item().unwrap();
+        assert_eq!(fixture.shell.composer.profile_for_item(item), Some(ProfileId::from(id)));
+        fixture.shell.operation_close_composer();
+        for _ in 0..3 {
+            fixture.shell.operation_open_composer(Some(DeckAccountId::from(id)), None);
+            assert_eq!(fixture.shell.composer.active_item(), Some(item));
+            fixture.shell.operation_close_composer();
+        }
     }
-    fixture.shell.prepare_composers();
-    assert_eq!(
-        fixture.shell.composer.retained_items().collect::<Vec<_>>(),
-        cached
-    );
-    fixture
-        .shell
-        .operation_open_composer(Some(DeckAccountId::from(2)), None);
-    assert_eq!(fixture.shell.composer.active_item(), Some(cached[1]));
-    fixture.shell.operation_close_composer();
-    fixture
-        .shell
-        .operation_open_composer(Some(DeckAccountId::from(2)), None);
-    assert_eq!(fixture.shell.composer.active_item(), Some(cached[1]));
+    assert_eq!(fixture.shell.composer.retained_items().count(), 2);
+    assert_eq!(fixture.engine.views.lock().unwrap().len(), views + 2);
+    assert_eq!(fixture.shell.windows.focused().unwrap().active, previous);
+}
+
+#[test]
+fn an_account_without_a_live_column_keeps_one_view_to_verify_its_session() {
+    for suspended in [false, true] {
+        let mut fixture = Fixture::new(2);
+        fixture.authenticate_accounts();
+        let mut state = fixture.shell.deck.state().unwrap().clone();
+        if suspended {
+            state.decks[0].columns[1].suspended = true;
+        } else {
+            state.decks[0].columns.pop();
+        }
+        fixture.shell.account_login_observed(ItemId::from(102), zephium_core::deck::account::AccountLoginState::Unknown);
+        assert!(fixture.shell.apply_deck_state(state).is_some());
+        let cached = fixture.shell.composer.retained_items().collect::<Vec<_>>();
+        assert_eq!(cached.len(), 1);
+        assert_eq!(fixture.shell.composer.profile_for_item(cached[0]), Some(ProfileId::from(2)));
+        fixture.shell.account_login_observed(cached[0], zephium_core::deck::account::AccountLoginState::LoggedIn);
+        assert!(fixture.shell.account_available(&fixture.shell.deck.state().unwrap().accounts[1]));
+        fixture.shell.prepare_composers();
+        assert_eq!(fixture.shell.composer.retained_items().collect::<Vec<_>>(), cached);
+        assert!(fixture.shell.composer.active_item().is_none());
+    }
 }
 
 #[test]

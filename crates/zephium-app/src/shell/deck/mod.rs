@@ -207,7 +207,6 @@ impl Shell {
             window.splits = None;
         }
         self.deck.set_state(state);
-        self.prepare_composers();
         if let Some(item) = self
             .windows
             .focused()
@@ -219,7 +218,9 @@ impl Shell {
         } else if let Some(window) = self.windows.focused_mut() {
             window.active = None;
         }
-        Some(self.commit(effects))
+        let native = self.commit(effects);
+        self.prepare_composers();
+        Some(native)
     }
 }
 
