@@ -4,6 +4,9 @@ use crate::ids::ProfileId;
 
 /// At most this many profiles run extensions at once. Keep the projection
 /// fixed-size and allocation-free.
+#[cfg(target_os = "macos")]
+pub const MAX_EXTENSION_ACTIVE_PROFILES: usize = crate::session::MAX_SESSION_PROFILES;
+#[cfg(not(target_os = "macos"))]
 pub const MAX_EXTENSION_ACTIVE_PROFILES: usize = 3;
 
 /// Exact profiles whose extension runtimes are active.
@@ -11,13 +14,21 @@ pub const MAX_EXTENSION_ACTIVE_PROFILES: usize = 3;
 /// This value is routing data, not authority. It exists solely so the Shell
 /// can publish logical browser tabs to the native runtimes that need them
 /// without broadcasting every profile.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ExtensionActiveProfiles {
     entries: [[u8; 16]; MAX_EXTENSION_ACTIVE_PROFILES],
     length: u8,
 }
 
-const _: () = assert!(std::mem::size_of::<ExtensionActiveProfiles>() <= 64);
+impl Default for ExtensionActiveProfiles {
+    fn default() -> Self {
+        Self::EMPTY
+    }
+}
+
+const _: () = assert!(
+    std::mem::size_of::<ExtensionActiveProfiles>() <= 16 * MAX_EXTENSION_ACTIVE_PROFILES + 16
+);
 
 impl ExtensionActiveProfiles {
     pub const EMPTY: Self = Self {
@@ -81,25 +92,34 @@ mod tests {
     #[test]
     fn active_profile_projection_is_unique_compact_and_bounded() {
         let mut profiles = ExtensionActiveProfiles::EMPTY;
+        let expected = (1..=MAX_EXTENSION_ACTIVE_PROFILES)
+            .map(|value| ProfileId::from(value as u128))
+            .collect::<Vec<_>>();
         for value in 1..=MAX_EXTENSION_ACTIVE_PROFILES {
             assert!(profiles.try_insert(ProfileId::from(value as u128)));
         }
         assert!(profiles.try_insert(ProfileId::from(2)));
         assert!(!profiles.try_insert(ProfileId::from(99)));
-        assert_eq!(
-            profiles.iter().collect::<Vec<_>>(),
-            vec![ProfileId::from(1), ProfileId::from(2), ProfileId::from(3)]
-        );
+        assert_eq!(profiles.iter().collect::<Vec<_>>(), expected);
         assert!(profiles.remove(ProfileId::from(2)));
         assert_eq!(
             profiles.iter().collect::<Vec<_>>(),
-            vec![ProfileId::from(1), ProfileId::from(3)]
+            expected
+                .iter()
+                .copied()
+                .filter(|profile| *profile != ProfileId::from(2))
+                .collect::<Vec<_>>()
         );
         assert!(!profiles.remove(ProfileId::from(2)));
-        assert!(profiles.try_insert(ProfileId::from(4)));
+        let added = ProfileId::from(MAX_EXTENSION_ACTIVE_PROFILES as u128 + 1);
+        assert!(profiles.try_insert(added));
         assert_eq!(
             profiles.iter().collect::<Vec<_>>(),
-            vec![ProfileId::from(1), ProfileId::from(3), ProfileId::from(4)]
+            expected
+                .into_iter()
+                .filter(|profile| *profile != ProfileId::from(2))
+                .chain([added])
+                .collect::<Vec<_>>()
         );
     }
 }
