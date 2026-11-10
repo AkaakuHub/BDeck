@@ -1,5 +1,22 @@
 const primarySelector = '[data-testid="primaryColumn"]';
 const tweetSelector = '[data-testid="tweet"]';
+const applyNotificationHeader = () => {
+  const notifications = location.pathname === "/notifications" || location.pathname.startsWith("/notifications/");
+  document.documentElement.toggleAttribute("data-bdeck-notifications", notifications);
+  if (!notifications) return;
+  const primary = document.querySelector(primarySelector);
+  const heading = primary?.querySelector("h2");
+  const settings = primary?.querySelector('a[href="/settings/notifications"]');
+  if (!heading || !settings) return;
+  let row = heading.parentElement;
+  while (row && row !== primary && !row.contains(settings)) row = row.parentElement;
+  if (!row || row === primary) return;
+  for (let node = row; node && node !== primary && !node.querySelector("nav"); node = node.parentElement) {
+    if (!node.classList.contains("bdeck-notification-header")) node.classList.add("bdeck-notification-header");
+  }
+  heading.classList.add("bdeck-notification-title");
+  settings.classList.add("bdeck-notification-settings");
+};
 const applyChat = () => {
   const root = document.querySelector('[data-testid="xchatEmbedRoute"]')?.shadowRoot;
   if (!root || root.getElementById("bdeck-chat-style")) return;
@@ -68,6 +85,7 @@ const apply = () => {
   const refresh = () => {
     applyChat();
     applyHomeComposer();
+    applyNotificationHeader();
     homeSelection.refresh();
     document.querySelectorAll(`${primarySelector} ${tweetSelector}`).forEach(applyPostSpacing);
   };
@@ -77,6 +95,7 @@ const apply = () => {
       shellChanged = false;
       applyChat();
       applyHomeComposer();
+      applyNotificationHeader();
       homeSelection.refresh();
     }
     for (const article of pending) {

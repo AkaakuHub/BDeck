@@ -1,5 +1,33 @@
 html, body { overflow-x: clip !important; }
 [data-bdeck-restoring-sort] [role="menu"] { visibility: hidden !important; }
+[data-bdeck-notifications] .bdeck-notification-header,
+[data-bdeck-notifications] .bdeck-notification-header > div {
+  block-size: 0 !important;
+  min-block-size: 0 !important;
+  max-block-size: 0 !important;
+  overflow: visible !important;
+}
+[data-bdeck-notifications] .bdeck-notification-title { display: none !important; }
+[data-bdeck-notifications] .bdeck-notification-settings {
+  position: fixed !important;
+  inset-block-start: 8px !important;
+  inset-inline-end: 8px !important;
+  inline-size: 24px !important;
+  block-size: 24px !important;
+  min-inline-size: 0 !important;
+  min-block-size: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 10;
+}
+[data-bdeck-notifications] .bdeck-notification-settings svg { inline-size: 18px !important; block-size: 18px !important; }
+[data-bdeck-notifications] [data-testid="primaryColumn"] nav:has([role="tab"]) {
+  padding-inline-end: 40px !important;
+  box-sizing: border-box !important;
+}
 html[data-bdeck-home] .bdeck-home-composer,
 html[data-bdeck-home] [data-testid="primaryColumn"] > div > div:has(.bdeck-home-composer),
 html[data-bdeck-home] [data-testid="primaryColumn"] > div > div:has(.bdeck-home-composer) + div:empty { display: none !important; }
@@ -31,23 +59,51 @@ html[data-bdeck-home] [data-testid="primaryColumn"] > div > div:has(.bdeck-home-
 [data-testid="tweet"] [role="group"]:has([data-testid="reply"]) :is(button, a) { min-height: 28px !important; }
 
 [data-testid="primaryColumn"] nav:has([role="tab"]):not([data-testid="tweet"] nav) [data-testid="ScrollSnap-List"] {
-  flex-wrap: wrap !important;
-  overflow: visible !important;
-  width: 100% !important;
-  height: auto !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
+  flex-wrap: nowrap !important;
+  inline-size: max-content !important;
+  min-inline-size: 100% !important;
+  max-inline-size: none !important;
+  block-size: 40px !important;
 }
-[data-testid="primaryColumn"] nav:has([role="tab"]):not([data-testid="tweet"] nav):has([data-testid="ScrollSnap-List"]),
-[data-testid="primaryColumn"] nav:has([role="tab"]):not([data-testid="tweet"] nav) [data-testid="ScrollSnap-SwipeableList"],
-[data-testid="primaryColumn"] nav:has([role="tab"]):not([data-testid="tweet"] nav) div:has(> [data-testid="ScrollSnap-SwipeableList"]) {
-  height: auto !important;
-  min-height: 0 !important;
+[data-testid="primaryColumn"] div:not([data-testid="tweet"] *):has(> div > nav [role="tab"]) {
+  block-size: 41px !important;
+  min-block-size: 41px !important;
+  max-block-size: 41px !important;
+  box-sizing: border-box !important;
+  align-items: center !important;
+}
+[data-testid="primaryColumn"] div:not([data-testid="tweet"] *):has(> div > nav [role="tab"]) > div {
+  block-size: 40px !important;
+  min-block-size: 0 !important;
+  max-block-size: 40px !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+[data-testid="primaryColumn"] nav:has([role="tab"]):not([data-testid="tweet"] nav) [data-testid="ScrollSnap-SwipeableList"] {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none;
+  block-size: 40px !important;
 }
 [data-testid="primaryColumn"] nav:has([role="tab"]):not([data-testid="tweet"] nav) [data-testid="ScrollSnap-List"] > div {
-  flex: 1 1 96px !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
+  flex: 1 0 auto !important;
+  min-inline-size: 88px !important;
+  max-inline-size: none !important;
 }
-[data-testid="primaryColumn"] [role="tab"]:not([data-testid="tweet"] [role="tab"]) { padding-inline: 8px !important; }
-[data-testid="primaryColumn"] [role="tab"]:not([data-testid="tweet"] [role="tab"]) [dir="auto"] { font-size: 13px !important; }
+[data-testid="primaryColumn"] [role="tab"]:not([data-testid="tweet"] [role="tab"]) {
+  padding-inline: 12px !important;
+  block-size: 40px !important;
+  min-block-size: 40px !important;
+  white-space: nowrap !important;
+}
+[data-testid="primaryColumn"] [role="tab"]:not([data-testid="tweet"] [role="tab"]) span {
+  font-size: 13px !important;
+  line-height: 18px !important;
+}
+[data-testid="primaryColumn"] [role="tab"]:not([data-testid="tweet"] [role="tab"]) > div {
+  block-size: 100% !important;
+  justify-content: center !important;
+}
+[data-testid="primaryColumn"] [role="tab"]:not([data-testid="tweet"] [role="tab"]) > div > div {
+  padding-block: 0 !important;
+}
