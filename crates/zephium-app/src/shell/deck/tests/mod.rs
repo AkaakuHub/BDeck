@@ -3,6 +3,7 @@ mod support;
 mod portable;
 mod composer;
 mod authentication;
+mod navigation;
 use super::*;
 use support::Fixture;
 use zephium_core::ids::DeckAccountId;

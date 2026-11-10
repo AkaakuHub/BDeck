@@ -65,7 +65,7 @@ impl DeckRuntime {
             .filter_map(|column| {
                 let item = ItemId::parse(&column.id.to_string())?;
                 let account = state.account(column.account)?;
-                let url = column.target.url()?;
+                let url = column.target.url(account)?;
                 Some((item, account.profile, url))
             })
             .collect()
@@ -73,6 +73,15 @@ impl DeckRuntime {
 
     fn active_columns(&self) -> Vec<(ItemId, ProfileId, String)> {
         self.state.as_ref().map_or_else(Vec::new, Self::columns_for)
+    }
+
+    pub(super) fn column_url(&self, item: ItemId) -> Option<String> {
+        let state = self.state()?;
+        let deck = state.decks.iter().find(|deck| deck.id == state.active)?;
+        let column = deck.columns.iter().find(|column| {
+            !column.suspended && ItemId::parse(&column.id.to_string()) == Some(item)
+        })?;
+        column.target.url(state.account(column.account)?)
     }
 
     fn can_apply(&self, shell: &Shell, state: &zephium_core::deck::DeckState) -> bool {

@@ -29,6 +29,7 @@ function target(draft: ColumnDraft): ColumnTarget {
   switch (draft.kind) {
     case "home": return { kind: "home" };
     case "notifications": return { kind: "notifications" };
+    case "profile": return { kind: "profile" };
     case "messages": return { kind: "url", url: "https://x.com/messages" };
     case "explore": return { kind: "url", url: "https://x.com/explore" };
     case "search": return { kind: "search", query: draft.text.trim() };
@@ -67,7 +68,12 @@ async function apply(id: string | null, action: PanelAction) {
       case "previous": await deck.moveColumn(id, -1); break;
       case "next": await deck.moveColumn(id, 1); break;
       case "duplicate": await deck.duplicateColumn(column); break;
-      case "suspend": await deck.toggleSuspended(id); break;
+      case "suspend":
+        if (await deck.toggleSuspended(id) && selection === id) {
+          selection = null;
+          await commands.columnPanelSync(null);
+        }
+        break;
       case "remove": await deck.removeColumn(id); break;
     }
   } finally { if (selection === id) await commands.columnPanelSync(snapshot()); }

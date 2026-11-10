@@ -4,6 +4,7 @@ export type DeckLayout = "horizontal" | "two_rows";
 export type ColumnTarget =
   | { kind: "home" }
   | { kind: "notifications" }
+  | { kind: "profile" }
   | { kind: "search"; query: string }
   | { kind: "list"; url: string }
   | { kind: "url"; url: string };
@@ -57,7 +58,7 @@ export function isAccountIdentity(value: unknown): value is AccountIdentity {
 
 function isTarget(value: unknown): value is ColumnTarget {
   if (!isRecord(value) || typeof value.kind !== "string") return false;
-  if (value.kind === "home" || value.kind === "notifications") return true;
+  if (value.kind === "home" || value.kind === "notifications" || value.kind === "profile") return true;
   if (value.kind === "search") return typeof value.query === "string";
   return (value.kind === "list" || value.kind === "url") && typeof value.url === "string";
 }
@@ -122,6 +123,8 @@ export function targetName(target: ColumnTarget): string {
       return "ホーム";
     case "notifications":
       return "通知";
+    case "profile":
+      return "プロフィール";
     case "search":
       return `検索: ${target.query}`;
     case "list":

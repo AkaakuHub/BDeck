@@ -55,6 +55,7 @@ pub(crate) enum PanelAction {
 pub(crate) enum ColumnKind {
     Home,
     Notifications,
+    Profile,
     Messages,
     Explore,
     Search,
@@ -77,6 +78,7 @@ impl ColumnDraft {
         let target = match self.kind {
             ColumnKind::Home => ColumnTarget::Home,
             ColumnKind::Notifications => ColumnTarget::Notifications,
+            ColumnKind::Profile => ColumnTarget::Profile,
             ColumnKind::Messages => ColumnTarget::Url {
                 url: "https://x.com/messages".into(),
             },

@@ -14,6 +14,7 @@ type EraseDone = Box<dyn FnOnce(ProfileDataErasureOutcome) + Send>;
 #[derive(Default)]
 pub(super) struct TestEngine {
     pub views: Mutex<Vec<(ItemId, ProfileId)>>,
+    pub navigations: Mutex<Vec<(ItemId, String)>>,
     pub closed: Mutex<Vec<ItemId>>,
     pub composer_focus: Mutex<Vec<(ItemId, ComposerFocus)>>,
     pub extension_loads: Mutex<Vec<(ProfileId, ExtensionInstallId)>>,
@@ -110,7 +111,8 @@ impl Engine for TestEngine {
         self.views.lock().unwrap().push((id, partition.profile()));
         true
     }
-    fn navigate(&self, _id: ItemId, _url: &str, _request: NavigationRequestId) -> bool {
+    fn navigate(&self, id: ItemId, url: &str, _request: NavigationRequestId) -> bool {
+        self.navigations.lock().unwrap().push((id, url.into()));
         true
     }
     fn reload(&self, _id: ItemId) -> NativeDispatch {

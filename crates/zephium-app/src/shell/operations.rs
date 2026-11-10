@@ -425,6 +425,9 @@ impl Shell {
     }
 
     pub(super) fn operation_reload(&mut self, id: ItemId) -> OperationDisposition {
+        if let Some(url) = self.deck.column_url(id) {
+            return self.operation_navigate(id, url);
+        }
         self.operation_reload_with(id, false)
     }
 

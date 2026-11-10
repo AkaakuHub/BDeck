@@ -18,6 +18,7 @@ pub mod layout;
 pub mod links;
 pub mod portable;
 mod removal;
+mod profile;
 pub use appearance::DeckAppearance;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -35,16 +36,18 @@ pub enum DeckLayout {
 pub enum ColumnTarget {
     Home,
     Notifications,
+    Profile,
     Search { query: String },
     List { url: String },
     Url { url: String },
 }
 
 impl ColumnTarget {
-    pub fn url(&self) -> Option<String> {
+    pub fn url(&self, account: &DeckAccount) -> Option<String> {
         match self {
             Self::Home => Some("https://x.com/home".into()),
             Self::Notifications => Some("https://x.com/notifications".into()),
+            Self::Profile => profile::url(account),
             Self::Search { query } => {
                 let encoded =
                     url::form_urlencoded::byte_serialize(query.as_bytes()).collect::<String>();
@@ -56,7 +59,7 @@ impl ColumnTarget {
 
     pub fn valid(&self) -> bool {
         match self {
-            Self::Home | Self::Notifications => true,
+            Self::Home | Self::Notifications | Self::Profile => true,
             Self::Search { query } => {
                 !query.trim().is_empty()
                     && query.chars().count() <= MAX_COLUMN_QUERY_CHARS
@@ -354,14 +357,14 @@ mod tests {
     #[test]
     fn built_in_targets_are_direct_x_urls() {
         assert_eq!(
-            ColumnTarget::Home.url().as_deref(),
+            ColumnTarget::Home.url(&account(1, 10)).as_deref(),
             Some("https://x.com/home")
         );
         assert_eq!(
             ColumnTarget::Search {
                 query: "rust lang".into()
             }
-            .url()
+            .url(&account(1, 10))
             .as_deref(),
             Some("https://x.com/search?q=rust+lang")
         );

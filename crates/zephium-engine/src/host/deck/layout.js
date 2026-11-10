@@ -1,5 +1,21 @@
 const primarySelector = '[data-testid="primaryColumn"]';
 const tweetSelector = '[data-testid="tweet"]';
+const applyProfileHeader = () => {
+  const primary = document.querySelector(primarySelector);
+  const profile = !!primary?.querySelector('[data-testid="UserName"]');
+  document.documentElement.toggleAttribute("data-bdeck-profile", profile);
+  if (!profile) return;
+  const heading = primary.querySelector("h2");
+  const back = primary.querySelector('[data-testid="app-bar-back"]');
+  if (!heading || !back) return;
+  let row = heading.parentElement;
+  while (row && row !== primary && !row.contains(back)) row = row.parentElement;
+  if (!row || row === primary) return;
+  for (let node = row; node && node !== primary && !node.querySelector('[data-testid="UserName"]'); node = node.parentElement) {
+    node.setAttribute("data-bdeck-profile-header", "");
+  }
+  back.parentElement?.setAttribute("data-bdeck-profile-back", "");
+};
 const applyNotificationHeader = () => {
   const notifications = location.pathname === "/notifications" || location.pathname.startsWith("/notifications/");
   document.documentElement.toggleAttribute("data-bdeck-notifications", notifications);
@@ -85,6 +101,7 @@ const apply = () => {
     applyChat();
     applyHomeComposer();
     applyNotificationHeader();
+    applyProfileHeader();
     homeSelection.refresh();
     document.querySelectorAll(`${primarySelector} ${tweetSelector}`).forEach(applyPostSpacing);
   };
@@ -95,6 +112,7 @@ const apply = () => {
       applyChat();
       applyHomeComposer();
       applyNotificationHeader();
+      applyProfileHeader();
       homeSelection.refresh();
     }
     for (const article of pending) {

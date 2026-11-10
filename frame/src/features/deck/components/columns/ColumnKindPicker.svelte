@@ -6,6 +6,7 @@
   const options: { kind: ColumnDraft["kind"]; label: string }[] = [
     { kind: "home", label: "ホーム" },
     { kind: "notifications", label: "通知" },
+    { kind: "profile", label: "プロフィール" },
     { kind: "messages", label: "メッセージ" },
     { kind: "explore", label: "トレンド" },
     { kind: "search", label: "検索" },
