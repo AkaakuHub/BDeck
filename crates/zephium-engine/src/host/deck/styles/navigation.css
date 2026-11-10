@@ -1,2 +1,2 @@
-body:has([data-testid="primaryColumn"]) header[role="banner"],
+header[role="banner"],
 [data-testid="sidebarColumn"] { display: none !important; }

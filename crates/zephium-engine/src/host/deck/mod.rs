@@ -52,9 +52,9 @@ impl super::EngineHost {
 
 fn stylesheet(appearance: DeckAppearance, hide_advertisements: bool) -> String {
     let padding = if appearance.density == Density::Compact {
-        "4px 8px"
+        "calc(var(--bdeck-font-size) * 0.285714) calc(var(--bdeck-font-size) * 0.571429)"
     } else {
-        "8px 10px"
+        "calc(var(--bdeck-font-size) * 0.571429) calc(var(--bdeck-font-size) * 0.714286)"
     };
     let radius = if appearance.avatars == AvatarShape::Square {
         "4px"

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { deck, DEFAULT_ROW_RATIO, MIN_ROW_RATIO, MAX_ROW_RATIO } from "$domain/deck";
+  import { deck, DEFAULT_APPEARANCE, DEFAULT_ROW_RATIO, MIN_ROW_RATIO, MAX_ROW_RATIO } from "$domain/deck";
   import ResettableRange from "../../controls/ResettableRange.svelte";
   import SettingsGroup from "$shared/ui/SettingsGroup";
   import SettingsRow from "$shared/ui/SettingsRow";
@@ -13,7 +13,7 @@
 
 <SettingsGroup title="投稿の表示">
   <SettingsRow title="文字サイズ">
-    <Select label="投稿の文字サイズ" labelHidden value={String(deck.appearance().font_size)} options={[12, 13, 14, 15, 16, 17, 18].map((size) => ({ value: String(size), label: `${size}px` }))} onchange={(value) => void deck.setAppearance({ font_size: Number(value) })} />
+    <div class="range-control"><ResettableRange label="投稿の文字サイズ" labelHidden value={deck.appearance().font_size} defaultValue={DEFAULT_APPEARANCE.font_size} min={12} max={18} unit="px" onchange={(value) => void deck.setAppearance({ font_size: value })} /></div>
   </SettingsRow>
   <SettingsRow title="投稿の余白">
     <SegmentedControl label="投稿の余白" size="compact" value={deck.appearance().density} options={[{ value: "comfortable", label: "標準" }, { value: "compact", label: "狭く" }]} onchange={(value) => { if (value === "comfortable" || value === "compact") void deck.setAppearance({ density: value }); }} />
@@ -41,10 +41,10 @@
 {#if active?.layout === "two_rows"}
 <SettingsGroup title="カラムの高さ">
   <SettingsRow title="上段の割合">
-    <div class="row-ratio"><ResettableRange label="上段の割合" labelHidden value={active.row_ratio} defaultValue={DEFAULT_ROW_RATIO} min={MIN_ROW_RATIO} max={MAX_ROW_RATIO} unit="%" onchange={(value) => deck.setRowRatio(value)} /></div>
+    <div class="range-control"><ResettableRange label="上段の割合" labelHidden value={active.row_ratio} defaultValue={DEFAULT_ROW_RATIO} min={MIN_ROW_RATIO} max={MAX_ROW_RATIO} unit="%" onchange={(value) => deck.setRowRatio(value)} /></div>
   </SettingsRow>
 </SettingsGroup>
 {/if}
 <SettingsTransfer />
 <UpdateSection />
-<style>.row-ratio { inline-size: 240px; max-inline-size: 100%; }</style>
+<style>.range-control { inline-size: 240px; max-inline-size: 100%; }</style>
