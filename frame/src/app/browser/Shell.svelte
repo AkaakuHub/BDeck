@@ -1,7 +1,8 @@
 <script lang="ts">
   import { IS_WINDOWS } from "$shared/platform";
+  import { deck } from "$domain/deck";
   import { tabs } from "$domain/tabs";
-  import DeckChrome, { ColumnHeaders, Settings, ComposerHeader, WindowToolbar, ColumnScroll } from "$features/deck";
+  import DeckChrome, { ColumnHeaders, Settings, ComposerHeader, WindowToolbar, ColumnScroll, Welcome } from "$features/deck";
   import { surface } from "$domain/surface";
 </script>
 
@@ -15,7 +16,7 @@
   <DeckChrome />
   {#if surface.visible()}
     <Settings />
-  {:else}<ColumnHeaders /><ColumnScroll />{/if}
+  {:else}<ColumnHeaders /><ColumnScroll />{#if deck.state() && !deck.active()?.columns.length}<Welcome />{/if}{/if}
   <ComposerHeader />
 </div>
 

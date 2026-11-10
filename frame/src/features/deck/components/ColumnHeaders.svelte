@@ -75,7 +75,7 @@
 </div>
 
 <style>
-  .column-headers { position: absolute; inset: 0; clip-path: inset(48px 0 0 56px); pointer-events: none; background: var(--color-surface); color: var(--color-text); }
+  .column-headers { position: absolute; inset: 0; clip-path: inset(48px 0 0 56px); pointer-events: none; color: var(--color-text); }
   .column-header { pointer-events: auto; position: absolute; display: flex; align-items: center; gap: 8px; padding-inline: 2px 6px; box-sizing: border-box; background: var(--color-surface); border-block-end: 1px solid var(--color-border); }
   .column-grip { display: grid; place-items: center; flex: none; width: 18px; height: 28px; padding: 0; border: 0; background: transparent; color: var(--color-muted); cursor: grab; touch-action: none; user-select: none; }
   .column-grip:active { cursor: grabbing; }

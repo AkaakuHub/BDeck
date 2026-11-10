@@ -4,3 +4,4 @@ export { default as ComposerHeader } from "./components/ComposerHeader.svelte";
 export { default as WindowToolbar } from "./components/WindowToolbar.svelte";
 export { default as ColumnScroll } from "./components/ColumnScroll.svelte";
 export { default as Settings } from "./components/settings/Settings.svelte";
+export { default as Welcome } from "./components/Welcome.svelte";

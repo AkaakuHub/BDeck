@@ -11,14 +11,14 @@
     context.lineCap = "round";
     context.lineJoin = "round";
     context.beginPath();
-    context.moveTo(34, 144);
-    context.bezierCurveTo(56, 132, 74, 108, 74, 80);
-    context.bezierCurveTo(74, 53, 38, 53, 38, 76);
-    context.bezierCurveTo(38, 99, 102, 103, 102, 58);
-    context.lineTo(102, 8);
-    context.moveTo(94, 17);
-    context.lineTo(102, 8);
-    context.lineTo(110, 17);
+    context.moveTo(22, 140);
+    context.bezierCurveTo(52, 134, 80, 104, 80, 78);
+    context.bezierCurveTo(80, 49, 40, 49, 40, 74);
+    context.bezierCurveTo(40, 105, 106, 105, 106, 60);
+    context.bezierCurveTo(106, 40, 104, 22, 100, 8);
+    context.moveTo(93, 20);
+    context.lineTo(100, 8);
+    context.lineTo(112, 15);
     context.stroke();
   });
 </script>
@@ -27,10 +27,10 @@
   <button {onclick}>{label}</button>
 </div>
 <style>
-  .account-guide { position: absolute; inset-block-start: 34px; inset-inline-end: -8px; display: flex; flex-direction: column; align-items: flex-end; width: max-content; max-width: calc(100vw - 80px); color: var(--color-text); }
+  .account-guide { position: absolute; inset-block-start: 34px; inset-inline-end: -3px; display: flex; flex-direction: column; align-items: flex-end; width: max-content; max-width: calc(100vw - 80px); color: var(--color-text); }
   .account-guide.left { inset-inline-end: auto; inset-inline-start: 0; align-items: flex-start; }
   .left canvas { transform: scaleX(-1); }
-  canvas { width: 128px; height: 156px; pointer-events: none; }
+  canvas { width: 96px; height: 117px; pointer-events: none; }
   button { padding: 8px 0; border: 0; background: transparent; color: inherit; font-size: 14px; cursor: pointer; }
   button:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 4px; }
 </style>
