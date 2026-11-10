@@ -59,7 +59,8 @@ impl Shell {
                             .find(|account| Some(account.profile) == profile)
                     })
                     .map(|account| account.id);
-                let _ = self.operation_open_composer(account);
+                let mention = self.items.tab(item).and_then(|tab| tab.url.as_ref()).and_then(super::profile::mention);
+                let _ = self.operation_open_composer(account, mention);
             }
             "composer.close"
                 if self.composer.active_item() == Some(item)

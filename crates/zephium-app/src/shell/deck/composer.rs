@@ -9,6 +9,7 @@ struct ComposerTab {
     item: ItemId,
     ready: bool,
     height: f64,
+    mention: Option<String>,
 }
 
 #[derive(Default)]
@@ -90,6 +91,7 @@ impl Shell {
             item,
             ready: false,
             height: 320.0,
+            mention: None,
         });
         Some(item)
     }
@@ -119,11 +121,18 @@ impl Shell {
         self.apply(effects);
     }
 
+    fn focus_composer_editor(&mut self, item: ItemId) {
+        let mention = self.composer.tabs.iter_mut()
+            .find(|tab| tab.item == item && tab.ready)
+            .and_then(|tab| tab.mention.take());
+        let _ = self.engine.focus_composer(item, mention);
+    }
+
     pub(in crate::shell) fn composer_ready(&mut self, item: ItemId) {
         if let Some(tab) = self.composer.tabs.iter_mut().find(|tab| tab.item == item) {
             tab.ready = true;
             if self.composer.active_item() == Some(item) && !self.settings_visible() {
-                let _ = self.engine.focus_composer(item);
+                self.focus_composer_editor(item);
             }
         }
     }
@@ -189,6 +198,7 @@ impl Shell {
     pub(in crate::shell) fn operation_open_composer(
         &mut self,
         account: Option<DeckAccountId>,
+        mention: Option<String>,
     ) -> OperationDisposition {
         let Some(account) = self
             .deck
@@ -221,6 +231,9 @@ impl Shell {
                 OperationReason::ItemLimitReached,
             );
         };
+        if let Some(tab) = self.composer.tabs.iter_mut().find(|tab| tab.item == item) {
+            tab.mention = mention;
+        }
         let needs_navigation = self
             .items
             .tab(item)
@@ -236,7 +249,7 @@ impl Shell {
             return self.operation_navigate(item, COMPOSE_URL.into());
         }
         if !native.rejected {
-            let _ = self.engine.focus_composer(item);
+            self.focus_composer_editor(item);
         }
         mutation_result(native)
     }
@@ -281,6 +294,7 @@ mod tests {
                     item: ItemId::from(id),
                     ready: true,
                     height: 320.0,
+                    mention: None,
                 })
                 .collect(),
             active: Some(DeckAccountId::from(2)),

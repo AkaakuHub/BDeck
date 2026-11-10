@@ -7,7 +7,7 @@ fn unverified_accounts_cannot_post_or_add_columns() {
         let mut fixture = Fixture::new(1);
         fixture.authenticate_accounts();
         fixture.shell.account_login_observed(ItemId::from(101), status);
-        let result = fixture.shell.operation_open_composer(None);
+        let result = fixture.shell.operation_open_composer(None, None);
         assert_eq!(result.outcome, OperationOutcome::Rejected);
         assert!(fixture.shell.composer.active_item().is_none());
         let mut state = fixture.shell.deck.state().unwrap().clone();
@@ -34,7 +34,7 @@ fn login_waits_for_both_identity_and_session_in_either_arrival_order() {
             fixture.shell.account_login_observed(item, AccountLoginState::LoggedIn);
         }
         assert_eq!(fixture.shell.accounts.active_item(), Some(item));
-        assert_eq!(fixture.shell.operation_open_composer(None).outcome, OperationOutcome::Rejected);
+        assert_eq!(fixture.shell.operation_open_composer(None, None).outcome, OperationOutcome::Rejected);
         if identity_first {
             fixture.shell.account_login_observed(item, AccountLoginState::LoggedIn);
         } else {
@@ -42,7 +42,7 @@ fn login_waits_for_both_identity_and_session_in_either_arrival_order() {
         }
         assert!(fixture.shell.accounts.active_item().is_none());
         assert!(fixture.shell.deck.state().unwrap().accounts[0].identity.is_some());
-        assert_ne!(fixture.shell.operation_open_composer(None).outcome, OperationOutcome::Rejected);
+        assert_ne!(fixture.shell.operation_open_composer(None, None).outcome, OperationOutcome::Rejected);
     }
 }
 
@@ -50,11 +50,11 @@ fn login_waits_for_both_identity_and_session_in_either_arrival_order() {
 fn logout_closes_the_editor_and_prevents_reopening_it() {
     let mut fixture = Fixture::new(1);
     fixture.authenticate_accounts();
-    assert_ne!(fixture.shell.operation_open_composer(None).outcome, OperationOutcome::Rejected);
+    assert_ne!(fixture.shell.operation_open_composer(None, None).outcome, OperationOutcome::Rejected);
     let item = fixture.shell.composer.active_item().unwrap();
     fixture.shell.account_login_observed(item, AccountLoginState::LoggedOut);
     assert!(fixture.shell.composer.active_item().is_none());
-    assert_eq!(fixture.shell.operation_open_composer(None).outcome, OperationOutcome::Rejected);
+    assert_eq!(fixture.shell.operation_open_composer(None, None).outcome, OperationOutcome::Rejected);
 }
 
 #[test]
@@ -62,7 +62,7 @@ fn a_verified_session_can_add_columns_and_the_default_composer_skips_logged_out_
     let mut fixture = Fixture::new(2);
     fixture.authenticate_accounts();
     fixture.shell.account_login_observed(ItemId::from(101), AccountLoginState::LoggedOut);
-    assert_ne!(fixture.shell.operation_open_composer(None).outcome, OperationOutcome::Rejected);
+    assert_ne!(fixture.shell.operation_open_composer(None, None).outcome, OperationOutcome::Rejected);
     let item = fixture.shell.composer.active_item().unwrap();
     assert_eq!(fixture.shell.composer.profile_for_item(item), Some(ProfileId::from(2)));
     fixture.shell.operation_close_composer();
@@ -84,9 +84,9 @@ fn reauthentication_does_not_complete_using_a_cached_identity_or_a_login_signal_
     let item = fixture.shell.accounts.active_item().unwrap();
     fixture.shell.account_login_observed(item, AccountLoginState::LoggedIn);
     assert_eq!(fixture.shell.accounts.active_item(), Some(item));
-    assert_eq!(fixture.shell.operation_open_composer(None).outcome, OperationOutcome::Rejected);
+    assert_eq!(fixture.shell.operation_open_composer(None, None).outcome, OperationOutcome::Rejected);
     fixture.shell.operation_close_account();
-    assert_eq!(fixture.shell.operation_open_composer(None).outcome, OperationOutcome::Rejected);
+    assert_eq!(fixture.shell.operation_open_composer(None, None).outcome, OperationOutcome::Rejected);
 }
 
 #[test]

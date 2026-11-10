@@ -2,6 +2,7 @@ pub(super) mod accounts;
 pub(super) mod composer;
 pub(super) mod deletion;
 mod portable;
+mod profile;
 mod shortcuts;
 mod viewport;
 

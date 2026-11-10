@@ -991,7 +991,7 @@ pub fn attach_composer_parent(parent: RawWindowHandle) -> bool {
 }
 
 pub fn focus_floating_composer(item: ItemId) -> bool {
-    host::try_with(move |host| host.focus_composer(item))
+    host::try_with(move |host| host.focus_composer(item, None))
 }
 
 // Layout is a replaceable native fact, not an ordered user mutation. Keep at
@@ -1699,9 +1699,9 @@ impl Engine for WebviewEngine {
         self.set_content(window, item.map(Pane::Leaf), region)
     }
 
-    fn focus_composer(&self, item: ItemId) -> NativeDispatch {
+    fn focus_composer(&self, item: ItemId, mention: Option<String>) -> NativeDispatch {
         NativeDispatch::from_scheduled(self.run(move || {
-            let _ = host::try_with(move |host| host.focus_composer(item));
+            let _ = host::try_with(move |host| host.focus_composer(item, mention));
         }))
     }
 

@@ -15,6 +15,7 @@ type EraseDone = Box<dyn FnOnce(ProfileDataErasureOutcome) + Send>;
 pub(super) struct TestEngine {
     pub views: Mutex<Vec<(ItemId, ProfileId)>>,
     pub closed: Mutex<Vec<ItemId>>,
+    pub composer_focus: Mutex<Vec<(ItemId, Option<String>)>>,
     pub extension_loads: Mutex<Vec<(ProfileId, ExtensionInstallId)>>,
     pub extension_unloads: Mutex<Vec<(ProfileId, ExtensionInstallId)>>,
     pub extension_removals: Mutex<Vec<(ProfileId, ExtensionInstallId)>>,
@@ -147,7 +148,8 @@ impl Engine for TestEngine {
     fn focus(&self, _item: ItemId) -> NativeDispatch {
         NativeDispatch::Scheduled
     }
-    fn focus_composer(&self, _item: ItemId) -> NativeDispatch {
+    fn focus_composer(&self, item: ItemId, mention: Option<String>) -> NativeDispatch {
+        self.composer_focus.lock().unwrap().push((item, mention));
         NativeDispatch::Scheduled
     }
     fn set_drop_indicator(

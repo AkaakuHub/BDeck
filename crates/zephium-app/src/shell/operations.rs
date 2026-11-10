@@ -48,7 +48,7 @@ impl Shell {
             Command::Run(id) => self.operation_run_command(&id),
             Command::OpenUrl { input, new_tab } => self.operation_open_url(input, new_tab),
             Command::SetAppSetting { key, value } => self.operation_set_app_setting(key, value),
-            Command::OpenComposer(account) => self.operation_open_composer(Some(account)),
+            Command::OpenComposer(account) => self.operation_open_composer(Some(account), None),
             Command::OpenAccount(account) => self.operation_open_account(account),
             _ => operation_result(
                 OperationOutcome::Rejected,
@@ -702,7 +702,7 @@ impl Shell {
                 self.project_account_sessions();
                 operation_result(OperationOutcome::NoOp, OperationReason::StateUnchanged)
             }
-            "composer.open" => self.operation_open_composer(None),
+            "composer.open" => self.operation_open_composer(None, None),
             "composer.close" => self.operation_close_composer(),
             "browser.settings" => self.operation_show_settings(),
             "browser.return" => self.request_browser_return(),

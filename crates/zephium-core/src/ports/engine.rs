@@ -343,7 +343,7 @@ pub trait Engine {
     ) -> NativeDispatch {
         NativeDispatch::Unsupported
     }
-    fn focus_composer(&self, _item: ItemId) -> NativeDispatch {
+    fn focus_composer(&self, _item: ItemId, _mention: Option<String>) -> NativeDispatch {
         NativeDispatch::Unsupported
     }
     fn focus(&self, _item: ItemId) -> NativeDispatch {

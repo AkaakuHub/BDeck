@@ -744,7 +744,7 @@ impl Shell {
                 let _ = self.operation_open_url(input, new_tab);
             }
             Command::OpenComposer(account) => {
-                let _ = self.operation_open_composer(Some(account));
+                let _ = self.operation_open_composer(Some(account), None);
             }
             Command::OpenAccount(account) => {
                 let _ = self.operation_open_account(account);

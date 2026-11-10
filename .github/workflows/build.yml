@@ -45,7 +45,7 @@ jobs:
       - run: pnpm --dir frame test:ipc
       - run: pnpm --dir frame test:deck
       - name: Extension transport tests
-        run: node --test crates/zephium-webext/src/storage/bridge.test.mjs crates/zephium-webext/src/windows/*.test.mjs crates/zephium-webext-macos/tests/compat.test.mjs crates/zephium-engine/src/host/deck/session.test.mjs
+        run: node --test crates/zephium-webext/src/storage/bridge.test.mjs crates/zephium-webext/src/windows/*.test.mjs crates/zephium-webext-macos/tests/compat.test.mjs crates/zephium-engine/src/host/deck/*.test.mjs
       - name: Check workflow syntax
         env:
           ACTIONLINT_VERSION: "1.7.12"

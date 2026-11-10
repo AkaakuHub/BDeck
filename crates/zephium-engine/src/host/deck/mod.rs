@@ -17,10 +17,13 @@ pub(super) fn update_script(appearance: DeckAppearance, hide_advertisements: boo
 }
 
 impl super::EngineHost {
-    pub(crate) fn focus_composer(&self, item: zephium_core::ids::ItemId) {
+    pub(crate) fn focus_composer(&self, item: zephium_core::ids::ItemId, mention: Option<String>) {
         self.focus(item);
         if let Some(view) = self.views.get(&item) {
-            let _ = view.evaluate_script(include_str!("composer-focus.js"));
+            if let Ok(mention) = serde_json::to_string(&mention) {
+                let script = format!("(() => {{ const mention = {mention}; {} }})();", include_str!("composer-focus.js"));
+                let _ = view.evaluate_script(&script);
+            }
         }
     }
 
