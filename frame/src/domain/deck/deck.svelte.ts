@@ -10,17 +10,10 @@ import { profiles } from "$domain/profiles";
 import { commands } from "$shared/ipc/bindings";
 import { normalizeColumnRows, repositionColumn } from "./columns";
 import {
-  DECK_SETTING, DEFAULT_ROW_RATIO, DEFAULT_COLUMN_WIDTH, DECK_APPEARANCE_SETTING,
+  DECK_SETTING, DEFAULT_ROW_RATIO, DECK_APPEARANCE_SETTING,
   type ColumnTarget, type Deck, type DeckColumn, type DeckState,
   isDeckState, newUlid,
 } from "./deck-types";
-
-const presetTargets: ColumnTarget[] = [
-  { kind: "home" },
-  { kind: "notifications" },
-  { kind: "url", url: "https://x.com/messages" },
-  { kind: "url", url: "https://x.com/explore" },
-];
 
 let deckState = $state<DeckState | null>(null);
 let stateRevision = 0;
@@ -30,11 +23,6 @@ let hideAdvertisements = $state(false);
 const HIDE_ADVERTISEMENTS_SETTING = "deck.hide-advertisements";
 
 let activeDeck = $derived(deckState?.decks.find((deck) => deck.id === deckState?.active) ?? null);
-let availableProfiles = $derived(
-  profiles.all().filter((profile) => profile.kind !== "incognito"),
-);
-
-
 function parseStored(value: string | null): DeckState | null {
   if (!value) return null;
   try {
@@ -62,25 +50,16 @@ function parseAppearance(value: string | null): DeckAppearance {
 }
 
 function defaultState(): DeckState | null {
-  const profile = availableProfiles[0];
-  if (!profile) return null;
   const deckId = newUlid();
   return {
-    accounts: [{ id: profile.id, profile: profile.id, identity: null }],
+    accounts: [],
     decks: [
       {
         id: deckId,
         name: "メイン",
         layout: "horizontal",
         row_ratio: DEFAULT_ROW_RATIO,
-        columns: presetTargets.map((target) => ({
-          id: newUlid(),
-          account: profile.id,
-          target,
-          width: DEFAULT_COLUMN_WIDTH,
-          row: 0,
-          suspended: false,
-        })),
+        columns: [],
       },
     ],
     active: deckId,
