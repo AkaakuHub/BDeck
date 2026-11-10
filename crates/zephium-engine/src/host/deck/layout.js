@@ -12,10 +12,9 @@ const applyNotificationHeader = () => {
   while (row && row !== primary && !row.contains(settings)) row = row.parentElement;
   if (!row || row === primary) return;
   for (let node = row; node && node !== primary && !node.querySelector("nav"); node = node.parentElement) {
-    if (!node.classList.contains("bdeck-notification-header")) node.classList.add("bdeck-notification-header");
+    if (!node.hasAttribute("data-bdeck-notification-header")) node.setAttribute("data-bdeck-notification-header", "");
   }
-  heading.classList.add("bdeck-notification-title");
-  settings.classList.add("bdeck-notification-settings");
+  if (!heading.hasAttribute("data-bdeck-notification-title")) heading.setAttribute("data-bdeck-notification-title", "");
 };
 const applyChat = () => {
   const root = document.querySelector('[data-testid="xchatEmbedRoute"]')?.shadowRoot;
