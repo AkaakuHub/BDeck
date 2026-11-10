@@ -3,13 +3,9 @@ node_modules
 dist
 /target
 /crates/zephium-engine/target/
-/vendor/adblock/target/
-/crates/zephium-blocker/fuzz/artifacts/
-/crates/zephium-blocker/fuzz/target/
 gen/schemas
 .DS_Store
 *.log
-/eval/agentic-browsing/local-results/
 __pycache__/
 *.py[cod]
 
@@ -18,7 +14,6 @@ __pycache__/
 
 /frame/.vitest-attachments/
 
-/frame/dist-work-preview/
 /frame/reports/
 
 # Local tooling and secrets
