@@ -21,7 +21,7 @@ pnpm dev
 
 ## 配布
 
-通常のpush・PRではGitHub Actionsでビルドします。`desktop/Cargo.toml`のバージョンと一致する`v*`タグをpushすると、macOS(Apple Silicon・Intel)用DMGとWindows(x64)用インストーラーをDraft Releaseに保存します。公開後は起動時または設定画面から署名付き更新を確認し、更新して再起動できます。手順は[リリース設定](.github/RELEASE.md)を参照してください。
+通常のpush・PRではGitHub Actionsでビルドします。`desktop/Cargo.toml`のバージョンと一致する`v*`タグをpushすると、macOS(Apple Silicon・Intel)用DMGとWindows(x64)用インストーラーをReleaseとして自動公開します。公開後は起動時または設定画面から署名付き更新を確認し、更新して再起動できます。手順は[リリース設定](.github/RELEASE.md)を参照してください。
 
 ## ライセンス
 

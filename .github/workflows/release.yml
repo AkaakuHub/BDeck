@@ -55,7 +55,7 @@ jobs:
           path: dist
       - name: Validate signed update feed and write checksums
         run: python3 scripts/release/updater.py manifest --directory dist --tag "${{ github.ref_name }}"
-      - name: Create or update the draft release
+      - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
@@ -64,11 +64,6 @@ jobs:
         run: |
           set -euo pipefail
           test "$(gh api "repos/${GH_REPO}/commits/${TAG}" --jq .sha)" = "${CANDIDATE}"
-          if gh release view "${TAG}" --json isDraft > release.json; then
-            jq --exit-status '.isDraft == true' release.json > /dev/null
-          else
-            gh release create "${TAG}" --verify-tag --draft --prerelease="$([[ "${TAG}" == *-* ]] && echo true || echo false)" \
-              --title "BDeck ${TAG}" \
-              --notes 'macOS: Apple Silicon / Intel DMG. Windows: x64 installer. macOS is ad-hoc signed without notarization; Windows has no publisher signature.'
-          fi
-          gh release upload "${TAG}" dist/* --clobber
+          gh release create "${TAG}" dist/* --verify-tag --prerelease="$([[ "${TAG}" == *-* ]] && echo true || echo false)" \
+            --title "BDeck ${TAG}" \
+            --notes 'macOS: Apple Silicon / Intel DMG. Windows: x64 installer. macOS is ad-hoc signed without notarization; Windows has no publisher signature.'
