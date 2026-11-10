@@ -1,10 +1,11 @@
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
     Mutex,
+    atomic::{AtomicBool, Ordering},
 };
 use tauri::{Manager, WebviewWindow};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 use tauri_plugin_updater::{Update, UpdaterExt};
+mod schedule;
 
 #[derive(Clone, serde::Serialize, specta::Type)]
 #[serde(rename_all = "snake_case")]
@@ -77,9 +78,30 @@ pub(crate) fn startup(app: &tauri::AppHandle) {
     if crate::app_setting("updates.auto-check").as_deref() != Some("false") {
         check(app.clone(), true);
     }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let mut schedule = schedule::daily();
+        loop {
+            schedule.tick().await;
+            if crate::shutdown_started(&app) {
+                return;
+            }
+            let enabled = tauri::async_runtime::spawn_blocking(|| {
+                crate::app_setting("updates.auto-check").as_deref() != Some("false")
+            })
+            .await
+            .unwrap_or(false);
+            if enabled {
+                check(app.clone(), false);
+            }
+        }
+    });
 }
 
 fn check(app: tauri::AppHandle, notify: bool) {
+    if crate::shutdown_started(&app) {
+        return;
+    }
     if app
         .state::<UpdateManager>()
         .busy
@@ -93,11 +115,6 @@ fn check(app: tauri::AppHandle, notify: bool) {
     });
     tauri::async_runtime::spawn(async move {
         let result = async {
-            app.state::<UpdateManager>()
-                .pending
-                .lock()
-                .map_err(|_| "update state unavailable".to_owned())?
-                .take();
             let update = app
                 .updater_builder()
                 .timeout(std::time::Duration::from_secs(20))

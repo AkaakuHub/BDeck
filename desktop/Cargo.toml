@@ -44,6 +44,7 @@ tempfile.workspace = true
 tauri-plugin-updater = "=2.12.0"
 
 [dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
 async-io = "=2.6.0"
 futures-lite = "=2.6.1"
 x11rb = { version = "=0.13.2", features = ["xkb"] }
