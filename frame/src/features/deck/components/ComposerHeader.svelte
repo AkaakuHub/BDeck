@@ -3,9 +3,22 @@
   import { accountAvatars, deck } from "$domain/deck";
   import { commands, type PanelView } from "$shared/ipc/bindings";
   import AccountPanel from "./AccountPanel.svelte";
+  import { onDestroy } from "svelte";
   const frame = $derived(layout.composer());
   let signature = "";
-  let queue: Promise<void> = Promise.resolve();
+  let queued: { view: PanelView | null; x: number; y: number } | null = null;
+  let updating = false;
+  async function update() {
+    updating = true;
+    while (queued) {
+      const current = queued;
+      queued = null;
+      try { await commands.columnPanelComposerSync(current.view, current.x, current.y); }
+      catch { console.error("composer surface update failed"); }
+    }
+    updating = false;
+  }
+  onDestroy(() => { queued = null; });
   $effect(() => {
     const candidate = frame;
     const current = candidate && typeof candidate.x === "number" && typeof candidate.y === "number" && typeof candidate.width === "number" && typeof candidate.height === "number"
@@ -21,7 +34,8 @@
     const next = JSON.stringify([view, x, y]);
     if (next === signature) return;
     signature = next;
-    queue = queue.then(async () => { await commands.columnPanelComposerSync(view, x, y); }).catch(() => console.error("composer surface update failed"));
+    queued = { view, x, y };
+    if (!updating) void update();
   });
 </script>
 {#if frame?.managing}<AccountPanel {frame} />{/if}
