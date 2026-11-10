@@ -93,9 +93,8 @@ fn reauthentication_does_not_complete_using_a_cached_identity_or_a_login_signal_
 fn a_stale_unverified_background_page_cannot_log_out_an_authenticated_account() {
     let mut fixture = Fixture::new(1);
     fixture.authenticate_accounts();
-    fixture.shell.operation_open_composer(None, None);
-    let background = fixture.shell.composer.active_item().unwrap();
-    fixture.shell.operation_close_composer();
+    fixture.shell.prepare_composers();
+    let background = fixture.shell.composer.retained_items().next().unwrap();
     fixture.shell.account_login_observed(background, AccountLoginState::LoggedOut);
     let account = &fixture.shell.deck.state().unwrap().accounts[0];
     assert!(fixture.shell.account_available(account));
