@@ -1,4 +1,5 @@
 html, body { overflow-x: clip !important; }
+[data-bdeck-restoring-sort] [role="menu"] { visibility: hidden !important; }
 html[data-bdeck-home] .bdeck-home-composer,
 html[data-bdeck-home] [data-testid="primaryColumn"] > div > div:has(.bdeck-home-composer),
 html[data-bdeck-home] [data-testid="primaryColumn"] > div > div:has(.bdeck-home-composer) + div:empty { display: none !important; }

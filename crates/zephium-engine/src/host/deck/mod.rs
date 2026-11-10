@@ -95,8 +95,12 @@ fn script(appearance: DeckAppearance, hide_advertisements: bool) -> String {
   if (!(host === "x.com" || host.endsWith(".x.com") || host === "twitter.com" || host.endsWith(".twitter.com"))) return;
   const columnCss = {css};
   const chatCss = {chat_css};
+  const createHomePreference = {};
+  const createHomeSelection = {};
   {}
 }})();"#,
+        include_str!("home-preference.js"),
+        include_str!("home-selection.js"),
         include_str!("layout.js")
     )
 }

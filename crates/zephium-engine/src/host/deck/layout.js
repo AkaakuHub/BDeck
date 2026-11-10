@@ -60,6 +60,7 @@ const apply = () => {
   if (!style.isConnected) (document.head || document.documentElement).appendChild(style);
   if (style.hasAttribute("data-chat-layout")) return;
   style.setAttribute("data-chat-layout", "");
+  const homeSelection = createHomeSelection(createHomePreference);
   const pending = new Set();
   let frame = 0;
   let shellChanged = false;
@@ -67,6 +68,7 @@ const apply = () => {
   const refresh = () => {
     applyChat();
     applyHomeComposer();
+    homeSelection.refresh();
     document.querySelectorAll(`${primarySelector} ${tweetSelector}`).forEach(applyPostSpacing);
   };
   const flush = () => {
@@ -75,6 +77,7 @@ const apply = () => {
       shellChanged = false;
       applyChat();
       applyHomeComposer();
+      homeSelection.refresh();
     }
     for (const article of pending) {
       if (article.isConnected && article.closest(primarySelector)) applyPostSpacing(article);
