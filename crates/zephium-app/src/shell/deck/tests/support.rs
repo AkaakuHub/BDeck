@@ -15,7 +15,7 @@ type EraseDone = Box<dyn FnOnce(ProfileDataErasureOutcome) + Send>;
 pub(super) struct TestEngine {
     pub views: Mutex<Vec<(ItemId, ProfileId)>>,
     pub closed: Mutex<Vec<ItemId>>,
-    pub composer_focus: Mutex<Vec<(ItemId, Option<String>)>>,
+    pub composer_focus: Mutex<Vec<(ItemId, ComposerFocus)>>,
     pub extension_loads: Mutex<Vec<(ProfileId, ExtensionInstallId)>>,
     pub extension_unloads: Mutex<Vec<(ProfileId, ExtensionInstallId)>>,
     pub extension_removals: Mutex<Vec<(ProfileId, ExtensionInstallId)>>,
@@ -148,8 +148,8 @@ impl Engine for TestEngine {
     fn focus(&self, _item: ItemId) -> NativeDispatch {
         NativeDispatch::Scheduled
     }
-    fn focus_composer(&self, item: ItemId, mention: Option<String>) -> NativeDispatch {
-        self.composer_focus.lock().unwrap().push((item, mention));
+    fn focus_composer(&self, item: ItemId, context: ComposerFocus) -> NativeDispatch {
+        self.composer_focus.lock().unwrap().push((item, context));
         NativeDispatch::Scheduled
     }
     fn set_drop_indicator(
@@ -221,7 +221,10 @@ impl Fixture {
                 display_name: "Account".into(),
                 screen_name: format!("account{index}"),
             });
-            self.shell.account_login_observed(ItemId::from(101 + index as u128), zephium_core::deck::account::AccountLoginState::LoggedIn);
+            self.shell.account_login_observed(
+                ItemId::from(101 + index as u128),
+                zephium_core::deck::account::AccountLoginState::LoggedIn,
+            );
         }
         self.shell.deck.set_state(state);
     }

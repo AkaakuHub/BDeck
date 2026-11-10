@@ -5,6 +5,7 @@ use zephium_core::deck::{
     appearance::{AvatarShape, Density, MediaSize, ScrollbarStyle},
     DeckAppearance,
 };
+use zephium_core::ports::engine::ComposerFocus;
 
 pub(super) fn initialization_script(
     appearance: DeckAppearance,
@@ -17,13 +18,20 @@ pub(super) fn update_script(appearance: DeckAppearance, hide_advertisements: boo
 }
 
 impl super::EngineHost {
-    pub(crate) fn focus_composer(&self, item: zephium_core::ids::ItemId, mention: Option<String>) {
+    pub(crate) fn focus_composer(&self, item: zephium_core::ids::ItemId, context: ComposerFocus) {
         self.focus(item);
         if let Some(view) = self.views.get(&item) {
-            if let Ok(mention) = serde_json::to_string(&mention) {
-                let script = format!("(() => {{ const mention = {mention}; {} }})();", include_str!("composer-focus.js"));
-                let _ = view.evaluate_script(&script);
-            }
+            let mention = match context {
+                ComposerFocus::Preserve => "undefined".into(),
+                ComposerFocus::Recipient(recipient) => {
+                    serde_json::to_string(&recipient).expect("recipient is valid JSON")
+                }
+            };
+            let script = format!(
+                "(() => {{ const mention = {mention}; {} }})();",
+                include_str!("composer-focus.js")
+            );
+            let _ = view.evaluate_script(&script);
         }
     }
 

@@ -1,5 +1,6 @@
 use super::*;
 use zephium_core::deck::account::AccountIdentity;
+use zephium_core::ports::engine::ComposerFocus;
 
 #[test]
 fn preparing_account_composers_keeps_focus_and_reuses_each_isolated_view() {
@@ -98,12 +99,19 @@ fn completing_a_post_closes_the_panel_but_retains_the_editor_for_reuse() {
 fn a_background_editors_home_navigation_does_not_close_another_accounts_panel() {
     let mut fixture = Fixture::new(2);
     fixture.authenticate_accounts();
-    fixture.shell.operation_open_composer(Some(DeckAccountId::from(1)), None);
+    fixture
+        .shell
+        .operation_open_composer(Some(DeckAccountId::from(1)), None);
     let background = fixture.shell.composer.active_item().unwrap();
     fixture.shell.composer_ready(background);
-    fixture.shell.operation_open_composer(Some(DeckAccountId::from(2)), None);
+    fixture
+        .shell
+        .operation_open_composer(Some(DeckAccountId::from(2)), None);
     let active = fixture.shell.composer.active_item().unwrap();
-    fixture.shell.reset_composer_after_navigation(background, &url::Url::parse("https://x.com/home").unwrap());
+    fixture.shell.reset_composer_after_navigation(
+        background,
+        &url::Url::parse("https://x.com/home").unwrap(),
+    );
     assert_eq!(fixture.shell.composer.active_item(), Some(active));
     assert!(!fixture.engine.closed.lock().unwrap().contains(&background));
 }
@@ -112,29 +120,63 @@ fn a_background_editors_home_navigation_does_not_close_another_accounts_panel() 
 fn profile_shortcut_uses_the_source_account_and_defers_the_mention_until_ready() {
     let mut fixture = Fixture::new(2);
     fixture.authenticate_accounts();
-    fixture.shell.operation_open_composer(Some(DeckAccountId::from(2)), None);
+    fixture
+        .shell
+        .operation_open_composer(Some(DeckAccountId::from(2)), None);
     fixture.shell.operation_close_composer();
     fixture.engine.composer_focus.lock().unwrap().clear();
     let source = ItemId::from(101);
-    fixture.shell.items.set_committed_url(source, url::Url::parse("https://x.com/Viewed_User").unwrap());
-    fixture.shell.handle_deck_shortcut(source, "composer.open".into());
+    fixture.shell.items.set_committed_url(
+        source,
+        url::Url::parse("https://x.com/Viewed_User").unwrap(),
+    );
+    fixture
+        .shell
+        .handle_deck_shortcut(source, "composer.open".into());
     let editor = fixture.shell.composer.active_item().unwrap();
-    assert_eq!(fixture.shell.composer.profile_for_item(editor), Some(ProfileId::from(1)));
-    assert!(fixture.engine.composer_focus.lock().unwrap().iter().all(|(_, mention)| mention.is_none()));
+    assert_eq!(
+        fixture.shell.composer.profile_for_item(editor),
+        Some(ProfileId::from(1))
+    );
+    assert!(fixture
+        .engine
+        .composer_focus
+        .lock()
+        .unwrap()
+        .iter()
+        .all(|(_, mention)| *mention == ComposerFocus::Preserve));
     fixture.shell.composer_ready(editor);
-    assert_eq!(fixture.engine.composer_focus.lock().unwrap().last(), Some(&(editor, Some("Viewed_User".into()))));
+    assert_eq!(
+        fixture.engine.composer_focus.lock().unwrap().last(),
+        Some(&(editor, ComposerFocus::Recipient(Some("Viewed_User".into()))))
+    );
     fixture.shell.composer_ready(editor);
-    assert_eq!(fixture.engine.composer_focus.lock().unwrap().iter().filter(|(_, mention)| mention.is_some()).count(), 1);
+    assert_eq!(
+        fixture
+            .engine
+            .composer_focus
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|(_, mention)| matches!(mention, ComposerFocus::Recipient(Some(_))))
+            .count(),
+        1
+    );
 }
 
 #[test]
 fn home_shortcut_does_not_insert_an_account_name_as_a_recipient() {
     let mut fixture = Fixture::new(1);
     fixture.authenticate_accounts();
-    fixture.shell.handle_deck_shortcut(ItemId::from(101), "composer.open".into());
+    fixture
+        .shell
+        .handle_deck_shortcut(ItemId::from(101), "composer.open".into());
     let editor = fixture.shell.composer.active_item().unwrap();
     fixture.shell.composer_ready(editor);
-    assert!(fixture.engine.composer_focus.lock().unwrap().iter().all(|(_, mention)| mention.is_none()));
+    assert_eq!(
+        fixture.engine.composer_focus.lock().unwrap().last(),
+        Some(&(editor, ComposerFocus::Recipient(None)))
+    );
 }
 
 #[test]
@@ -142,19 +184,80 @@ fn repeated_profile_shortcuts_return_to_the_originating_column_and_reuse_the_edi
     let mut fixture = Fixture::new(2);
     fixture.authenticate_accounts();
     let source = ItemId::from(101);
-    fixture.shell.items.set_committed_url(source, url::Url::parse("https://x.com/Viewed_User").unwrap());
+    fixture.shell.items.set_committed_url(
+        source,
+        url::Url::parse("https://x.com/Viewed_User").unwrap(),
+    );
     fixture.shell.operation_activate(ItemId::from(102));
     let mut cached = None;
     for _ in 0..3 {
-        fixture.shell.handle_deck_shortcut(source, "composer.open".into());
+        fixture
+            .shell
+            .handle_deck_shortcut(source, "composer.open".into());
         let editor = fixture.shell.composer.active_item().unwrap();
         assert_eq!(fixture.shell.composer.return_to, Some(source));
-        if let Some(previous) = cached { assert_eq!(editor, previous); }
+        if let Some(previous) = cached {
+            assert_eq!(editor, previous);
+        }
         cached = Some(editor);
         fixture.shell.composer_ready(editor);
-        fixture.shell.handle_deck_shortcut(editor, "composer.close".into());
+        fixture
+            .shell
+            .handle_deck_shortcut(editor, "composer.close".into());
         assert!(fixture.shell.composer.active_item().is_none());
-        assert_eq!(fixture.shell.windows.focused().unwrap().active, Some(source));
+        assert_eq!(
+            fixture.shell.windows.focused().unwrap().active,
+            Some(source)
+        );
         assert!(!fixture.engine.closed.lock().unwrap().contains(&editor));
     }
+}
+
+#[test]
+fn each_shortcut_replaces_the_previous_recipient_context_using_the_source_url() {
+    let mut fixture = Fixture::new(2);
+    fixture.authenticate_accounts();
+    let profile = ItemId::from(101);
+    let notifications = ItemId::from(102);
+    fixture.shell.items.set_committed_url(
+        profile,
+        url::Url::parse("https://x.com/Viewed_User").unwrap(),
+    );
+    fixture
+        .shell
+        .handle_deck_shortcut(profile, "composer.open".into());
+    let editor = fixture.shell.composer.active_item().unwrap();
+    fixture.shell.composer_ready(editor);
+    fixture.shell.operation_close_composer();
+    fixture.shell.items.set_committed_url(
+        notifications,
+        url::Url::parse("https://x.com/notifications").unwrap(),
+    );
+    fixture
+        .shell
+        .handle_deck_shortcut(notifications, "composer.open".into());
+    let notification_editor = fixture.shell.composer.active_item().unwrap();
+    fixture.shell.composer_ready(notification_editor);
+    assert_eq!(
+        fixture.engine.composer_focus.lock().unwrap().last(),
+        Some(&(notification_editor, ComposerFocus::Recipient(None)))
+    );
+    fixture.shell.operation_close_composer();
+    fixture
+        .shell
+        .items
+        .set_committed_url(profile, url::Url::parse("https://x.com/home").unwrap());
+    fixture
+        .shell
+        .handle_deck_shortcut(profile, "composer.open".into());
+    assert_eq!(fixture.shell.composer.active_item(), Some(editor));
+    assert_eq!(
+        fixture.engine.composer_focus.lock().unwrap().last(),
+        Some(&(editor, ComposerFocus::Recipient(None)))
+    );
+    fixture.shell.composer_ready(editor);
+    assert_eq!(
+        fixture.engine.composer_focus.lock().unwrap().last(),
+        Some(&(editor, ComposerFocus::Preserve))
+    );
 }

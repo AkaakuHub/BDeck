@@ -59,7 +59,7 @@ use zephium_core::geometry::Rect;
 use zephium_core::ids::{ExtensionInstallId, ItemId, ProfileId, WindowId};
 use zephium_core::permissions::{PagePermissionRequestId, PagePermissionRequestSettlement};
 use zephium_core::ports::engine::{
-    DiscardProbeId, Engine, EngineEvent, HistoryRequestId, NativeDispatch,
+    ComposerFocus, DiscardProbeId, Engine, EngineEvent, HistoryRequestId, NativeDispatch,
     NavigationPresentationId, NavigationRequestId, Partition, ProfileDataErasureOutcome,
     StageMotion, ZoomRequestId,
 };
@@ -991,7 +991,7 @@ pub fn attach_composer_parent(parent: RawWindowHandle) -> bool {
 }
 
 pub fn focus_floating_composer(item: ItemId) -> bool {
-    host::try_with(move |host| host.focus_composer(item, None))
+    host::try_with(move |host| host.focus_composer(item, ComposerFocus::Preserve))
 }
 
 // Layout is a replaceable native fact, not an ordered user mutation. Keep at
@@ -1699,9 +1699,9 @@ impl Engine for WebviewEngine {
         self.set_content(window, item.map(Pane::Leaf), region)
     }
 
-    fn focus_composer(&self, item: ItemId, mention: Option<String>) -> NativeDispatch {
+    fn focus_composer(&self, item: ItemId, context: ComposerFocus) -> NativeDispatch {
         NativeDispatch::from_scheduled(self.run(move || {
-            let _ = host::try_with(move |host| host.focus_composer(item, mention));
+            let _ = host::try_with(move |host| host.focus_composer(item, context));
         }))
     }
 

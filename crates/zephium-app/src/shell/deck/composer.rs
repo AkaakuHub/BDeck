@@ -1,5 +1,6 @@
 use super::*;
 use zephium_core::ids::DeckAccountId;
+use zephium_core::ports::engine::ComposerFocus;
 
 const COMPOSE_URL: &str = "https://x.com/compose/post";
 
@@ -9,7 +10,7 @@ struct ComposerTab {
     item: ItemId,
     ready: bool,
     height: f64,
-    mention: Option<String>,
+    focus: ComposerFocus,
 }
 
 #[derive(Default)]
@@ -91,7 +92,7 @@ impl Shell {
             item,
             ready: false,
             height: 320.0,
-            mention: None,
+            focus: ComposerFocus::Preserve,
         });
         Some(item)
     }
@@ -122,10 +123,14 @@ impl Shell {
     }
 
     fn focus_composer_editor(&mut self, item: ItemId) {
-        let mention = self.composer.tabs.iter_mut()
+        let context = self
+            .composer
+            .tabs
+            .iter_mut()
             .find(|tab| tab.item == item && tab.ready)
-            .and_then(|tab| tab.mention.take());
-        let _ = self.engine.focus_composer(item, mention);
+            .map(|tab| std::mem::take(&mut tab.focus))
+            .unwrap_or_default();
+        let _ = self.engine.focus_composer(item, context);
     }
 
     pub(in crate::shell) fn composer_ready(&mut self, item: ItemId) {
@@ -210,7 +215,12 @@ impl Shell {
                     .last_account
                     .and_then(|id| state.account(id))
                     .filter(|account| self.account_available(account))
-                    .or_else(|| state.accounts.iter().find(|account| self.account_available(account))),
+                    .or_else(|| {
+                        state
+                            .accounts
+                            .iter()
+                            .find(|account| self.account_available(account))
+                    }),
             })
             .cloned()
         else {
@@ -232,7 +242,7 @@ impl Shell {
             );
         };
         if let Some(tab) = self.composer.tabs.iter_mut().find(|tab| tab.item == item) {
-            tab.mention = mention;
+            tab.focus = ComposerFocus::Recipient(mention);
         }
         let needs_navigation = self
             .items
@@ -294,7 +304,7 @@ mod tests {
                     item: ItemId::from(id),
                     ready: true,
                     height: 320.0,
-                    mention: None,
+                    focus: ComposerFocus::Preserve,
                 })
                 .collect(),
             active: Some(DeckAccountId::from(2)),

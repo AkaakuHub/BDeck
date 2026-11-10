@@ -13,6 +13,13 @@ use crate::permissions::{
 use crate::runtime_security::RuntimeSecurityAdvisories;
 use crate::split::Pane;
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub enum ComposerFocus {
+    #[default]
+    Preserve,
+    Recipient(Option<String>),
+}
+
 /// OS memory pressure, independent of tab count or process RSS estimates.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum MemoryPressure {
@@ -343,7 +350,7 @@ pub trait Engine {
     ) -> NativeDispatch {
         NativeDispatch::Unsupported
     }
-    fn focus_composer(&self, _item: ItemId, _mention: Option<String>) -> NativeDispatch {
+    fn focus_composer(&self, _item: ItemId, _context: ComposerFocus) -> NativeDispatch {
         NativeDispatch::Unsupported
     }
     fn focus(&self, _item: ItemId) -> NativeDispatch {
