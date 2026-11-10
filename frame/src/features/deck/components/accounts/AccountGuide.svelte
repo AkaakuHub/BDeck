@@ -11,13 +11,14 @@
     context.lineCap = "round";
     context.lineJoin = "round";
     context.beginPath();
-    context.moveTo(38, 146);
-    context.bezierCurveTo(66, 140, 89, 66, 65, 61);
-    context.bezierCurveTo(25, 49, 22, 84, 70, 86);
-    context.bezierCurveTo(111, 88, 108, 34, 103, 7);
+    context.moveTo(34, 144);
+    context.bezierCurveTo(56, 132, 74, 108, 74, 80);
+    context.bezierCurveTo(74, 53, 38, 53, 38, 76);
+    context.bezierCurveTo(38, 99, 102, 103, 102, 58);
+    context.lineTo(102, 8);
     context.moveTo(94, 17);
-    context.lineTo(103, 7);
-    context.lineTo(114, 16);
+    context.lineTo(102, 8);
+    context.lineTo(110, 17);
     context.stroke();
   });
 </script>
