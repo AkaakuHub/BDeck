@@ -53,7 +53,7 @@
         onpointercancel={drag.cancel}
         onlostpointercapture={() => drag.cancel()}
         onkeydown={(event) => { if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) { event.preventDefault(); deck.moveColumn(column.id, event.key === "ArrowUp" ? -1 : 1); } }}>
-        <Icon icon={columnIcon(column.target)} size={20} /><span>{index + 1}</span>
+        <Icon icon={columnIcon(column.target)} size={18} /><span>{index + 1}</span>
       </button>
     {/each}
   </div>
@@ -76,11 +76,11 @@
   .compose-button:focus-visible { outline: 2px solid var(--color-compose); outline-offset: 3px; }
   .deck-rail { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 56px; height: calc(100% - 48px); margin-block-start: 48px; box-sizing: border-box; padding-block: 12px;  color: var(--color-muted); }
   .rail-columns { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; padding-block: 6px; }
-  .column-link { position: relative; display: grid; place-items: center; width: 36px; height: 38px; flex: none; border-radius: var(--radius-control); background: transparent; color: inherit; cursor: grab; touch-action: none; user-select: none; }
+  .column-link { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; width: 36px; height: 44px; flex: none; border-radius: var(--radius-control); background: transparent; color: inherit; cursor: grab; touch-action: none; user-select: none; }
   .column-link:hover, .column-link:focus-visible { background: var(--row-hover); color: var(--color-text); }
   .column-link.suspended { opacity: 0.5; }
   .column-link.active { background: var(--row-active); color: var(--color-compose); }
-  .column-link span { position: absolute; inset: 1px 2px auto auto; font-size: 9px; line-height: 1; }
+  .column-link span { font-size: 10px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
   .column-link.dragging { opacity: 0.4; cursor: grabbing; }
   .column-link.drop-before::before, .column-link.drop-after::after { content: ""; position: absolute; inset-inline: 0; height: 2px; border-radius: 1px; background: var(--color-accent); pointer-events: none; }
   .column-link.drop-before::before { top: -5px; }

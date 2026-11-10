@@ -53,18 +53,19 @@
 <SettingsGroup title="BDeckの更新">
   <SettingsRow title="バージョン"><span>{status?.current_version ?? "…"}</span></SettingsRow>
   <SettingsRow title="起動時に更新を確認"><Switch label="起動時に更新を確認" checked={automatic} disabled={saving} onchange={(value) => void setAutomatic(value)} /></SettingsRow>
-  <SettingsRow title="アプリの更新">
+  <div class="update-action">
     {#if status?.phase === "available"}
       <Button variant="primary" onclick={() => void update(true)}>更新して再起動</Button>
     {:else}
       <Button pending={busy} onclick={() => void update(false)}>更新を確認</Button>
     {/if}
-  </SettingsRow>
+  </div>
 </SettingsGroup>
 {#if message}<p role="status">{message}</p>{/if}
 {#if status?.phase === "downloading"}<progress aria-label="更新のダウンロード" value={status.downloaded} max={status.total ?? undefined}></progress>{/if}
 {#if error}<p role="alert">{error}</p>{/if}
 <style>
+  .update-action { display: flex; justify-content: flex-end; padding: 16px; border-block-start: 1px solid var(--color-border); }
   p { font-size: var(--text-body); color: var(--color-muted); }
   p[role="alert"] { color: var(--color-danger); }
   progress { inline-size: 100%; accent-color: var(--color-compose); }

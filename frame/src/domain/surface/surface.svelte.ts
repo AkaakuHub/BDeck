@@ -57,4 +57,6 @@ async function close(): Promise<boolean> {
   return result;
 }
 
-export const surface = { init, dispose, open, close, visible: () => visible, section: () => section, failed: () => failed };
+function toggle(next: SettingsSection) { return visible && section === next ? close() : open(next); }
+
+export const surface = { init, dispose, open, close, toggle, visible: () => visible, section: () => section, failed: () => failed };
