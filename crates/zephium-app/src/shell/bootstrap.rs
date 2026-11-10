@@ -27,6 +27,7 @@ impl Shell {
             let _ = self.relayout();
             self.forget_delivered_icons(zephium_ipc::IconSurface::Chrome);
             self.project_browser_page();
+            self.project_account_sessions();
             self.forget_offered_items();
             self.project_items();
             if let Some(target) = self.web_extension_target(None) {

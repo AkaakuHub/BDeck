@@ -23,6 +23,7 @@ let hideAdvertisements = $state(false);
 const HIDE_ADVERTISEMENTS_SETTING = "deck.hide-advertisements";
 
 let activeDeck = $derived(deckState?.decks.find((deck) => deck.id === deckState?.active) ?? null);
+let readyAccounts = $derived((deckState?.accounts ?? []).filter((account) => account.identity !== null && accountSessions.status(account.id) === "logged_in" && !accountSessions.deleting()));
 function parseStored(value: string | null): DeckState | null {
   if (!value) return null;
   try {
@@ -217,6 +218,7 @@ async function setColumnRow(id: string, row: 0 | 1) {
 }
 
 async function openComposer(): Promise<boolean> {
+  if (readyAccounts.length === 0) return false;
   try {
     if (!await surface.close()) return false;
     return accepted(await runOperation(() => commands.runCommand("composer.open")));
@@ -266,7 +268,8 @@ export const deck = {
   init, dispose,
   state: () => deckState,
   active: () => activeDeck,
-  readyAccounts: () => (deckState?.accounts ?? []).filter((account) => account.identity !== null && accountSessions.status(account.id) === "logged_in" && !accountSessions.deleting()),
+  readyAccounts: () => readyAccounts,
+  loginRequired: () => deckState !== null && (deckState.accounts.length === 0 || deckState.accounts.every((account) => account.identity === null || accountSessions.status(account.id) === "logged_out" || accountSessions.status(account.id) === "account_changed")),
   appearance: () => appearance,
   hideAdvertisements: () => hideAdvertisements,
   setHideAdvertisements,

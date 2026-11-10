@@ -106,6 +106,7 @@ impl Shell {
         let mut effects = Vec::new();
         for account in accounts {
             if account.identity.is_none()
+                || self.accounts.active_profile() == Some(account.profile)
                 || self.profile_deletion_quarantines(account.profile)
                 || self.accounts.account_changed(account.profile)
             {

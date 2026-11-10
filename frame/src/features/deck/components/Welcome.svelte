@@ -4,7 +4,7 @@
   import Icon from "$shared/ui/Icon";
   import icon from "../../../../../desktop/icons/128x128@2x.png";
   const hasAccount = $derived(deck.readyAccounts().length > 0);
-  const needsLogin = $derived(!hasAccount && (deck.state()?.accounts.length ?? 0) > 0);
+  const needsLogin = $derived(deck.loginRequired() && (deck.state()?.accounts.length ?? 0) > 0);
 </script>
 <section class="welcome" aria-labelledby="welcome-title">
   <div class="welcome-card">

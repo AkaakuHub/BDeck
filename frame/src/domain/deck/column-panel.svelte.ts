@@ -73,6 +73,7 @@ async function apply(id: string | null, action: PanelAction) {
 }
 
 async function show(next: string, event: MouseEvent) {
+  if (next === "add" && deck.readyAccounts().length === 0) return;
   if (!(event.currentTarget instanceof HTMLElement)) return;
   const button = event.currentTarget;
   if (!await surface.close() || !button.isConnected) return;

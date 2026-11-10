@@ -18,7 +18,7 @@
   <div class="identity">{#if account.identity}<strong>{account.identity.display_name}</strong><span class="screen-name">@{account.identity.screen_name}</span>{/if}</div>
   <span class="login-state">{status === "logged_in" ? "ログイン済み" : status === "logged_out" ? "未ログイン" : status === "account_changed" ? "アカウントが一致しません" : "未確認"}</span>
   <div class="actions">
-    {#if status !== "logged_in"}<Button disabled={accountDeletion.pending()} onclick={() => void login()}>ログイン</Button>{/if}
+    {#if status !== "logged_in"}<Button disabled={accountDeletion.pending()} onclick={() => void login()}>{status === "unknown" && account.identity ? "開く" : "ログイン"}</Button>{/if}
     <Button variant="ghost" disabled={accountDeletion.pending()} onclick={() => void accountDeletion.remove(account.id)}>削除</Button>
   </div>
   {#if failed}<span class="error" role="alert">操作できませんでした。</span>{/if}

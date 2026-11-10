@@ -60,7 +60,7 @@
           <Icon icon={GripVerticalIcon} size={14} />
         </button>
         <span class="column-icon"><Icon icon={columnIcon(column.target)} size={17} /></span>
-        <strong title={`${targetName(column.target)} · ${account ? deck.displayName(account.id) : ""}`}>{targetName(column.target)}{#if account} · {deck.displayName(account.id)}{/if}</strong>
+        <strong title={account?.identity ? `${targetName(column.target)} · ${account.identity.display_name}` : targetName(column.target)}>{targetName(column.target)}{#if account?.identity} · {account.identity.display_name}{/if}</strong>
         <IconButton icon={Refresh01Icon} label={`${targetName(column.target)}を更新`} buttonSize={26} size={15} onclick={() => deck.columnAction(column.id, "reload")} />
         <IconButton icon={Settings01Icon} label={`${targetName(column.target)}の設定`} buttonSize={26} size={15} onclick={(event) => void columnPanel.open(column.id, event)} />
       </header>

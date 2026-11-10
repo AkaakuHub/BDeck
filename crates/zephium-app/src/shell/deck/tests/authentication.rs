@@ -87,5 +87,44 @@ fn reauthentication_does_not_complete_using_a_cached_identity_or_a_login_signal_
     assert_eq!(fixture.shell.operation_open_composer(None).outcome, OperationOutcome::Rejected);
     fixture.shell.operation_close_account();
     assert_eq!(fixture.shell.operation_open_composer(None).outcome, OperationOutcome::Rejected);
-    assert!(!fixture.events.lock().unwrap().iter().any(|event| matches!(event, Projection::UiCommand(value) if value.starts_with("account.connected="))));
+}
+
+#[test]
+fn a_stale_unverified_background_page_cannot_log_out_an_authenticated_account() {
+    let mut fixture = Fixture::new(1);
+    fixture.authenticate_accounts();
+    fixture.shell.prepare_composers();
+    let background = fixture.shell.composer.retained_items().next().unwrap();
+    fixture.shell.account_login_observed(background, AccountLoginState::LoggedOut);
+    let account = &fixture.shell.deck.state().unwrap().accounts[0];
+    assert!(fixture.shell.account_available(account));
+    fixture.shell.account_login_observed(ItemId::from(101), AccountLoginState::LoggedOut);
+    let account = &fixture.shell.deck.state().unwrap().accounts[0];
+    assert!(!fixture.shell.account_available(account));
+}
+
+#[test]
+fn background_pages_cannot_change_the_status_of_an_account_being_verified() {
+    let mut fixture = Fixture::new(1);
+    fixture.authenticate_accounts();
+    fixture.shell.browser_page = Some(fixture.shell.windows.focused().unwrap().id);
+    fixture.shell.operation_open_account(DeckAccountId::from(1));
+    let login = fixture.shell.accounts.active_item().unwrap();
+    fixture.shell.account_login_observed(ItemId::from(101), AccountLoginState::LoggedIn);
+    assert_eq!(fixture.shell.accounts.active_item(), Some(login));
+    let account = &fixture.shell.deck.state().unwrap().accounts[0];
+    assert!(!fixture.shell.account_available(account));
+}
+
+#[test]
+fn reloading_chrome_replays_login_states_without_loading_new_account_views() {
+    let mut fixture = Fixture::new(1);
+    fixture.authenticate_accounts();
+    let views = fixture.engine.views.lock().unwrap().len();
+    fixture.events.lock().unwrap().clear();
+    fixture.shell.bootstrap();
+    assert_eq!(fixture.engine.views.lock().unwrap().len(), views);
+    let account = fixture.shell.deck.state().unwrap().accounts[0].id;
+    let expected = format!("account.status={account}:logged_in");
+    assert!(fixture.events.lock().unwrap().iter().any(|event| matches!(event, Projection::UiCommand(value) if value == &expected)));
 }

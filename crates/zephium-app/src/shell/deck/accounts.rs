@@ -10,18 +10,21 @@ struct AccountView {
     item: ItemId,
     return_to: Option<ItemId>,
     identity_verified: bool,
+    refresh_requested: bool,
 }
 
 #[derive(Default)]
 pub(in crate::shell) struct AccountRuntime {
     active: Option<AccountView>,
     sessions: HashMap<ProfileId, AccountLoginState>,
+    authenticated_items: HashMap<ItemId, ProfileId>,
     avatars: zephium_core::deck::avatars::AccountAvatars,
 }
 
 impl AccountRuntime {
     pub(in crate::shell) fn retire_profile(&mut self, profile: ProfileId) {
         self.sessions.remove(&profile);
+        self.authenticated_items.retain(|_, owner| *owner != profile);
         self.avatars.remove(&profile);
         if self
             .active
@@ -34,6 +37,9 @@ impl AccountRuntime {
 
     pub(in crate::shell) fn account_changed(&self, profile: ProfileId) -> bool {
         self.sessions.get(&profile) == Some(&AccountLoginState::AccountChanged)
+    }
+    pub(in crate::shell) fn active_profile(&self) -> Option<ProfileId> {
+        self.active.as_ref().map(|view| view.profile)
     }
     pub(in crate::shell) fn active_item(&self) -> Option<ItemId> {
         self.active.as_ref().map(|view| view.item)
@@ -65,10 +71,17 @@ impl Shell {
             .filter(|view| view.profile == profile)
             .and_then(|view| self.deck.state()?.account(view.account))
             .filter(|account| self.account_available(account))
-            .map(|account| account.id);
-        if let Some(account) = connected {
+            .is_some();
+        if connected {
+            let cached = self.composer.retained_items()
+                .filter(|item| self.composer.profile_for_item(*item) == Some(profile))
+                .collect::<Vec<_>>();
             let _ = self.operation_close_account();
-            (self.emit)(Projection::UiCommand(format!("account.connected={account}")));
+            for item in cached {
+                self.accounts.authenticated_items.remove(&item);
+                let _ = self.engine.reload(item);
+            }
+            self.prepare_composers();
         }
     }
 
@@ -91,7 +104,9 @@ impl Shell {
         let Some(profile) = self.deck_profile_for_item(item) else {
             return;
         };
-        if self.profile_deletion_quarantines(profile) {
+        if self.profile_deletion_quarantines(profile)
+            || self.accounts.active.as_ref().is_some_and(|view| view.profile == profile && view.item != item)
+        {
             return;
         }
         let Some(mut state) = self.deck.state().cloned() else {
@@ -200,6 +215,7 @@ impl Shell {
             item,
             return_to,
             identity_verified: false,
+            refresh_requested: false,
         });
         self.accounts.sessions.insert(account.profile, AccountLoginState::Unknown);
         self.project_account_sessions();
@@ -240,11 +256,27 @@ impl Shell {
         let Some(profile) = self.deck_profile_for_item(item) else {
             return;
         };
-        if self.profile_deletion_quarantines(profile) {
+        if self.profile_deletion_quarantines(profile)
+            || self.accounts.active.as_ref().is_some_and(|view| view.profile == profile && view.item != item)
+        {
             return;
         }
         if self.accounts.sessions.get(&profile) == Some(&AccountLoginState::AccountChanged) {
             return;
+        }
+        if state == AccountLoginState::LoggedOut
+            && self.accounts.sessions.get(&profile) == Some(&AccountLoginState::LoggedIn)
+            && !self.accounts.authenticated_items.contains_key(&item)
+            && self.accounts.active_item() != Some(item)
+            && self.windows.focused().and_then(|window| window.active) != Some(item)
+        {
+            return;
+        }
+        self.accounts.authenticated_items.retain(|item, _| self.items.get(*item).is_some());
+        if state == AccountLoginState::LoggedIn {
+            self.accounts.authenticated_items.insert(item, profile);
+        } else {
+            self.accounts.authenticated_items.remove(&item);
         }
         if self.accounts.sessions.insert(profile, state) != Some(state) {
             self.project_account_sessions();
@@ -253,6 +285,17 @@ impl Shell {
             && self.composer.active_item().is_some_and(|item| self.composer.profile_for_item(item) == Some(profile))
         {
             let _ = self.operation_close_composer();
+        }
+        let refresh = self.accounts.active.as_mut().filter(|view| view.item == item)
+            .is_some_and(|view| {
+                if state != AccountLoginState::LoggedIn || view.identity_verified || view.refresh_requested {
+                    return false;
+                }
+                view.refresh_requested = true;
+                true
+            });
+        if refresh {
+            let _ = self.operation_reload(item);
         }
         self.complete_account_login(profile);
     }
@@ -310,6 +353,7 @@ mod tests {
             item: ItemId::from(2),
             return_to: None,
             identity_verified: false,
+            refresh_requested: false,
         });
         runtime.retire_profile(first);
         assert!(!runtime.sessions.contains_key(&first));
