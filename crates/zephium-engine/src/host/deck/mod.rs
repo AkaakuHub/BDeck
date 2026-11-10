@@ -93,63 +93,10 @@ fn script(appearance: DeckAppearance, hide_advertisements: bool) -> String {
         r#"(() => {{
   const host = location.hostname.toLowerCase();
   if (!(host === "x.com" || host.endsWith(".x.com") || host === "twitter.com" || host.endsWith(".twitter.com"))) return;
-  const applyChat = () => {{
-    const root = document.querySelector('[data-testid="xchatEmbedRoute"]')?.shadowRoot;
-    if (!root || root.getElementById("bdeck-chat-style")) return;
-    const style = document.createElement("style");
-    style.id = "bdeck-chat-style";
-    style.textContent = {chat_css};
-    root.appendChild(style);
-  }};
-  const applyHomeComposer = () => {{
-    const home = location.pathname === "/home";
-    document.documentElement.toggleAttribute("data-bdeck-home", home);
-    const primary = document.querySelector('[data-testid="primaryColumn"]');
-    primary?.querySelectorAll(".bdeck-home-composer").forEach(node => node.classList.remove("bdeck-home-composer"));
-    if (!home) return;
-    const button = primary?.querySelector('[data-testid="tweetButtonInline"]');
-    const editor = primary?.querySelector('[data-testid="tweetTextarea_0"]');
-    if (!button || !editor) return;
-    for (let node = button.parentElement; node && node !== primary; node = node.parentElement) {{
-      if (node.querySelector('[data-testid="tweet"]')) return;
-      if (node.contains(editor) && node.querySelector('[data-testid^="UserAvatar-Container"]')) {{
-        node.classList.add("bdeck-home-composer");
-        return;
-      }}
-    }}
-  }};
-  const applyPostSpacing = () => {{
-    document.querySelectorAll('[data-testid="primaryColumn"] [data-testid="tweet"]').forEach(article => {{
-      article.querySelectorAll(".bdeck-post-body, .bdeck-empty-context").forEach(node => node.classList.remove("bdeck-post-body", "bdeck-empty-context"));
-      const name = article.querySelector('[data-testid="User-Name"]');
-      const avatar = article.querySelector('[data-testid^="UserAvatar-Container"]');
-      if (!name || !avatar) return;
-      for (let row = name.parentElement; row && row !== article; row = row.parentElement) {{
-        if (!row.contains(avatar)) continue;
-        let body = name;
-        while (body.parentElement && body.parentElement !== row) body = body.parentElement;
-        body.classList.add("bdeck-post-body");
-        const context = row.previousElementSibling;
-        if (context && !context.textContent.trim() && !context.querySelector('img, svg, a, button, [role="button"]')) context.classList.add("bdeck-empty-context");
-        return;
-      }}
-    }});
-  }};
-  const apply = () => {{
-    const style = document.getElementById("bdeck-column-style") || document.createElement("style");
-    style.id = "bdeck-column-style";
-    style.textContent = {css};
-    (document.head || document.documentElement).appendChild(style);
-    applyChat();
-    applyHomeComposer();
-    applyPostSpacing();
-    if (!style.hasAttribute("data-chat-layout")) {{
-      style.setAttribute("data-chat-layout", "");
-      new MutationObserver(() => {{ applyChat(); applyHomeComposer(); applyPostSpacing(); }}).observe(document.documentElement, {{ childList: true, subtree: true }});
-    }}
-  }};
-  if (document.documentElement) apply();
-  else document.addEventListener("DOMContentLoaded", apply, {{ once: true }});
-}})();"#
+  const columnCss = {css};
+  const chatCss = {chat_css};
+  {}
+}})();"#,
+        include_str!("layout.js")
     )
 }
