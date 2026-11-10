@@ -10,7 +10,7 @@ macos-page-permission-prompts = []
 
 [dependencies]
 serde_json.workspace = true
-psl = "=2.1.220"
+psl = "=2.1.245"
 chrono = { version = "=0.4.45", default-features = false, features = ["clock"] }
 zephium-core.workspace = true
 zephium-ipc.workspace = true
