@@ -15,6 +15,7 @@ pub struct NavigationObserverIvars {
     // zeroing weak reference here prevents observer -> WKWebView retention and
     // lets the host tear both objects down deterministically.
     webview: Weak<WKWebView>,
+    _gestures: super::history_gesture::HistoryGesture,
     on_change: Box<dyn Fn(NavigationObservation)>,
 }
 
@@ -98,9 +99,11 @@ impl NavigationObserver {
         mtm: MainThreadMarker,
         webview: &Retained<WKWebView>,
         on_change: impl Fn(NavigationObservation) + 'static,
-    ) -> Retained<Self> {
+    ) -> Result<Retained<Self>, &'static str> {
+        let gestures = super::history_gesture::HistoryGesture::install(webview)?;
         let observer = Self::alloc(mtm).set_ivars(NavigationObserverIvars {
             webview: Weak::from_retained(webview),
+            _gestures: gestures,
             on_change: Box::new(on_change),
         });
         let observer: Retained<Self> = unsafe { msg_send![super(observer), init] };
@@ -122,7 +125,7 @@ impl NavigationObserver {
                 );
             }
         }
-        observer
+        Ok(observer)
     }
 }
 

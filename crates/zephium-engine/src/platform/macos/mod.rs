@@ -8,6 +8,7 @@ pub(crate) use fullscreen::{exit as exit_fullscreen, state as fullscreen_state};
 pub(crate) mod autofill;
 mod credentials;
 mod find;
+mod history_gesture;
 mod location;
 mod native;
 mod navigation;
@@ -127,22 +128,14 @@ pub fn install_navigation_observer(
     use objc2_foundation::MainThreadMarker;
 
     let mtm = MainThreadMarker::new().ok_or("WKWebView observer requires the main thread")?;
-    Ok(NavigationObserver::install(
-        mtm,
-        &native::webkit(view),
-        on_change,
-    ))
+    NavigationObserver::install(mtm, &native::webkit(view), on_change)
 }
 
 pub fn current_url(view: &wry::WebView) -> Option<String> {
     bounded_current_url(view).ok()
 }
 
-/// Back and forward as the person would count them. A warm spare is adopted
-/// from an about:blank load that stays in WebKit's list, so its own answer
-/// offers a "back" to nothing. That entry is dropped once a real page stands
-/// in front of it; the swipe stays on throughout, so WebKit keeps recording
-/// the snapshots it draws from.
+/// Exclude a warm spare's initial about:blank entry from browser history.
 pub fn history_state(view: &wry::WebView) -> Option<(bool, bool)> {
     let page = native::webkit(view);
     let (mut back, forward) = unsafe { (page.canGoBack(), page.canGoForward()) };

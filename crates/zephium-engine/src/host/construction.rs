@@ -1025,8 +1025,7 @@ impl EngineHost {
             // A playing video may float above other apps; pages that play
             // are not suspended, so it keeps going while its tab sleeps.
             .with_picture_in_picture_enabled(true)
-            // Two-finger swipes move through history, as in Safari.
-            .with_back_forward_navigation_gestures(true)
+            .with_back_forward_navigation_gestures(!cfg!(target_os = "macos"))
             // WebView2 otherwise enables its address/contact suggestions by
             // default. Raw content should not silently inherit ambient form
             // data before Zephium has an explicit, profile-scoped autofill
