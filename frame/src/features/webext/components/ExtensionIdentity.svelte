@@ -17,5 +17,6 @@
   .compact .icon { width: 28px; height: 28px; }
   .compact img { width: 22px; height: 22px; }
   strong { min-width: 0; overflow-wrap: anywhere; font-size: 14px; font-weight: 550; }
+  .compact strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .version { flex: none; padding: 2px 7px; border-radius: var(--radius-capsule); color: var(--color-muted); background: var(--color-fill); font-size: 11px; font-variant-numeric: tabular-nums; }
 </style>
