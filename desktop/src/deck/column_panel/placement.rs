@@ -21,6 +21,16 @@ impl Placement {
         }
     }
 
+    pub fn constrained(self, viewport: (f64, f64), width: f64) -> Self {
+        let left = self.left.clamp(8.0, (viewport.0 - width - 8.0).max(8.0));
+        let top = self.top.clamp(8.0, (viewport.1 - 108.0).max(8.0));
+        Self {
+            left,
+            top,
+            max_height: (viewport.1 - top - 8.0).max(100.0),
+        }
+    }
+
     pub fn height(self, requested: f64) -> f64 {
         requested.ceil().min(self.max_height)
     }
@@ -52,5 +62,14 @@ mod tests {
         let placement = Placement::new((52.0, 750.0), (1200.0, 900.0), 336.0, 100.0);
         assert_eq!((placement.left, placement.top), (8.0, 756.0));
         assert_eq!(placement.height(400.0), 136.0);
+    }
+
+    #[test]
+    fn panel_stays_inside_a_parent_that_was_resized_to_its_minimum_width() {
+        let original = Placement::new((1100.0, 700.0), (1200.0, 900.0), 336.0, 400.0);
+        let fitted = original.constrained((320.0, 480.0), 304.0);
+        assert_eq!(fitted.left, 8.0);
+        assert!(fitted.top >= 8.0);
+        assert!(fitted.top + fitted.height(640.0) <= 472.0);
     }
 }

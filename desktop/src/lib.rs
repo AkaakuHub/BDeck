@@ -2120,7 +2120,10 @@ pub fn run() {
                     }
                     emit_to_privileged(&emit_handle, MAIN_LABEL, "zephium:ui-command", &id);
                 }
-                Projection::Layout(layout) => emit_to_privileged(&emit_handle, MAIN_LABEL, "zephium:layout", &layout),
+                Projection::Layout(layout) => {
+                    deck::column_panel::observe_composer(&emit_handle, layout.composer.as_ref());
+                    emit_to_privileged(&emit_handle, MAIN_LABEL, "zephium:layout", &layout);
+                }
                 Projection::ExtensionActions(view) => emit_to_privileged(&emit_handle, MAIN_LABEL, "zephium:extension-actions", &view),
                 Projection::ExtensionActionFailed(view) => emit_to_privileged(&emit_handle, MAIN_LABEL, "zephium:extension-action-failed", &view),
                 Projection::ExtensionActionShortcut(view) => emit_to_privileged(&emit_handle, MAIN_LABEL, "zephium:extension-action-shortcut", &view),

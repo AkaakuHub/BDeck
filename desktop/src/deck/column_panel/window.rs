@@ -1,3 +1,4 @@
+pub(super) use super::lifecycle::{close, hide_if_closed, show};
 use super::{Panel, PanelView};
 use std::sync::Mutex;
 use tauri::{Manager, WebviewWindow, WebviewWindowBuilder};
@@ -24,7 +25,7 @@ pub(crate) fn install(
     #[cfg(target_os = "windows")] runtime_update: crate::platform::imp::RuntimeUpdateCallback,
 ) {
     main.app_handle().manage(Panel {
-        view: Mutex::new(None),
+        presentation: Mutex::new(super::presentation::Presentation::default()),
         anchor: Mutex::new(None),
         placement: Mutex::new(None),
         context: Context {
@@ -39,25 +40,43 @@ pub(crate) fn install(
     });
     let app = main.app_handle().clone();
     main.on_window_event(move |event| {
-        if matches!(
+        if !matches!(
             event,
             tauri::WindowEvent::Moved(_)
                 | tauri::WindowEvent::Resized(_)
                 | tauri::WindowEvent::ScaleFactorChanged { .. }
                 | tauri::WindowEvent::Focused(true)
         ) {
-            if let Some(panel) = app.get_webview_window(LABEL) {
-                let composer = app
-                    .state::<Panel>()
-                    .view
-                    .lock()
-                    .ok()
-                    .and_then(|view| view.as_ref().map(|view| view.composer))
-                    == Some(true);
-                if composer {
-                    let _ = resize(&app, crate::inner_logical(&panel).height);
-                } else {
-                    let _ = panel.hide();
+            return;
+        }
+        #[cfg(target_os = "macos")]
+        if matches!(event, tauri::WindowEvent::Moved(_)) {
+            return;
+        }
+        let Some(panel) = app.get_webview_window(LABEL) else {
+            return;
+        };
+        let snapshot = app
+            .state::<Panel>()
+            .presentation
+            .lock()
+            .ok()
+            .and_then(|state| state.snapshot());
+        let Some(snapshot) = snapshot else {
+            return;
+        };
+        if matches!(event, tauri::WindowEvent::Focused(true)) && !snapshot.view.composer {
+            let _ = close(&app, snapshot.revision);
+            return;
+        }
+        let _ = resize(&app, snapshot.revision, crate::inner_logical(&panel).height);
+        if snapshot.view.composer && matches!(event, tauri::WindowEvent::Focused(true)) {
+            if !panel.is_visible().unwrap_or(false) {
+                let _ = show(&app, snapshot.revision);
+            } else {
+                #[cfg(target_os = "macos")]
+                if let Some(main) = app.get_webview_window(crate::MAIN_LABEL) {
+                    let _ = super::macos::attach(&main, &panel);
                 }
             }
         }
@@ -78,67 +97,63 @@ pub(super) fn open(
         .ok_or("unavailable")?;
     let panel = app.state::<Panel>();
     let existed = app.get_webview_window(LABEL);
-    let mut updating_composer = false;
-    if let Some(window) = &existed {
-        let same = panel
-            .view
-            .lock()
-            .map_err(|_| "unavailable")?
-            .as_ref()
-            .is_some_and(|current| current.id == view.id);
-        updating_composer = same && view.composer && window.is_visible()?;
-        if same && window.is_visible()? && !view.composer {
-            window.hide()?;
-            return Ok(());
-        }
+    let previous = panel
+        .presentation
+        .lock()
+        .map_err(|_| "unavailable")?
+        .snapshot();
+    if !panel
+        .presentation
+        .lock()
+        .map_err(|_| "unavailable")?
+        .allows(&view)
+    {
+        return if view.composer {
+            Ok(())
+        } else {
+            Err("close composer before opening column settings".into())
+        };
     }
     if !view.composer {
         if let Some(window) = &existed {
+            if window.is_visible()?
+                && previous
+                    .as_ref()
+                    .is_some_and(|current| current.view.id == view.id && !current.view.composer)
+            {
+                if let Some(previous) = previous {
+                    close(app, previous.revision)?;
+                }
+                return Ok(());
+            }
             window.hide()?;
         }
     }
-    *panel.view.lock().map_err(|_| "unavailable")? = Some(view.clone());
     if existed.is_none() {
         build(app, &main, &panel.context)?;
     }
+    let snapshot = panel
+        .presentation
+        .lock()
+        .map_err(|_| "unavailable")?
+        .present(view)?;
+    let updating_composer = previous
+        .as_ref()
+        .is_some_and(|previous| previous.revision == snapshot.revision);
     *panel.anchor.lock().map_err(|_| "unavailable")? = Some((x, y));
-    *panel.placement.lock().map_err(|_| "unavailable")? = None;
+    if !updating_composer {
+        *panel.placement.lock().map_err(|_| "unavailable")? = None;
+    }
     let event = if updating_composer {
         "zephium:column-panel-view"
     } else {
         "zephium:column-panel-open"
     };
-    crate::emit_to_privileged(app, LABEL, event, &Some(view));
+    crate::emit_to_privileged(app, LABEL, event, &Some(snapshot));
     Ok(())
 }
 
-pub(super) fn close(app: &tauri::AppHandle) -> Result<(), String> {
-    let composer = app
-        .state::<Panel>()
-        .view
-        .lock()
-        .ok()
-        .and_then(|view| view.as_ref().map(|view| view.composer))
-        == Some(true);
-    if composer {
-        let shell = app.state::<zephium_app::Handle>();
-        let _ = crate::dispatch_operation(
-            app,
-            &shell,
-            zephium_app::Command::Run("composer.close".into()),
-        );
-    }
-    app.get_webview_window(LABEL)
-        .ok_or("unavailable")?
-        .hide()
-        .map_err(|error| error.to_string())?;
-    app.get_webview_window(crate::MAIN_LABEL)
-        .ok_or("unavailable")?
-        .set_focus()
-        .map_err(|error| error.to_string())
-}
-
-pub(super) fn resize(app: &tauri::AppHandle, height: f64) -> Result<(), String> {
+pub(super) fn resize(app: &tauri::AppHandle, revision: u32, height: f64) -> Result<bool, String> {
     if !height.is_finite() || !(100.0..=700.0).contains(&height) {
         return Err("invalid panel height".into());
     }
@@ -147,14 +162,24 @@ pub(super) fn resize(app: &tauri::AppHandle, height: f64) -> Result<(), String> 
         .ok_or("unavailable")?;
     let window = app.get_webview_window(LABEL).ok_or("unavailable")?;
     let panel = app.state::<Panel>();
-    let width = panel
-        .view
+    let Some(snapshot) = panel
+        .presentation
         .lock()
         .map_err(|_| "unavailable")?
-        .as_ref()
-        .filter(|view| view.composer)
-        .map(|view| f64::from(view.width))
-        .unwrap_or(WIDTH);
+        .snapshot_at(revision)
+    else {
+        return Ok(false);
+    };
+    if main.is_minimized().map_err(|error| error.to_string())? {
+        return Ok(false);
+    }
+    let requested_width = if snapshot.view.composer {
+        f64::from(snapshot.view.width)
+    } else {
+        WIDTH
+    };
+    let viewport = crate::inner_logical(&main);
+    let width = requested_width.min((viewport.width - 16.0).max(1.0));
     let (x, y) = panel
         .anchor
         .lock()
@@ -173,6 +198,7 @@ pub(super) fn resize(app: &tauri::AppHandle, height: f64) -> Result<(), String> 
                 super::placement::Placement::new((x, y), (size.width, size.height), width, height)
             })
         };
+        let placement = placement.constrained((size.width, size.height), width);
         let height = placement.height(height);
         let left = placement.left;
         let top = placement.top;
@@ -187,7 +213,8 @@ pub(super) fn resize(app: &tauri::AppHandle, height: f64) -> Result<(), String> 
         }
         Ok(())
     };
-    place().map_err(|error| error.to_string())
+    place().map_err(|error| error.to_string())?;
+    Ok(true)
 }
 
 fn build(
@@ -222,8 +249,6 @@ fn build(
     .on_web_resource_request(|_, response| {
         crate::harden_privileged_headers(response.headers_mut())
     });
-    #[cfg(target_os = "macos")]
-    let builder = builder.parent(main)?;
     #[cfg(target_os = "windows")]
     let builder = builder
         .owner(main)?
@@ -258,23 +283,30 @@ fn build(
     window.on_window_event(move |event| match event {
         tauri::WindowEvent::CloseRequested { api, .. } => {
             api.prevent_close();
-            let _ = close(observed.app_handle());
+            let current = observed
+                .app_handle()
+                .state::<Panel>()
+                .presentation
+                .lock()
+                .ok()
+                .and_then(|state| state.snapshot());
+            if let Some(current) = current {
+                let _ = close(observed.app_handle(), current.revision);
+            }
         }
         tauri::WindowEvent::Focused(false)
             if parent.is_focused().unwrap_or(false) || !application_active() =>
         {
-            let composer = observed
+            let current = observed
                 .app_handle()
                 .state::<Panel>()
-                .view
+                .presentation
                 .lock()
                 .ok()
-                .and_then(|view| view.as_ref().map(|view| view.composer))
-                == Some(true);
-            if composer {
-                return;
+                .and_then(|state| state.snapshot());
+            if let Some(current) = current.filter(|current| !current.view.composer) {
+                let _ = close(observed.app_handle(), current.revision);
             }
-            let _ = observed.hide();
         }
         #[cfg(target_os = "windows")]
         tauri::WindowEvent::Destroyed => {
@@ -294,7 +326,7 @@ fn build(
     Ok(window)
 }
 
-fn application_active() -> bool {
+pub(super) fn application_active() -> bool {
     #[cfg(target_os = "macos")]
     {
         objc2::MainThreadMarker::new().is_some_and(|marker| {

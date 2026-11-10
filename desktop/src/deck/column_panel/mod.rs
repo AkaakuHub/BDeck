@@ -1,13 +1,18 @@
+mod lifecycle;
+#[cfg(target_os = "macos")]
+mod macos;
 mod model;
 mod placement;
+mod presentation;
 mod window;
-pub(crate) use model::{PanelAction, PanelView};
+pub(crate) use lifecycle::observe_composer;
+pub(crate) use model::{PanelAction, PanelSnapshot, PanelView};
 use std::sync::Mutex;
 use tauri::{Manager, State, WebviewWindow};
 pub(crate) use window::{install, LABEL};
 
 pub(crate) struct Panel {
-    view: Mutex<Option<PanelView>>,
+    presentation: Mutex<presentation::Presentation>,
     context: window::Context,
     anchor: Mutex<Option<(f64, f64)>>,
     placement: Mutex<Option<placement::Placement>>,
@@ -66,13 +71,13 @@ pub(crate) async fn column_panel_open(
 pub(crate) fn column_panel_get(
     caller: WebviewWindow,
     panel: State<'_, Panel>,
-) -> Option<PanelView> {
+) -> Option<PanelSnapshot> {
     admitted(
         &caller,
         crate::CallerPolicy::ColumnPanel,
         "column_panel_get",
     )
-    .then(|| panel.view.lock().ok()?.clone())
+    .then(|| panel.presentation.lock().ok()?.snapshot())
     .flatten()
 }
 
@@ -80,38 +85,25 @@ pub(crate) fn column_panel_get(
 #[specta::specta]
 pub(crate) fn column_panel_ready(
     caller: WebviewWindow,
-    panel: State<'_, Panel>,
+    revision: u32,
     height: f64,
 ) -> Result<(), String> {
     if !admitted(
         &caller,
         crate::CallerPolicy::ColumnPanel,
         "column_panel_ready",
-    ) || panel.view.lock().map_err(|_| "unavailable")?.is_none()
-    {
+    ) {
         return Err("unavailable".into());
     }
-    window::resize(caller.app_handle(), height)?;
-    caller
-        .show()
-        .and_then(|_| caller.set_focus())
-        .map_err(|error| error.to_string())?;
-    if let Some(item) = panel.view.lock().ok().and_then(|view| {
-        view.as_ref()
-            .filter(|view| view.composer)
-            .and_then(|view| view.id.as_ref())
-            .and_then(|id| zephium_core::ids::ItemId::parse(id))
-    }) {
-        if !zephium_engine::focus_floating_composer(item) {
-            return Err("composer focus failed".into());
-        }
+    if !window::resize(caller.app_handle(), revision, height)? {
+        return Ok(());
     }
-    Ok(())
+    window::show(caller.app_handle(), revision)
 }
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) fn column_panel_close(caller: WebviewWindow) -> Result<(), String> {
+pub(crate) fn column_panel_close(caller: WebviewWindow, revision: u32) -> Result<(), String> {
     if !admitted(
         &caller,
         crate::CallerPolicy::ColumnPanel,
@@ -119,7 +111,7 @@ pub(crate) fn column_panel_close(caller: WebviewWindow) -> Result<(), String> {
     ) {
         return Err("unavailable".into());
     }
-    window::close(caller.app_handle())
+    window::close(caller.app_handle(), revision)
 }
 
 #[tauri::command]
@@ -127,6 +119,7 @@ pub(crate) fn column_panel_close(caller: WebviewWindow) -> Result<(), String> {
 pub(crate) fn column_panel_action(
     caller: WebviewWindow,
     panel: State<'_, Panel>,
+    revision: u32,
     action: PanelAction,
 ) -> Result<(), String> {
     if !admitted(
@@ -136,12 +129,19 @@ pub(crate) fn column_panel_action(
     ) {
         return Err("unavailable".into());
     }
-    let view = panel.view.lock().map_err(|_| "unavailable")?;
-    let view = view.as_ref().ok_or("unavailable")?;
+    let Some(snapshot) = panel
+        .presentation
+        .lock()
+        .map_err(|_| "unavailable")?
+        .snapshot_at(revision)
+    else {
+        return Ok(());
+    };
+    let view = snapshot.view;
     let valid = match &action {
         PanelAction::Account(id) => view.accounts.iter().any(|account| &account.id == id),
         _ if view.composer => false,
-        PanelAction::Create(draft) => draft.valid(view),
+        PanelAction::Create(draft) => draft.valid(&view),
         _ if view.id.is_none() => false,
         PanelAction::Width(width) => (zephium_core::deck::MIN_COLUMN_WIDTH
             ..=zephium_core::deck::MAX_COLUMN_WIDTH)
@@ -168,7 +168,7 @@ pub(crate) fn column_panel_action(
         caller.app_handle(),
         crate::MAIN_LABEL,
         "zephium:column-panel-action",
-        &(view.id.clone(), action),
+        &(view.id, action),
     );
     Ok(())
 }
@@ -183,34 +183,36 @@ pub(crate) fn column_panel_sync(
     if !admitted(&caller, crate::CallerPolicy::Main, "column_panel_sync") {
         return Err("unavailable".into());
     }
-    let mut current = panel.view.lock().map_err(|_| "unavailable")?;
-    if view.is_none() {
-        if current.as_ref().is_some_and(|view| view.composer) {
+    let snapshot = {
+        let mut current = panel.presentation.lock().map_err(|_| "unavailable")?;
+        if current.view.as_ref().is_some_and(|view| view.composer) {
             return Ok(());
         }
-        *current = None;
-        if let Some(window) = caller.app_handle().get_webview_window(LABEL) {
-            let _ = window.hide();
-            crate::emit_to_privileged(
-                caller.app_handle(),
-                LABEL,
-                "zephium:column-panel-view",
-                &Option::<PanelView>::None,
-            );
+        let Some(view) = view else {
+            if let Some(snapshot) = current.snapshot() {
+                current.dismiss(snapshot.revision);
+            }
+            drop(current);
+            return window::hide_if_closed(caller.app_handle());
+        };
+        if current
+            .view
+            .as_ref()
+            .map(|current| (&current.id, current.composer))
+            != Some((&view.id, view.composer))
+        {
+            return Ok(());
         }
-        return Ok(());
-    }
-    if current.as_ref().map(|view| (&view.id, view.composer))
-        != view.as_ref().map(|view| (&view.id, view.composer))
-    {
-        return Ok(());
-    }
-    *current = view.clone();
+        if !current.allows(&view) {
+            return Ok(());
+        }
+        current.present(view)?
+    };
     crate::emit_to_privileged(
         caller.app_handle(),
         LABEL,
         "zephium:column-panel-view",
-        &view,
+        &Some(snapshot),
     );
     Ok(())
 }
@@ -231,23 +233,6 @@ pub(crate) async fn column_panel_composer_sync(
         return Err("unavailable".into());
     }
     let Some(view) = view else {
-        let panel = caller.app_handle().state::<Panel>();
-        let closed = {
-            let mut current = panel.view.lock().map_err(|_| "unavailable")?;
-            if current.as_ref().is_some_and(|view| view.composer) {
-                *current = None;
-                true
-            } else {
-                false
-            }
-        };
-        if closed {
-            if let Some(window) = caller.app_handle().get_webview_window(LABEL) {
-                window.hide().map_err(|error| error.to_string())?;
-            }
-            crate::emit_to_privileged(caller.app_handle(), LABEL, "zephium:column-panel-view", &Option::<PanelView>::None);
-            caller.set_focus().map_err(|error| error.to_string())?;
-        }
         return Ok(());
     };
     if !view.composer
@@ -262,7 +247,11 @@ pub(crate) async fn column_panel_composer_sync(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) fn column_panel_resize(caller: WebviewWindow, height: f64) -> Result<(), String> {
+pub(crate) fn column_panel_resize(
+    caller: WebviewWindow,
+    revision: u32,
+    height: f64,
+) -> Result<(), String> {
     if !admitted(
         &caller,
         crate::CallerPolicy::ColumnPanel,
@@ -270,5 +259,5 @@ pub(crate) fn column_panel_resize(caller: WebviewWindow, height: f64) -> Result<
     ) {
         return Err("unavailable".into());
     }
-    window::resize(caller.app_handle(), height)
+    window::resize(caller.app_handle(), revision, height).map(|_| ())
 }

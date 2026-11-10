@@ -1,4 +1,4 @@
-import type { UpdateStatus, ExtensionActionsView, ExtensionActionFailedView, ExtensionActionShortcutView, WebExtensionAccessRequestView, OperationDisposition, PanelView, PanelAction, ItemsState, LayoutState, ProfilesView, TabView } from "./bindings";
+import type { UpdateStatus, ExtensionActionsView, ExtensionActionFailedView, ExtensionActionShortcutView, WebExtensionAccessRequestView, OperationDisposition, PanelSnapshot, PanelAction, ItemsState, LayoutState, ProfilesView, TabView } from "./bindings";
 
 type PayloadEvent<T> = { payload: T };
 type Listener<T> = (event: PayloadEvent<T>) => void;
@@ -21,8 +21,8 @@ export const events = {
   webExtensionAccessRequested: scopedEvent<WebExtensionAccessRequestView>("zephium:web-extension-access"),
   operationProcessed: scopedEvent<OperationDisposition>("zephium:operation-processed"),
   columnPanelAction: scopedEvent<[string | null, PanelAction]>("zephium:column-panel-action"),
-  columnPanelOpen: scopedEvent<PanelView | null>("zephium:column-panel-open"),
-  columnPanelView: scopedEvent<PanelView | null>("zephium:column-panel-view"),
+  columnPanelOpen: scopedEvent<PanelSnapshot | null>("zephium:column-panel-open"),
+  columnPanelView: scopedEvent<PanelSnapshot | null>("zephium:column-panel-view"),
   layoutChanged: scopedEvent<LayoutState>("zephium:layout"),
   uiCommand: scopedEvent<string>("zephium:ui-command"),
   presentationTab: scopedEvent<{ tab: TabView; active: string | null }>("zephium:presentation-tab"),

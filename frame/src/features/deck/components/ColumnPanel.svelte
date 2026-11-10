@@ -2,7 +2,7 @@
   import { DEFAULT_COLUMN_WIDTH } from "$domain/deck";
   import { onMount, tick } from "svelte";
   import "$styles/global.css";
-  import { commands, type PanelView, type PanelAction, type ColumnDraft } from "$shared/ipc/bindings";
+  import { commands, type PanelView, type PanelSnapshot, type PanelAction, type ColumnDraft } from "$shared/ipc/bindings";
   import { events } from "$shared/ipc/native-events";
   import { Cancel01Icon, ArrowLeft02Icon, ArrowRight02Icon, Copy01Icon } from "@hugeicons/core-free-icons";
   import AccountAvatar from "./accounts/AccountAvatar.svelte";
@@ -11,6 +11,7 @@
   import IconButton from "$shared/ui/IconButton";
   import Button from "$shared/ui/Button";
   let view = $state<PanelView | null>(null);
+  let revision = $state(0);
   let pending = $state(false);
   let failed = $state(false);
   let initial = $state<HTMLButtonElement>();
@@ -28,31 +29,49 @@
     if (pending) return;
     pending = true;
     failed = false;
-    try { await commands.columnPanelAction(value); if (view?.composer) pending = false; }
-    catch { failed = true; pending = false; }
+    const current = revision;
+    try { await commands.columnPanelAction(current, value); if (revision === current && view?.composer) pending = false; }
+    catch { if (revision === current) { failed = true; pending = false; } }
   }
   onMount(() => {
     let disposed = false;
     let stops: (() => void)[] = [];
     let resize: ResizeObserver | undefined;
     const height = () => Math.max(100, Math.min(view?.composer ? 700 : 640, Math.ceil(panel?.getBoundingClientRect().height ?? 100)));
-    async function present(next: PanelView | null) {
+    async function present(next: PanelSnapshot | null) {
       resize?.disconnect();
-      if (!next?.composer) { view = null; await tick(); }
-      view = next;
-      if (next?.id === null && !next.composer) draft.account = next.account;
+      const current = next?.revision ?? 0;
+      revision = current;
+      view = null;
+      await tick();
+      if (disposed || revision !== current) return;
+      view = next?.view ?? null;
+      if (view?.id === null && !view.composer) draft.account = view.account;
       pending = false;
       failed = false;
       await tick();
-      if (disposed || !view || !panel) return;
+      if (disposed || revision !== current || !view || !panel) return;
       if (!view.composer) initial?.focus();
-      await commands.columnPanelReady(height());
-      resize = new ResizeObserver(() => { void commands.columnPanelResize(height()).catch(() => console.error("column panel sizing failed")); });
+      let lastHeight = height();
+      await commands.columnPanelReady(current, lastHeight);
+      if (disposed || revision !== current) return;
+      resize = new ResizeObserver(() => {
+        const nextHeight = height();
+        if (revision !== current || nextHeight === lastHeight) return;
+        lastHeight = nextHeight;
+        void commands.columnPanelResize(current, nextHeight).catch(() => console.error("column panel sizing failed"));
+      });
       resize.observe(panel);
     }
     void (async () => {
       stops = await Promise.all([
-        events.columnPanelView.listen(({ payload }) => { if (payload === null) resize?.disconnect(); view = payload; pending = false; }),
+        events.columnPanelView.listen(({ payload }) => {
+          if (payload === null) resize?.disconnect();
+          if (payload && payload.revision !== revision) { void present(payload).catch(() => console.error("column panel presentation failed")); return; }
+          revision = payload?.revision ?? 0;
+          view = payload?.view ?? null;
+          pending = false;
+        }),
         events.columnPanelOpen.listen(({ payload }) => { void present(payload).catch(() => console.error("column panel presentation failed")); }),
       ]);
       if (disposed) { for (const stop of stops) stop(); return; }
@@ -61,14 +80,14 @@
     return () => { disposed = true; for (const stop of stops) stop(); resize?.disconnect(); };
   });
 </script>
-<svelte:window onkeydown={(event) => { if (event.key === "Escape" && !event.defaultPrevented) { event.preventDefault(); void commands.columnPanelClose(); } }} />
+<svelte:window onkeydown={(event) => { if (event.key === "Escape" && !event.defaultPrevented) { event.preventDefault(); void commands.columnPanelClose(revision); } }} />
 {#if view}
 <section bind:this={panel} aria-label={view.composer ? "投稿パネル" : adding ? "カラムを追加" : `${view.title}の設定`} class="panel" class:composer={view.composer} aria-busy={pending}>
   <header>
     {#if view.composer}<div class="composer-accounts" role="group" aria-label="投稿するアカウント">
       {#each view.accounts as account (account.id)}<button class="composer-account" aria-label={account.title} title={account.title} aria-pressed={view.account === account.id} onclick={() => void action({ kind: "account", value: account.id })}><AccountAvatar url={account.avatar} size={32} /></button>{/each}
     </div>{:else}<h1>{view.title}</h1>{/if}
-    <button bind:this={initial} class="icon-button" style:--icon-button-size="28px" aria-label={view.composer ? "投稿パネルを閉じる" : "カラム設定を閉じる"} onclick={() => void commands.columnPanelClose()}><Icon icon={Cancel01Icon} size={16} /></button></header>
+    <button bind:this={initial} class="icon-button" style:--icon-button-size="28px" aria-label={view.composer ? "投稿パネルを閉じる" : "カラム設定を閉じる"} onclick={() => void commands.columnPanelClose(revision)}><Icon icon={Cancel01Icon} size={16} /></button></header>
   {#if view.composer}
     <div class="composer-content" style:height={`${view.content_height}px`} aria-hidden="true"></div>
   {:else}

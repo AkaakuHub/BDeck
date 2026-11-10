@@ -7,6 +7,12 @@ pub(crate) struct AccountOption {
     pub avatar: Option<String>,
 }
 
+#[derive(Clone, serde::Serialize, specta::Type)]
+pub(crate) struct PanelSnapshot {
+    pub revision: u32,
+    pub view: PanelView,
+}
+
 #[derive(Clone, serde::Serialize, serde::Deserialize, specta::Type)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct PanelView {

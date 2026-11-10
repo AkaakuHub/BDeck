@@ -10,6 +10,7 @@ const ACCOUNT_SETTING = "deck.column-account";
 let lastAccount = $state<string | null>(null);
 let selection = $state<string | null>(null);
 let queue: Promise<void> = Promise.resolve();
+let presentationRequest: symbol | null = null;
 
 function snapshot(): PanelView | null {
   const active = deck.active();
@@ -76,7 +77,11 @@ async function show(next: string, event: MouseEvent) {
   if (next === "add" && deck.readyAccounts().length === 0) return;
   if (!(event.currentTarget instanceof HTMLElement)) return;
   const button = event.currentTarget;
-  if (!await surface.close() || !button.isConnected) return;
+  const request = Symbol();
+  presentationRequest = request;
+  if (!await surface.close() || !button.isConnected || request !== presentationRequest) return;
+  const closed = await runOperation(() => commands.runCommand("composer.close"));
+  if (!accepted(closed) || !button.isConnected || request !== presentationRequest) return;
   const anchor = button.getBoundingClientRect();
   selection = next;
   const view = snapshot();
