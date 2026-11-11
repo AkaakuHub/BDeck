@@ -47,7 +47,7 @@
     let config;
     try { config = JSON.parse(settings.textContent); } catch { return; }
     if (config.alwaysUseLatestTweets === false && config.sortFollowing === preference.get().sort) return;
-    settings.textContent = JSON.stringify({ ...config, alwaysUseLatestTweets: false, sortFollowing: preference.get().sort });
+    settings.textContent = JSON.stringify({ alwaysUseLatestTweets: false, sortFollowing: preference.get().sort });
   };
   const sortItems = () => [...document.querySelectorAll('[role="menu"] [data-testid="Dropdown"] [role="menuitem"]')];
   const refresh = () => {
