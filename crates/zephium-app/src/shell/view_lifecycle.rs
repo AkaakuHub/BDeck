@@ -224,6 +224,9 @@ impl Shell {
     }
 
     fn site_kept_awake(&self, id: ItemId) -> bool {
+        if self.composer.is_prepared(id) {
+            return false;
+        }
         if self.deck_profile_for_item(id).is_some() {
             return true;
         }
@@ -547,7 +550,8 @@ impl Shell {
                         .items
                         .tab(*id)
                         .is_some_and(|tab| !tab.loading && tab.url.is_some())
-                    && self.idle_for(*id, self.residency.dormant_min)
+                    && (self.composer.is_prepared(*id)
+                        || self.idle_for(*id, self.residency.dormant_min))
             })
             .collect();
         dormant.sort();

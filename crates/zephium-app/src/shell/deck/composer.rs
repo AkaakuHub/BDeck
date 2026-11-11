@@ -55,6 +55,10 @@ impl ComposerRuntime {
             .find(|tab| tab.item == item)
             .map(|tab| tab.profile)
     }
+    pub(in crate::shell) fn is_prepared(&self, item: ItemId) -> bool {
+        self.tabs.iter().any(|tab| tab.item == item && tab.ready)
+    }
+
     pub(in crate::shell) fn active_item(&self) -> Option<ItemId> {
         self.tabs
             .iter()
@@ -139,6 +143,7 @@ impl Shell {
             if self.composer.active_item() == Some(item) && !self.settings_visible() {
                 self.focus_composer_editor(item);
             }
+            self.maintain_views();
         }
     }
 

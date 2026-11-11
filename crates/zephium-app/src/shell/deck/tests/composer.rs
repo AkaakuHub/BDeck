@@ -280,3 +280,42 @@ fn each_shortcut_uses_its_live_url_even_before_native_navigation_is_committed() 
         Some(&(editor, ComposerFocus::Preserve))
     );
 }
+
+#[test]
+fn prepared_hidden_composers_sleep_without_waiting_and_wake_without_recreation() {
+    let mut fixture = Fixture::new(2);
+    fixture.authenticate_accounts();
+    fixture.shell.prepare_composers();
+    let editors = fixture.shell.composer.retained_items().collect::<Vec<_>>();
+    assert_eq!(editors.len(), 2);
+    for item in &editors {
+        fixture.shell.items.set_committed_url(
+            *item,
+            url::Url::parse("https://x.com/compose/post").unwrap(),
+        );
+        fixture.shell.items.set_loading(*item, false);
+    }
+    fixture.shell.maintain_views();
+    assert!(editors
+        .iter()
+        .all(|id| !fixture.shell.residency.dormant_sent.contains(id)));
+    for item in &editors {
+        fixture.shell.composer_ready(*item);
+        assert!(fixture.shell.residency.dormant_sent.contains(item));
+    }
+    let created = fixture.engine.views.lock().unwrap().len();
+    fixture
+        .shell
+        .operation_open_composer(Some(DeckAccountId::from(1)), None);
+    assert_eq!(fixture.shell.composer.active_item(), Some(editors[0]));
+    assert!(!fixture.shell.residency.dormant_sent.contains(&editors[0]));
+    assert!(fixture.shell.residency.dormant_sent.contains(&editors[1]));
+    fixture.shell.operation_close_composer();
+    assert!(editors
+        .iter()
+        .all(|id| fixture.shell.residency.dormant_sent.contains(id)));
+    assert_eq!(fixture.engine.views.lock().unwrap().len(), created);
+    assert!(editors
+        .iter()
+        .all(|id| !fixture.engine.closed.lock().unwrap().contains(id)));
+}
