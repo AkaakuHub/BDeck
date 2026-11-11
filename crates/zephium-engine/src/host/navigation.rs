@@ -358,6 +358,9 @@ impl EngineHost {
         let same_document_url_changed = previous_committed_url
             .as_deref()
             .is_some_and(|previous| previous != url);
+        if let Some(view) = self.views.get(&id) {
+            super::deck::sync_zoom(view, self.deck_appearance, &url);
+        }
         let became_presentable = {
             let Some(view) = self.views.get_mut(&id) else {
                 return false;

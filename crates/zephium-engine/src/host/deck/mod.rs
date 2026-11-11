@@ -1,5 +1,7 @@
 mod protocol;
+mod zoom;
 pub(super) use protocol::{accepts_command, allows_origin};
+pub(super) use zoom::{content_scale, sync as sync_zoom};
 
 use zephium_core::deck::{
     appearance::{AvatarShape, Density, MediaSize, ScrollbarStyle},
@@ -45,6 +47,9 @@ impl super::EngineHost {
         self.hide_advertisements = hide_advertisements;
         let script = update_script(appearance, hide_advertisements);
         for view in self.views.values() {
+            if let Some(url) = crate::platform::imp::current_url(view) {
+                sync_zoom(view, appearance, &url);
+            }
             let _ = view.evaluate_script(&script);
         }
     }
@@ -61,8 +66,7 @@ fn stylesheet(appearance: DeckAppearance, hide_advertisements: bool) -> String {
     } else {
         "50%"
     };
-    let scale = f64::from(appearance.font_size) / 14.0;
-    let mut css = format!(":root{{--bdeck-content-scale:{scale};--bdeck-font-size:14px;--bdeck-post-padding:{padding};--bdeck-avatar-radius:{radius};}}");
+    let mut css = format!(":root{{--bdeck-font-size:14px;--bdeck-post-padding:{padding};--bdeck-avatar-radius:{radius};}}");
     css.push_str(include_str!("styles/columns.css"));
     css.push_str(include_str!("styles/avatars.css"));
     css.push_str(include_str!("styles/composer.css"));

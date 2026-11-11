@@ -2115,6 +2115,17 @@ impl EngineHost {
             }
         };
         let applied_zoom = Rc::new(Cell::new(1.0));
+        let deck_scale = super::deck::content_scale(self.deck_appearance, url);
+        if deck_scale != 1.0 {
+            if let Err(error) = view.zoom(deck_scale) {
+                eprintln!("engine: initial column zoom invocation failed: {error}");
+                if report_failure {
+                    event_permit.emit(&self.sink, EngineEvent::ViewCreationFailed { id: id.get() });
+                }
+                return None;
+            }
+        }
+        let deck_zoom = Rc::new(Cell::new(deck_scale));
         #[cfg(target_os = "windows")]
         let zoom_registration = {
             let zoom_item = id.clone();
@@ -2123,6 +2134,7 @@ impl EngineHost {
             match crate::platform::imp::install_zoom_listener(
                 &view,
                 applied_zoom.clone(),
+                deck_zoom.clone(),
                 Arc::new(move |event| zoom_permit.emit(&zoom_sink, event)),
                 move || zoom_item.get(),
             ) {
@@ -2369,6 +2381,7 @@ impl EngineHost {
             navigation,
             presentation_permit,
             applied_zoom,
+            deck_zoom,
             presentable: false,
             presentation_announced: None,
             #[cfg(any(target_os = "macos", target_os = "windows"))]

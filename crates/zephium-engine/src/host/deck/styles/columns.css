@@ -1,5 +1,4 @@
 html, body { overflow-x: clip !important; }
-html.bdeck-scaled-content { zoom: var(--bdeck-content-scale); }
 [data-bdeck-profile] [data-bdeck-profile-header] {
   block-size: 41px !important;
   min-block-size: 41px !important;

@@ -86,7 +86,6 @@ const applyPostSpacing = article => {
   if (context && !context.classList.contains("bdeck-empty-context")) context.classList.add("bdeck-empty-context");
 };
 const apply = () => {
-  document.documentElement.classList.toggle("bdeck-scaled-content", !location.pathname.startsWith("/compose/"));
   const style = document.getElementById("bdeck-column-style") || document.createElement("style");
   style.id = "bdeck-column-style";
   if (style.textContent !== columnCss) style.textContent = columnCss;

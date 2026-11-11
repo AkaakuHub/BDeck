@@ -185,6 +185,7 @@ struct ObservedView {
     // Shared with the Windows zoom listener, which tells a zoom made in the
     // page from one this engine applied by comparing against it.
     applied_zoom: Rc<Cell<f64>>,
+    deck_zoom: Rc<Cell<f64>>,
     // False until privileged chrome has applied and verified this exact
     // committed main-frame URL/revision and the shell returns the same opaque
     // epoch. It is reset

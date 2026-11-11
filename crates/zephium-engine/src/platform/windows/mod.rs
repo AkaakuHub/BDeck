@@ -1940,6 +1940,7 @@ impl Drop for ZoomRegistration {
 pub fn install_zoom_listener(
     view: &wry::WebView,
     applied: std::rc::Rc<std::cell::Cell<f64>>,
+    deck_zoom: std::rc::Rc<std::cell::Cell<f64>>,
     sink: Arc<dyn Fn(EngineEvent) + Send + Sync>,
     item: impl Fn() -> zephium_core::ids::ItemId + 'static,
 ) -> windows_core::Result<ZoomRegistration> {
@@ -1950,15 +1951,16 @@ pub fn install_zoom_listener(
         };
         let mut factor = 0.0;
         unsafe { controller.ZoomFactor(&mut factor)? };
-        if !factor.is_finite() || (factor - applied.get()).abs() < 0.001 {
+        let column_scale = deck_zoom.get();
+        if !factor.is_finite() || (factor - applied.get() * column_scale).abs() < 0.001 {
             return Ok(());
         }
-        let adopted = factor.clamp(crate::MIN_PAGE_ZOOM, crate::MAX_PAGE_ZOOM);
+        let adopted = (factor / column_scale).clamp(crate::MIN_PAGE_ZOOM, crate::MAX_PAGE_ZOOM);
         applied.set(adopted);
         // WebView2 keeps a zoom made in the page for that page alone and drops
         // it on the next navigation. Making it the view's own zoom lets it
         // last, as one asked for does.
-        let _ = unsafe { controller.SetZoomFactor(adopted) };
+        let _ = unsafe { controller.SetZoomFactor(adopted * column_scale) };
         sink(EngineEvent::ZoomGesture {
             id: item(),
             scale: adopted,

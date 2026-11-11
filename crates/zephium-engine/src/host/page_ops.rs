@@ -16,7 +16,7 @@ fn settled_zoom_scale(previous: f64, requested: f64, succeeded: bool) -> f64 {
 impl EngineHost {
     pub(crate) fn zoom(&mut self, id: ItemId, scale: f64, request: ZoomRequestId) {
         let Some((permit, applied_scale, succeeded)) = self.views.get_mut(&id).map(|view| {
-            let succeeded = view.zoom(scale).is_ok();
+            let succeeded = view.zoom(scale * view.deck_zoom.get()).is_ok();
             let applied = settled_zoom_scale(view.applied_zoom.get(), scale, succeeded);
             view.applied_zoom.set(applied);
             (view.event_permit.clone(), applied, succeeded)
