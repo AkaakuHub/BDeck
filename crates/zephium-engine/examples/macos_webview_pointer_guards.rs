@@ -1,14 +1,4 @@
-//! Native check of two web view pointer guards, run without showing a window
-//! or activating the app:
-//! - parking a web view's tracking areas leaves AppKit's tool tip areas in
-//!   place, so a tool tip WebKit replaces while parked leaves no stale area
-//!   behind (a stale one points at a freed tool tip and crashes AppKit on the
-//!   next tracking update, as on a window resize);
-//! - a cursor WebKit sets for a web view that is not the one under the pointer
-//!   is dropped, while the covering view's cursor goes through.
-//!
-//! Keep the pointer still while it runs: the cursor checks place the window
-//! beneath it and compare against its location.
+//! Checks that parking WebKit tracking areas preserves AppKit tool tips.
 #[cfg(target_os = "macos")]
 objc2::define_class!(
     /// Reports itself key without the app ever activating: WebKit only
@@ -32,8 +22,8 @@ fn main() {
     use objc2::runtime::AnyObject;
     use objc2::{msg_send, sel};
     use objc2_app_kit::{
-        NSApplication, NSApplicationActivationPolicy, NSBackingStoreType, NSCursor, NSEvent,
-        NSEventMask, NSEventModifierFlags, NSEventType, NSTrackingAreaOptions, NSView, NSWindow,
+        NSApplication, NSApplicationActivationPolicy, NSBackingStoreType, NSEvent,
+        NSEventMask, NSEventModifierFlags, NSEventType, NSTrackingAreaOptions, NSWindow,
         NSWindowStyleMask,
     };
     use objc2_foundation::{
@@ -78,12 +68,9 @@ fn main() {
             }
         }
     };
-    let pointer = NSEvent::mouseLocation();
     let size = NSSize::new(600.0, 400.0);
-    // Never on screen: kept far off every display for the tool tip checks,
-    // then out of the window list beneath the pointer for the cursor checks.
     let frame = NSRect::new(
-        NSPoint::new(pointer.x - size.width / 2.0, pointer.y - size.height / 2.0),
+        NSPoint::new(-30_000.0, -30_000.0),
         size,
     );
     // SAFETY: NSWindow's designated initialiser on a plain subclass.
@@ -115,10 +102,8 @@ fn main() {
             .build_as_child(&host)
             .expect("webview")
     };
-    let below = build();
-    let above = build();
-    // Ordered in far off any display, so WebKit treats the pages as shown.
-    let parked_at = window.frame().origin;
+    let view = build();
+    // WebKit must treat the offscreen page as shown to install tool tips.
     window.setFrameOrigin(NSPoint::new(-30_000.0, -30_000.0));
     window.orderBack(None);
     pump(1.0);
@@ -131,7 +116,7 @@ fn main() {
         }
     };
 
-    let page = below.webview();
+    let page = view.webview();
     let tips = |page: &WryWebView| {
         page.trackingAreas()
             .iter()
@@ -212,47 +197,7 @@ fn main() {
     page.setFrameSize(size);
     pump(0.2);
 
-    window.orderOut(None);
-    window.setFrameOrigin(parked_at);
-    let covered = below.webview();
-    let covering = above.webview();
-    let arrow = NSCursor::arrowCursor();
-    let beam = NSCursor::IBeamCursor();
-    let cross = NSCursor::crosshairCursor();
-    let current = || NSCursor::currentCursor();
-    let is = |cursor: &NSCursor| std::ptr::eq(&*current(), cursor);
-    // Keeps the pointer inside the window between checks.
-    let follow = || {
-        let pointer = NSEvent::mouseLocation();
-        let origin = NSPoint::new(pointer.x - size.width / 2.0, pointer.y - size.height / 2.0);
-        window.setFrameOrigin(origin);
-    };
-    let asks = |view: &NSView, cursor: &NSCursor| {
-        follow();
-        let _ = view.convertPoint_fromView(NSEvent::mouseLocation(), None);
-        cursor.set();
-    };
-    arrow.set();
-    check("a cursor nobody attributes goes through", is(&arrow));
-    asks(&covered, &beam);
-    check("the covered view's cursor is dropped", is(&arrow));
-    asks(&covering, &beam);
-    check("the covering view's cursor goes through", is(&beam));
-    let _ = covered.convertPoint_fromView(NSPoint::new(1.0, 1.0), None);
-    cross.set();
-    check("other conversions attribute nothing", is(&cross));
-    covering.setHidden(true);
-    asks(&covered, &arrow);
-    check("the view beneath gets it once uncovered", is(&arrow));
-    covering.setHidden(false);
-    covered.set_pointer_inert(true);
-    covering.setHidden(true);
-    asks(&covered, &beam);
-    check("an inert view never sets it", is(&arrow));
-    covered.set_pointer_inert(false);
-
-    drop(above);
-    drop(below);
+    drop(view);
     window.close();
     if !failures.is_empty() {
         eprintln!("failed: {failures:?}");

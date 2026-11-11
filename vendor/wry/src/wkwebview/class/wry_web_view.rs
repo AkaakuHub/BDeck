@@ -131,18 +131,6 @@ define_class!(
       unsafe { objc2::msg_send![super(self), removeTrackingArea: area] }
     }
 
-    /// WebKit reads the pointer location in screen coordinates right before
-    /// it sets a cursor; noting that read lets the cursor guard tell which
-    /// view is asking.
-    #[cfg(target_os = "macos")]
-    #[unsafe(method(convertPoint:fromView:))]
-    fn convert_point_from_view(&self, point: NSPoint, view: Option<&NSView>) -> NSPoint {
-      if view.is_none() {
-        crate::wkwebview::cursor_guard::note_conversion(self, point);
-      }
-      unsafe { objc2::msg_send![super(self), convertPoint: point, fromView: view] }
-    }
-
     #[cfg(target_os = "macos")]
     #[unsafe(method(acceptsFirstMouse:))]
     fn accept_first_mouse(&self, _event: &NSEvent) -> Bool {
@@ -330,27 +318,6 @@ mod tests {
       assert!(body.contains("Bool::NO"));
       assert!(body.contains("super(self)"));
     }
-  }
-
-  #[cfg(target_os = "macos")]
-  #[test]
-  fn parking_holds_only_webkit_areas() {
-    let source = include_str!("wry_web_view.rs");
-    let section = |from: &str, to: &str| {
-      source
-        .split(from)
-        .nth(1)
-        .and_then(|rest| rest.split(to).next())
-        .expect("bounded section")
-        .to_owned()
-    };
-    let add = section("fn add_tracking_area", "fn remove_tracking_area");
-    assert!(add.contains("if is_webkit_area(area)"));
-    let remove = section("fn remove_tracking_area", "fn convert_point_from_view");
-    assert!(remove.contains("position("));
-    assert!(remove.contains("super(self), removeTrackingArea: area"));
-    let park = section("pub fn set_tracking_parked", "pub fn is_tracking_parked");
-    assert!(park.contains(".filter(|area| is_webkit_area(area))"));
   }
 
   #[test]
