@@ -99,6 +99,7 @@ const apply = () => {
     }
     let child = content.firstElementChild;
     for (let depth = 0; child && depth < 3; depth++, child = child.firstElementChild) {
+      if (child.closest('section[role="region"], [data-testid="cellInnerDiv"], [data-testid="tweet"]')) break;
       scaffold.observe(child, { childList: true });
     }
     applyChat();
