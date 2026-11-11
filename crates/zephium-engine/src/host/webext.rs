@@ -1433,6 +1433,9 @@ impl Host for Bridge {
         let Some(popover) = (unsafe { action.popupPopover() }) else {
             return false;
         };
+        if let Some(view) = unsafe { action.popupWebView() } {
+            crate::platform::imp::webext_popup::enable_scrolling(&view);
+        }
         let bounds = parent.bounds();
         let flipped = parent.isFlipped();
         let y = if flipped {

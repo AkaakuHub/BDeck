@@ -23,6 +23,7 @@ pub(crate) use session_state::{SessionCaptureRefusal, SessionState};
 mod pointer_cover;
 mod stage;
 mod webext_action_icon;
+pub(crate) mod webext_popup;
 
 pub(crate) use find::{find, FindReport, FindSession};
 pub(crate) use webext_action_icon::rasterize_action_icon;

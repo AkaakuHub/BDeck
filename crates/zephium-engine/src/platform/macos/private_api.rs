@@ -19,6 +19,8 @@ const IMPLEMENTED: &[(&CStr, &[&CStr])] = &[
             c"_isPlayingAudio",
             c"_webProcessIdentifier",
             c"_inspector",
+            c"_setMinimumLayoutWidth:",
+            c"_setClipsToVisibleRect:",
         ],
     ),
     (c"WKBackForwardList", &[c"_clear"]),
