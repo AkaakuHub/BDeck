@@ -61,30 +61,6 @@ const applyHomeComposer = () => {
   if (composer && !composer.classList.contains("bdeck-home-composer")) composer.classList.add("bdeck-home-composer");
   homeComposer = composer;
 };
-const applyPostSpacing = article => {
-  const name = article.querySelector('[data-testid="User-Name"]');
-  const avatar = article.querySelector('[data-testid^="UserAvatar-Container"]');
-  let body = null;
-  let context = null;
-  if (name && avatar) {
-    for (let row = name.parentElement; row && row !== article; row = row.parentElement) {
-      if (!row.contains(avatar)) continue;
-      body = name;
-      while (body.parentElement && body.parentElement !== row) body = body.parentElement;
-      const previous = row.previousElementSibling;
-      if (previous && !previous.textContent.trim() && !previous.querySelector('img, svg, a, button, [role="button"]')) context = previous;
-      break;
-    }
-  }
-  article.querySelectorAll(".bdeck-post-body").forEach(node => {
-    if (node !== body) node.classList.remove("bdeck-post-body");
-  });
-  article.querySelectorAll(".bdeck-empty-context").forEach(node => {
-    if (node !== context) node.classList.remove("bdeck-empty-context");
-  });
-  if (body && !body.classList.contains("bdeck-post-body")) body.classList.add("bdeck-post-body");
-  if (context && !context.classList.contains("bdeck-empty-context")) context.classList.add("bdeck-empty-context");
-};
 const apply = () => {
   const style = document.getElementById("bdeck-column-style") || document.createElement("style");
   style.id = "bdeck-column-style";
@@ -93,57 +69,61 @@ const apply = () => {
   if (style.hasAttribute("data-chat-layout")) return;
   style.setAttribute("data-chat-layout", "");
   const homeSelection = createHomeSelection(createHomePreference);
-  const pending = new Set();
   let frame = 0;
-  let shellChanged = false;
   let refreshOnVisible = false;
+  let layers = null;
+  const schedule = () => {
+    if (document.hidden) {
+      refreshOnVisible = true;
+      return;
+    }
+    if (!frame) frame = requestAnimationFrame(refresh);
+  };
+  const scaffold = new MutationObserver(schedule);
+  const header = new MutationObserver(schedule);
+  const bootstrap = new MutationObserver(schedule);
+  const menu = new MutationObserver(() => homeSelection.refreshMenu());
   const refresh = () => {
+    frame = 0;
+    const primary = document.querySelector(primarySelector);
+    const content = primary || document.querySelector('[data-testid="xchatEmbedRoute"]');
+    scaffold.disconnect();
+    header.disconnect();
+    if (!content) {
+      bootstrap.observe(document.documentElement, { childList: true, subtree: true });
+      return;
+    }
+    bootstrap.disconnect();
+    for (let node = content; node instanceof Element; node = node.parentElement) {
+      scaffold.observe(node, { childList: true });
+    }
+    let child = content.firstElementChild;
+    for (let depth = 0; child && depth < 3; depth++, child = child.firstElementChild) {
+      scaffold.observe(child, { childList: true });
+    }
     applyChat();
     applyHomeComposer();
     applyNotificationHeader();
     applyProfileHeader();
     homeSelection.refresh();
-    document.querySelectorAll(`${primarySelector} ${tweetSelector}`).forEach(applyPostSpacing);
+    const nav = primary?.querySelector('nav:has([role="tab"])');
+    if (nav) header.observe(nav, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-selected", "aria-haspopup"] });
+    primary?.querySelectorAll("[data-bdeck-profile-header], [data-bdeck-notification-header]").forEach(node => {
+      header.observe(node, { childList: true, subtree: true });
+    });
+    if (homeComposer) header.observe(homeComposer, { childList: true, subtree: true });
+    const currentLayers = document.getElementById("layers");
+    if (currentLayers !== layers) {
+      menu.disconnect();
+      layers = currentLayers;
+      if (layers) menu.observe(layers, { childList: true, subtree: true });
+    }
+    homeSelection.refreshMenu();
   };
-  const flush = () => {
-    frame = 0;
-    if (shellChanged) {
-      shellChanged = false;
-      applyChat();
-      applyHomeComposer();
-      applyNotificationHeader();
-      applyProfileHeader();
-      homeSelection.refresh();
-    }
-    for (const article of pending) {
-      if (article.isConnected && article.closest(primarySelector)) applyPostSpacing(article);
-    }
-    pending.clear();
-  };
-  new MutationObserver(records => {
-    if (document.hidden) {
-      refreshOnVisible = true;
-      return;
-    }
-    for (const record of records) {
-      const target = record.target instanceof Element ? record.target : record.target.parentElement;
-      const article = target?.closest(tweetSelector);
-      if (article && article.closest(primarySelector)) pending.add(article);
-      else shellChanged = true;
-      for (const node of record.addedNodes) {
-        if (!(node instanceof Element) || !node.closest(primarySelector)) continue;
-        if (node.matches(tweetSelector)) pending.add(node);
-        node.querySelectorAll(tweetSelector).forEach(article => pending.add(article));
-      }
-    }
-    if (!frame && (pending.size || shellChanged)) frame = requestAnimationFrame(flush);
-  }).observe(document.documentElement, { childList: true, subtree: true });
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       cancelAnimationFrame(frame);
       frame = 0;
-      pending.clear();
-      shellChanged = false;
       refreshOnVisible = true;
     } else if (refreshOnVisible) {
       refreshOnVisible = false;

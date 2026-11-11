@@ -47,8 +47,6 @@ html, body { overflow-x: clip !important; }
 html[data-bdeck-home] .bdeck-home-composer,
 html[data-bdeck-home] [data-testid="primaryColumn"] > div > div:has(.bdeck-home-composer),
 html[data-bdeck-home] [data-testid="primaryColumn"] > div > div:has(.bdeck-home-composer) + div:empty { display: none !important; }
-[data-testid="tweet"] .bdeck-post-body { padding-block-end: 0 !important; }
-[data-testid="tweet"] .bdeck-empty-context { display: none !important; }
 [role="main"]:has([data-testid="primaryColumn"]),
 [role="main"] > div:has([data-testid="primaryColumn"]),
 [data-testid="primaryColumn"] {

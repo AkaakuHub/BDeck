@@ -113,5 +113,5 @@
     }
     sortMenuArmed = false;
   }, true);
-  return { refresh };
+  return { refresh, refreshMenu: () => { if (sorting) refresh(); } };
 }
