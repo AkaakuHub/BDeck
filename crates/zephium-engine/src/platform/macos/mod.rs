@@ -40,12 +40,12 @@ use dispatch2::DispatchObject as _;
 
 pub(crate) use location::blocked_by_system as location_blocked_by_system;
 pub(crate) use native::permission_owner_is_focused;
-pub(crate) use native::{managed_autoresizing, set_warm_spare_layout};
 pub(crate) use native::webkit as native_webview;
 pub use native::{
     configure, go_to_history_entry, history_session, query_document_playback,
     reload_ignoring_cache, stop_loading,
 };
+pub(crate) use native::{managed_autoresizing, set_warm_spare_layout};
 pub(crate) use native::{native_discard_idle, page_footprint, set_background_suspension};
 pub use navigation::NavigationObserver;
 use objc2::rc::Retained;
@@ -123,12 +123,13 @@ const PAGE_URL_UTF8_LIMIT: usize = 8 * 1_024;
 
 pub fn install_navigation_observer(
     view: &wry::WebView,
+    on_scroll: impl Fn(&WKWebView, f64) -> bool + 'static,
     on_change: impl Fn(navigation::NavigationObservation) + 'static,
 ) -> Result<InstalledNavigationObserver, &'static str> {
     use objc2_foundation::MainThreadMarker;
 
     let mtm = MainThreadMarker::new().ok_or("WKWebView observer requires the main thread")?;
-    NavigationObserver::install(mtm, &native::webkit(view), on_change)
+    NavigationObserver::install(mtm, &native::webkit(view), on_scroll, on_change)
 }
 
 pub fn current_url(view: &wry::WebView) -> Option<String> {
@@ -180,7 +181,7 @@ fn bounded_current_url(view: &wry::WebView) -> Result<String, CurrentUrlUnavaila
 /// oversize intentionally collapse to `None`: Ready Work documents treat
 /// either as refusal, while pre-Ready Work treats it as evidence only and
 /// ordinary Browse uses the notification as a refresh request.
-fn bounded_native_current_url(view: &WKWebView) -> Option<String> {
+pub(crate) fn bounded_native_current_url(view: &WKWebView) -> Option<String> {
     bounded_native_current_url_result(view).ok()
 }
 

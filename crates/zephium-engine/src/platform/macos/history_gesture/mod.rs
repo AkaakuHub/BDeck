@@ -9,14 +9,17 @@ use objc2_app_kit::{NSEvent, NSEventMask, NSEventModifierFlags, NSEventPhase};
 use objc2_foundation::{NSError, NSNumber, NSString};
 use objc2_web_kit::WKWebView;
 
-use state::{Direction, Gesture};
+use state::{horizontal_scroll, Direction, Gesture};
 
 pub(super) struct HistoryGesture {
     monitor: Retained<AnyObject>,
 }
 
 impl HistoryGesture {
-    pub(super) fn install(page: &Retained<WKWebView>) -> Result<Self, &'static str> {
+    pub(super) fn install(
+        page: &Retained<WKWebView>,
+        on_scroll: impl Fn(&WKWebView, f64) -> bool + 'static,
+    ) -> Result<Self, &'static str> {
         let weak = Weak::from_retained(page);
         let gesture = RefCell::new(Gesture::default());
         let handler = block2::RcBlock::new(move |event: NonNull<NSEvent>| -> *mut NSEvent {
@@ -25,6 +28,27 @@ impl HistoryGesture {
             let Some(page) = weak.load() else {
                 return event.as_ptr();
             };
+            let shift_scroll = event_ref
+                .modifierFlags()
+                .contains(NSEventModifierFlags::Shift)
+                && !event_ref
+                    .modifierFlags()
+                    .intersects(NSEventModifierFlags::Control | NSEventModifierFlags::Command);
+            if shift_scroll {
+                let precise = event_ref.hasPreciseScrollingDeltas();
+                let (x, y) = if precise {
+                    (event_ref.scrollingDeltaX(), event_ref.scrollingDeltaY())
+                } else {
+                    (event_ref.deltaX(), event_ref.deltaY())
+                };
+                if let Some(delta) = horizontal_scroll(x, y, precise) {
+                    if targets_page(&page, event_ref) && on_scroll(&page, delta) {
+                        gesture.borrow_mut().reset();
+                        return std::ptr::null_mut();
+                    }
+                }
+                return event.as_ptr();
+            }
             if !NSEvent::isSwipeTrackingFromScrollEventsEnabled()
                 || !event_ref.hasPreciseScrollingDeltas()
                 || event_ref.phase().is_empty()
@@ -48,32 +72,22 @@ impl HistoryGesture {
                 | NSEventModifierFlags::Control
                 | NSEventModifierFlags::Command
                 | NSEventModifierFlags::Option;
-            let Some(window) = page.window() else {
-                return event.as_ptr();
-            };
-            let targeted = !page.isHiddenOrHasHiddenAncestor()
-                && event_ref.windowNumber() == window.windowNumber()
-                && !event_ref.modifierFlags().intersects(modifiers)
-                && window
-                    .contentView()
-                    .and_then(|content| {
-                        // SAFETY: this content view and its parent are read on AppKit's main thread.
-                        let parent = unsafe { content.superview() }?;
-                        let point =
-                            parent.convertPoint_fromView(event_ref.locationInWindow(), None);
-                        content.hitTest(point)
-                    })
-                    .is_some_and(|hit| hit.isDescendantOf(&page));
-            if !targeted {
+            if event_ref.modifierFlags().intersects(modifiers) {
                 gesture.borrow_mut().reset();
                 return event.as_ptr();
             }
             let direction = gesture
                 .borrow_mut()
                 .advance(event_ref.scrollingDeltaX(), event_ref.scrollingDeltaY());
-            if let Some(direction) = direction {
-                navigate(&page, event_ref, direction);
+            let Some(direction) = direction else {
+                return event.as_ptr();
+            };
+            let targeted = targets_page(&page, event_ref);
+            if !targeted {
+                gesture.borrow_mut().reset();
+                return event.as_ptr();
             }
+            navigate(&page, event_ref, direction);
             event.as_ptr()
         });
         // SAFETY: the monitor is local to this app and owned on the main thread.
@@ -95,6 +109,22 @@ impl Drop for HistoryGesture {
             NSEvent::removeMonitor(&self.monitor);
         }
     }
+}
+
+fn targets_page(page: &WKWebView, event: &NSEvent) -> bool {
+    let Some(window) = page.window() else {
+        return false;
+    };
+    !page.isHiddenOrHasHiddenAncestor()
+        && event.windowNumber() == window.windowNumber()
+        && window
+            .contentView()
+            .and_then(|content| {
+                let parent = unsafe { content.superview() }?;
+                let point = parent.convertPoint_fromView(event.locationInWindow(), None);
+                content.hitTest(point)
+            })
+            .is_some_and(|hit| hit.isDescendantOf(page))
 }
 
 fn navigate(page: &Retained<WKWebView>, event: &NSEvent, direction: Direction) {

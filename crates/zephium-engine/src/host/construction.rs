@@ -1694,6 +1694,11 @@ impl EngineHost {
             ))
             .with_initialization_script(include_str!("deck/session.js"));
 
+        #[cfg(not(target_os = "macos"))]
+        {
+            builder = builder.with_initialization_script(include_str!("deck/wheel.js"));
+        }
+
         if let Some(script) =
             super::deck::initialization_script(self.deck_appearance, self.hide_advertisements)
         {
@@ -2250,8 +2255,37 @@ impl EngineHost {
         };
         let observation_permit = event_permit.clone();
         let observation_navigation = navigation.clone();
+        #[cfg(target_os = "macos")]
+        let scroll_permit = event_permit.clone();
+        #[cfg(target_os = "macos")]
+        let scroll_sink = self.sink.clone();
+        #[cfg(target_os = "macos")]
+        let scroll_id = id.clone();
         let observer = match crate::platform::imp::install_navigation_observer(
             &view,
+            #[cfg(target_os = "macos")]
+            move |page, delta| {
+                if scroll_permit.active_token().is_none() {
+                    return false;
+                }
+                let allowed = crate::platform::macos::bounded_native_current_url(page)
+                    .and_then(|address| url::Url::parse(&address).ok())
+                    .is_some_and(|origin| {
+                        super::deck::allows_origin(&origin)
+                            && !origin.path().starts_with("/compose/")
+                    });
+                if !allowed {
+                    return false;
+                };
+                scroll_permit.emit(
+                    &scroll_sink,
+                    EngineEvent::ShortcutPressed {
+                        item: scroll_id.get(),
+                        command: format!("deck.scrollBy={delta}"),
+                    },
+                );
+                true
+            },
             move |#[cfg(target_os = "macos")] _| {
                 if observation_permit.active_token().is_none() {
                     return;

@@ -38,9 +38,35 @@ impl Gesture {
     }
 }
 
+pub(super) fn horizontal_scroll(x: f64, y: f64, precise: bool) -> Option<f64> {
+    if !x.is_finite() || !y.is_finite() {
+        return None;
+    }
+    let delta = -if x != 0.0 { x } else { y } * if precise { 1.0 } else { 40.0 };
+    (delta.abs() >= 0.5).then(|| delta.clamp(-1000.0, 1000.0))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn native_wheel_units_preserve_direction_and_horizontal_axis_priority() {
+        assert_eq!(horizontal_scroll(-12.0, -50.0, true), Some(12.0));
+        assert_eq!(horizontal_scroll(0.0, 2.0, true), Some(-2.0));
+        assert_eq!(horizontal_scroll(0.0, -1.0, false), Some(40.0));
+        assert_eq!(horizontal_scroll(1.0, 0.0, false), Some(-40.0));
+    }
+
+    #[test]
+    fn native_wheel_deltas_are_bounded_and_invalid_input_is_ignored() {
+        assert_eq!(horizontal_scroll(0.0, 0.0, true), None);
+        assert_eq!(horizontal_scroll(0.1, 0.0, true), None);
+        assert_eq!(horizontal_scroll(f64::NAN, 1.0, true), None);
+        assert_eq!(horizontal_scroll(1.0, f64::INFINITY, false), None);
+        assert_eq!(horizontal_scroll(-10000.0, 0.0, false), Some(1000.0));
+        assert_eq!(horizontal_scroll(10000.0, 0.0, true), Some(-1000.0));
+    }
 
     #[test]
     fn a_horizontal_gesture_navigates_once_without_waiting_for_release() {

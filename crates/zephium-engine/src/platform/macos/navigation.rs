@@ -98,9 +98,10 @@ impl NavigationObserver {
     pub fn install(
         mtm: MainThreadMarker,
         webview: &Retained<WKWebView>,
+        on_scroll: impl Fn(&WKWebView, f64) -> bool + 'static,
         on_change: impl Fn(NavigationObservation) + 'static,
     ) -> Result<Retained<Self>, &'static str> {
-        let gestures = super::history_gesture::HistoryGesture::install(webview)?;
+        let gestures = super::history_gesture::HistoryGesture::install(webview, on_scroll)?;
         let observer = Self::alloc(mtm).set_ivars(NavigationObserverIvars {
             webview: Weak::from_retained(webview),
             _gestures: gestures,
