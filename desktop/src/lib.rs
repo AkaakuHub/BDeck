@@ -1906,8 +1906,11 @@ pub fn run() {
                     .map_err(|error| std::io::Error::other(error.to_string()))?,
             );
                 #[cfg(target_os = "macos")]
-                if let Some(position) = main_config.traffic_light_position.as_mut() {
-                    position.y += platform::imp::window_controls_lift();
+                {
+                    main_config.transparent = false;
+                    if let Some(position) = main_config.traffic_light_position.as_mut() {
+                        position.y += platform::imp::window_controls_lift();
+                    }
                 }
                 let main_builder = tauri::WebviewWindowBuilder::from_config(app, &main_config)?
                 // Do not expose an interactive privileged renderer until the

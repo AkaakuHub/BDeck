@@ -186,9 +186,15 @@ mod macos {
         if MainThreadMarker::new().is_none() {
             return Material::None;
         }
+        let Ok(pointer) = window.ns_window() else {
+            return Material::None;
+        };
+        // SAFETY: Tao owns the live NSWindow accessed on its main thread.
+        let ns_window = unsafe { &*(pointer as *const NSWindow) };
         let workspace = NSWorkspace::sharedWorkspace();
         let preference = super::preference();
-        let reduce_transparency = workspace.accessibilityDisplayShouldReduceTransparency();
+        let reduce_transparency = ns_window.isOpaque()
+            || workspace.accessibilityDisplayShouldReduceTransparency();
         // Clear before reapplying: the upstream glass API inserts a new view.
         let _ = clear_liquid_glass(window);
         let _ = clear_vibrancy(window);

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { IS_WINDOWS } from "$shared/platform";
+  import { IS_MAC, IS_WINDOWS } from "$shared/platform";
   import { deck } from "$domain/deck";
   import { tabs } from "$domain/tabs";
   import DeckChrome, { ColumnHeaders, Settings, ComposerHeader, WindowToolbar, ColumnScroll, Welcome } from "$features/deck";
@@ -8,6 +8,7 @@
 
 <div
   class="shell bdeck-shell"
+  class:opaque={IS_MAC}
   data-caption={IS_WINDOWS || undefined}
   data-zephium-active-tab={tabs.activeId() ?? ""}
   data-zephium-surface="deck"
@@ -22,6 +23,7 @@
 
 <style>
   .bdeck-shell::before { content: ""; position: absolute; inset: 48px auto 0 55px; width: 1px; background: var(--color-border-strong); pointer-events: none; z-index: 2; }
+  .bdeck-shell.opaque { background: var(--color-page); }
   .bdeck-shell {
     position: relative;
     display: flex;
