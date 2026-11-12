@@ -52,6 +52,7 @@
   const sortItems = () => [...document.querySelectorAll('[role="menu"] [data-testid="Dropdown"] [role="menuitem"]')];
   const refresh = () => {
     configureExtension();
+    if (/\/(photo|video)(?:\/\d+)?$/.test(location.pathname)) return;
     if (location.pathname !== "/home") {
       nav = null;
       restored = false;
@@ -77,8 +78,10 @@
       const tab = [...nav.querySelectorAll('[role="tab"]')].find(tab => tabKey(tab) === preference.get().tab);
       if (!tab) return;
       restored = true;
-      followingSortPending = preference.get().tab === "react:home_latest";
-      if (tab.getAttribute("aria-selected") !== "true") tab.click();
+      if (tab.getAttribute("aria-selected") !== "true") {
+        followingSortPending = preference.get().tab === "react:home_latest";
+        tab.click();
+      }
     }
     if (!followingSortPending) return;
     const tab = nav.querySelector('[role="tab"][aria-selected="true"]');
