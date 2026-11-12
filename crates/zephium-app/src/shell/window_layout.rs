@@ -36,8 +36,10 @@ impl Shell {
                 self.pane_tree().is_some_and(|tree| tree.contains(view.source))
             }) && !self.settings_visible() && !self.page_permission_modal()
         });
-        if overlay.is_none() {
-            self.deck.media.active.set(false);
+        if overlay.is_none() && self.deck.media.active.replace(false) {
+            if let Some(item) = self.deck.media.item() {
+                let _ = self.engine.media_action(item, zephium_core::ports::engine::MediaAction::Pause);
+            }
         }
         let fullscreen = self.window_filling_fullscreen();
         let filling = fullscreen.or(overlay);

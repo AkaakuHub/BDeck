@@ -51,13 +51,14 @@ impl Shell {
         view.source = source;
         let item = view.item;
         self.deck.media.active.set(true);
-        let mut effects = self.items.navigate(item, url.as_str());
+        let loaded = self.items.tab(item).is_some_and(|tab| tab.has_view() && tab.url.as_ref() == Some(&url));
+        let mut effects = if loaded { Vec::new() } else { self.items.navigate(item, url.as_str()) };
         effects.extend(self.items.ensure_view(item));
         self.apply(effects);
         let _ = self.relayout();
+        self.maintain_views();
         let _ = self.engine.focus(item);
         let _ = self.engine.media_action(item, zephium_core::ports::engine::MediaAction::Play);
-        self.maintain_views();
     }
 
     pub(in crate::shell) fn close_media(&mut self, item: ItemId) {

@@ -13,6 +13,12 @@ fn media_uses_a_separate_reusable_view_without_navigating_the_timeline() {
     assert_eq!(fixture.shell.items.tab(source).unwrap().url, url);
     assert_eq!(fixture.shell.pane_tree(), panes);
     fixture.shell.close_media(viewer);
+    let navigations = fixture.engine.navigations.lock().unwrap().len();
+    fixture.shell.open_media(source, url::Url::parse("https://x.com/user/status/1/photo/1").unwrap());
+    assert_eq!(fixture.engine.navigations.lock().unwrap().len(), navigations);
+    assert_eq!(fixture.shell.deck.media.active_item(), Some(viewer));
+    fixture.shell.close_media(viewer);
+    assert!(!fixture.shell.discard_protected_leaves().contains(&viewer));
     assert_eq!(fixture.shell.deck.media.active_item(), None);
     assert_eq!(fixture.shell.pane_tree(), panes);
     fixture.shell.open_media(source, url::Url::parse("https://x.com/user/status/2/video/1").unwrap());
