@@ -11,7 +11,7 @@
   }, true);
   document.addEventListener("click", event => {
     if (!event.isTrusted || event.defaultPrevented || /\/(photo|video)\/\d+$/.test(location.pathname)) return;
-    const player = event.composedPath().find(node => node instanceof Element && node.matches('[data-testid="videoPlayer"]'));
+    const player = event.composedPath().find(node => node instanceof Element && node.matches('[data-testid="videoPlayer"], [data-testid="videoComponent"], [data-testid="playButton"]'));
     if (!player) return;
     const tweet = player.closest('[data-testid="tweet"]');
     const link = tweet?.querySelector('a:has(time)');
