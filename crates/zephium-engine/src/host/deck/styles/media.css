@@ -15,7 +15,7 @@ html[data-bdeck-media] body {
   padding: 0 !important;
   border: 0 !important;
   border-radius: 0 !important;
-  background-color: black !important;
+  background-color: transparent !important;
   background-size: contain !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -25,7 +25,7 @@ html[data-bdeck-media] body {
   transform: none !important;
   pointer-events: auto !important;
 }
-[data-bdeck-media-content]::backdrop { background: black; }
+[data-bdeck-media-content]::backdrop { background: #000d; }
 [data-bdeck-media-close]:popover-open {
   position: fixed;
   inset: 8px auto auto 8px;
@@ -59,3 +59,22 @@ html[data-bdeck-media] body {
 }
 
 [data-bdeck-media-close]::backdrop { pointer-events: none; }
+
+[data-bdeck-media-direction]:popover-open {
+  position: fixed;
+  inset: 50% auto auto 8px;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #000b;
+  color: white;
+  font: 36px/44px sans-serif;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+[data-bdeck-media-direction="1"]:popover-open { left: auto; right: 8px; }
+[data-bdeck-media-direction]:disabled { opacity: 0.3; cursor: default; }
+[data-bdeck-media-direction]::backdrop { pointer-events: none; }

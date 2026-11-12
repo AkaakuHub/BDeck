@@ -7,6 +7,8 @@
   let pendingVideo = null;
   let swipeDistance = 0;
   let wheelBlockedUntil = 0;
+  let swipeHandled = false;
+  let gallery = null;
   const stopPendingVideo = () => {
     pendingVideo?.disconnect();
     pendingVideo = null;
@@ -18,7 +20,16 @@
   };
   const stopMediaClick = event => {
     event.stopPropagation();
-    if (!active?.video) event.preventDefault();
+    if (active?.video) return;
+    event.preventDefault();
+    const image = active?.element.parentElement.querySelector("img");
+    if (!image?.naturalWidth || !image.naturalHeight) return;
+    const bounds = active.element.getBoundingClientRect();
+    const scale = Math.min(bounds.width / image.naturalWidth, bounds.height / image.naturalHeight);
+    const width = image.naturalWidth * scale;
+    const height = image.naturalHeight * scale;
+    if (Math.abs(event.clientX - bounds.left - bounds.width / 2) > width / 2 ||
+        Math.abs(event.clientY - bounds.top - bounds.height / 2) > height / 2) close();
   };
   const release = element => {
     element.removeEventListener("click", stopMediaClick);
@@ -27,9 +38,7 @@
     element.removeAttribute("data-bdeck-media-content");
     element.removeAttribute("data-bdeck-media-video");
   };
-  const close = () => {
-    stopPendingVideo();
-    if (!active) return;
+  const releaseActive = () => {
     const { element, video, controls, slot } = active;
     slot.removeAttribute("data-bdeck-media-slot");
     slot.style.removeProperty("--bdeck-media-slot-height");
@@ -38,8 +47,15 @@
       video.controls = controls;
     }
     release(element);
-    closeButton.hidePopover();
     active = null;
+  };
+  const close = () => {
+    stopPendingVideo();
+    if (!active) return;
+    releaseActive();
+    gallery?.dispose();
+    gallery = null;
+    closeButton.hidePopover();
     window.ipc.postMessage("media.close");
     restoreColumn();
   };
@@ -48,6 +64,8 @@
     element.setAttribute("data-bdeck-media-content", "");
     element.addEventListener("click", stopMediaClick);
     element.showPopover();
+    gallery?.show();
+    closeButton.hidePopover();
     closeButton.showPopover();
   };
   const play = video => {
@@ -56,10 +74,16 @@
   };
   const open = (element, video = null) => {
     stopPendingVideo();
-    swipeDistance = 0;
-    columnWidth = innerWidth;
-    document.documentElement.style.setProperty("--bdeck-media-column-width", `${columnWidth}px`);
-    document.documentElement.setAttribute("data-bdeck-media", "");
+    const opening = !active;
+    if (opening) {
+      swipeDistance = 0;
+      columnWidth = innerWidth;
+      document.documentElement.style.setProperty("--bdeck-media-column-width", `${columnWidth}px`);
+      document.documentElement.setAttribute("data-bdeck-media", "");
+      gallery = video ? null : createMediaGallery(element, open);
+    } else {
+      releaseActive();
+    }
     if (!closeButton) {
       closeButton = document.createElement("button");
       closeButton.type = "button";
@@ -76,7 +100,7 @@
     active = { element, video, slot, controls: video?.controls };
     if (video) element.setAttribute("data-bdeck-media-video", "");
     present(element);
-    window.ipc.postMessage("media.open");
+    if (opening) window.ipc.postMessage("media.open");
     if (video) play(video);
   };
   const activate = event => {
@@ -124,20 +148,28 @@
     activate(event);
   }, true);
   window.addEventListener("keydown", event => {
-    if (!event.isTrusted || event.key !== "Escape") return;
-    stopPendingVideo();
-    if (!active) return;
+    if (!event.isTrusted || !active || document.fullscreenElement) return;
+    const direction = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
+    if (event.key !== "Escape" && !(gallery && direction)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    close();
+    if (direction) gallery.move(direction);
+    else close();
   }, true);
   window.addEventListener("wheel", event => {
     if (!active && event.timeStamp >= wheelBlockedUntil) return;
     event.preventDefault();
+    if (event.timeStamp >= wheelBlockedUntil) {
+      swipeDistance = 0;
+      swipeHandled = false;
+    }
     wheelBlockedUntil = event.timeStamp + 180;
-    if (!active || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
+    if (!active || swipeHandled || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
     swipeDistance += event.deltaX;
-    if (Math.abs(swipeDistance) >= 60) close();
+    if (Math.abs(swipeDistance) < 60) return;
+    swipeHandled = true;
+    if (gallery) gallery.move(Math.sign(swipeDistance));
+    else close();
   }, { capture: true, passive: false });
   window.addEventListener("resize", restoreColumn);
 })();
