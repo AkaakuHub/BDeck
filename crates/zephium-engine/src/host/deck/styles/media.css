@@ -23,6 +23,7 @@ html[data-bdeck-media] body {
   visibility: visible !important;
   object-fit: contain !important;
   transform: none !important;
+  pointer-events: auto !important;
 }
 [data-bdeck-media-content]::backdrop { background: black; }
 [data-bdeck-media-close]:popover-open {
@@ -40,7 +41,21 @@ html[data-bdeck-media] body {
   cursor: pointer;
 }
 
-video[data-bdeck-media-content]:popover-open {
+[data-bdeck-media-video]:popover-open {
   top: 44px !important;
   height: calc(100vh - 44px) !important;
 }
+
+[data-bdeck-media-video]:popover-open video {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: contain !important;
+  pointer-events: auto !important;
+  opacity: 1 !important;
+}
+
+[data-bdeck-media-close]::backdrop { pointer-events: none; }

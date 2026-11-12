@@ -18,23 +18,24 @@
   };
   const stopMediaClick = event => {
     event.stopPropagation();
-    if (!(active?.element instanceof HTMLVideoElement)) event.preventDefault();
+    if (!active?.video) event.preventDefault();
   };
   const release = element => {
     element.removeEventListener("click", stopMediaClick);
     element.hidePopover();
     element.removeAttribute("popover");
     element.removeAttribute("data-bdeck-media-content");
+    element.removeAttribute("data-bdeck-media-video");
   };
   const close = () => {
     stopPendingVideo();
     if (!active) return;
-    const { element, controls, slot } = active;
+    const { element, video, controls, slot } = active;
     slot.removeAttribute("data-bdeck-media-slot");
     slot.style.removeProperty("--bdeck-media-slot-height");
-    if (element instanceof HTMLVideoElement) {
-      element.pause();
-      element.controls = controls;
+    if (video) {
+      video.pause();
+      video.controls = controls;
     }
     release(element);
     closeButton.hidePopover();
@@ -53,7 +54,7 @@
     video.controls = true;
     video.play().catch(() => {});
   };
-  const open = element => {
+  const open = (element, video = null) => {
     stopPendingVideo();
     swipeDistance = 0;
     columnWidth = innerWidth;
@@ -72,10 +73,11 @@
     const slot = element.parentElement;
     slot.style.setProperty("--bdeck-media-slot-height", `${slot.getBoundingClientRect().height}px`);
     slot.setAttribute("data-bdeck-media-slot", "");
-    active = { element, slot, controls: element instanceof HTMLVideoElement && element.controls };
+    active = { element, video, slot, controls: video?.controls };
+    if (video) element.setAttribute("data-bdeck-media-video", "");
     present(element);
     window.ipc.postMessage("media.open");
-    if (element instanceof HTMLVideoElement) play(element);
+    if (video) play(video);
   };
   const activate = event => {
     if (!event.isTrusted || active || (event.type === "pointerdown" && event.button !== 0)) return;
@@ -90,20 +92,20 @@
       pendingVideo = new MutationObserver(records => {
         for (const record of records) for (const node of record.addedNodes) {
           const added = node instanceof HTMLVideoElement ? node : node instanceof Element ? node.querySelector("video") : null;
-          if (!(added instanceof HTMLVideoElement)) continue;
-          open(added);
+          if (!(added instanceof HTMLVideoElement) || !added.isConnected) continue;
+          open(added.parentElement, added);
           return;
         }
       });
       pendingVideo.observe(tweet, { childList: true, subtree: true });
       return;
     }
-    const element = video || photo?.querySelector('[style*="background-image"]');
+    const element = video ? video.parentElement : photo?.querySelector('[style*="background-image"]');
     if (!(element instanceof HTMLElement)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     consumeClick = event.type === "pointerdown";
-    open(element);
+    open(element, video);
   };
   window.addEventListener("pointerdown", event => {
     consumeClick = false;
