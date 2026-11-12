@@ -39,3 +39,8 @@ html[data-bdeck-media] body {
   font: 28px/36px sans-serif;
   cursor: pointer;
 }
+
+video[data-bdeck-media-content]:popover-open {
+  top: 44px !important;
+  height: calc(100vh - 44px) !important;
+}

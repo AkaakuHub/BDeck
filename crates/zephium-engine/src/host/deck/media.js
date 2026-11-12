@@ -5,6 +5,8 @@
   let closeButton = null;
   let consumeClick = false;
   let pendingVideo = null;
+  let swipeDistance = 0;
+  let wheelBlockedUntil = 0;
   const stopPendingVideo = () => {
     pendingVideo?.disconnect();
     pendingVideo = null;
@@ -47,6 +49,7 @@
   };
   const open = element => {
     stopPendingVideo();
+    swipeDistance = 0;
     columnWidth = innerWidth;
     document.documentElement.style.setProperty("--bdeck-media-column-width", `${columnWidth}px`);
     document.documentElement.setAttribute("data-bdeck-media", "");
@@ -125,7 +128,12 @@
     close();
   }, true);
   window.addEventListener("wheel", event => {
-    if (active) event.preventDefault();
+    if (!active && event.timeStamp >= wheelBlockedUntil) return;
+    event.preventDefault();
+    wheelBlockedUntil = event.timeStamp + 180;
+    if (!active || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
+    swipeDistance += event.deltaX;
+    if (Math.abs(swipeDistance) >= 60) close();
   }, { capture: true, passive: false });
   window.addEventListener("resize", restoreColumn);
 })();
