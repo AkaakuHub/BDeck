@@ -82,7 +82,18 @@ const apply = () => {
   const scaffold = new MutationObserver(schedule);
   const header = new MutationObserver(schedule);
   const bootstrap = new MutationObserver(schedule);
-  const menu = new MutationObserver(() => homeSelection.refreshMenu());
+  const startedPreviews = new WeakSet();
+  const startViewer = () => {
+    if (!/\/video\/\d+$/.test(location.pathname)) return;
+    const button = layers?.querySelector('[data-testid="playButton"], [aria-label="この動画を再生する"]');
+    if (!(button instanceof HTMLElement) || startedPreviews.has(button)) return;
+    startedPreviews.add(button);
+    button.click();
+  };
+  const menu = new MutationObserver(() => {
+    homeSelection.refreshMenu();
+    startViewer();
+  });
   const refresh = () => {
     frame = 0;
     const primary = document.querySelector(primarySelector);
@@ -120,6 +131,7 @@ const apply = () => {
       if (layers) menu.observe(layers, { childList: true, subtree: true });
     }
     homeSelection.refreshMenu();
+    startViewer();
   };
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
