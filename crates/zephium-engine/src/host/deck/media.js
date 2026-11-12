@@ -3,6 +3,7 @@
   let active = null;
   let columnWidth = 0;
   let closeButton = null;
+  let consumeClick = false;
   const restoreColumn = () => {
     if (active || Math.abs(innerWidth - columnWidth) > 1) return;
     document.documentElement.removeAttribute("data-bdeck-media");
@@ -70,11 +71,21 @@
     if (!(element instanceof HTMLElement)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
+    consumeClick = event.type === "pointerdown";
     open(element, player);
   };
-  window.addEventListener("pointerdown", activate, true);
+  window.addEventListener("pointerdown", event => {
+    consumeClick = false;
+    activate(event);
+  }, true);
   window.addEventListener("click", event => {
     if (!event.isTrusted) return;
+    if (consumeClick) {
+      consumeClick = false;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
     if (active && event.composedPath().includes(active.element)) {
       event.stopImmediatePropagation();
       if (!(active.element instanceof HTMLVideoElement)) event.preventDefault();
