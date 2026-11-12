@@ -15,7 +15,7 @@ html[data-bdeck-media] body {
   padding: 0 !important;
   border: 0 !important;
   border-radius: 0 !important;
-  background-color: transparent !important;
+  background-color: black !important;
   background-size: contain !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -25,7 +25,7 @@ html[data-bdeck-media] body {
   transform: none !important;
   pointer-events: auto !important;
 }
-[data-bdeck-media-content]::backdrop { background: #000d; }
+[data-bdeck-media-content]::backdrop { background: black; }
 [data-bdeck-media-close]:popover-open {
   position: fixed;
   inset: 8px auto auto 8px;
