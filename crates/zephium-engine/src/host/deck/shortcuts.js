@@ -2,6 +2,22 @@
   const host = location.hostname.toLowerCase();
   if (window !== window.top || !(host === "x.com" || host.endsWith(".x.com") || host === "twitter.com" || host.endsWith(".twitter.com"))) return;
   const send = (command) => window.ipc.postMessage(command);
+  let playingVideo = null;
+  document.addEventListener("play", event => {
+    if (!(event.target instanceof HTMLVideoElement)) return;
+    playingVideo?.classList.remove("bdeck-playing-video");
+    playingVideo = event.target;
+    playingVideo.classList.add("bdeck-playing-video");
+    document.documentElement.setAttribute("data-bdeck-video", "");
+    send("media.open");
+  }, true);
+  document.addEventListener("keydown", event => {
+    if (event.key !== "Escape" || !playingVideo) return;
+    playingVideo.classList.remove("bdeck-playing-video");
+    playingVideo = null;
+    document.documentElement.removeAttribute("data-bdeck-video");
+    send("media.close");
+  }, true);
   document.addEventListener("click", event => {
     if (!event.isTrusted || event.defaultPrevented) return;
     const anchor = event.composedPath().find(node => node instanceof HTMLAnchorElement);

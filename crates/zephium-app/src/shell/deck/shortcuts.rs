@@ -3,6 +3,8 @@ use super::*;
 impl Shell {
     pub(in crate::shell) fn handle_deck_shortcut(&mut self, item: ItemId, command: String) {
         match command.as_str() {
+            "media.open" => self.set_media_overlay(item, true),
+            "media.close" => self.set_media_overlay(item, false),
             value if value.starts_with("account.identity=") => {
                 if let Some(identity) = value
                     .strip_prefix("account.identity=")

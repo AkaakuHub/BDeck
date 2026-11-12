@@ -132,3 +132,12 @@ html[data-bdeck-home] [data-testid="primaryColumn"] div:not([data-testid="tweet"
 [data-testid="primaryColumn"] [role="tab"]:not([data-testid="tweet"] [role="tab"]) > div > div {
   padding-block: 0 !important;
 }
+
+[data-bdeck-video] [data-testid="videoPlayer"]:has(.bdeck-playing-video) {
+  width: 100% !important;
+  max-height: calc(100vh - 100px) !important;
+}
+[data-bdeck-video] .bdeck-playing-video {
+  object-fit: contain !important;
+  max-height: calc(100vh - 100px) !important;
+}

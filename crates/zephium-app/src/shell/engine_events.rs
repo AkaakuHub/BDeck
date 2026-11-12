@@ -590,14 +590,7 @@ impl Shell {
                     let media = committed_url.path_segments().is_some_and(|segments| {
                         segments.into_iter().any(|segment| matches!(segment, "photo" | "video"))
                     });
-                    let next = if media {
-                        self.pane_tree().filter(|tree| tree.contains(id)).map(|_| id)
-                    } else {
-                        self.deck.overlay.get().filter(|current| *current != id)
-                    };
-                    if self.deck.overlay.replace(next) != next {
-                        let _ = self.relayout();
-                    }
+                    self.set_media_overlay(id, media);
                 }
             }
         }
