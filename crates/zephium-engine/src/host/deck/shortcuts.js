@@ -20,6 +20,7 @@
     if (!/\/status\/\d+$/.test(target.pathname)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
+    preserveTimeline();
     target.pathname += "/video/1";
     history.pushState(history.state, "", target.href);
     window.dispatchEvent(new PopStateEvent("popstate", { state: history.state }));

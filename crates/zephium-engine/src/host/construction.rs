@@ -1688,8 +1688,9 @@ impl EngineHost {
                 );
             })
             .with_initialization_script(&format!(
-                "(() => {{ const composerOverlay = {}; {} }})();",
+                "(() => {{ const composerOverlay = {}; const preserveTimeline = {}; {} }})();",
                 include_str!("deck/composer-overlay.js"),
+                include_str!("deck/media-viewport.js"),
                 include_str!("deck/shortcuts.js"),
             ))
             .with_initialization_script(include_str!("deck/session.js"));

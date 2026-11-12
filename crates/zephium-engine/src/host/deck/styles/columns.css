@@ -132,3 +132,11 @@ html[data-bdeck-home] [data-testid="primaryColumn"] div:not([data-testid="tweet"
 [data-testid="primaryColumn"] [role="tab"]:not([data-testid="tweet"] [role="tab"]) > div > div {
   padding-block: 0 !important;
 }
+
+[data-bdeck-media] [role="main"]:has([data-testid="primaryColumn"]) {
+  width: var(--bdeck-timeline-width) !important;
+  min-width: var(--bdeck-timeline-width) !important;
+  max-width: var(--bdeck-timeline-width) !important;
+  flex-grow: 0 !important;
+}
+[data-bdeck-media] { overflow-anchor: none; }
