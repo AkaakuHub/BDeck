@@ -1,3 +1,8 @@
+:root {
+  --bdeck-post-padding: 8px 10px;
+  --bdeck-post-action-gap: 8px;
+  --bdeck-post-action-height: 28px;
+}
 html, body { overflow-x: clip !important; }
 [data-bdeck-profile] [data-bdeck-profile-header] {
   block-size: 41px !important;
@@ -71,12 +76,12 @@ html[data-bdeck-home] [data-testid="primaryColumn"] > div > div:has(.bdeck-home-
   font-size: var(--bdeck-font-size) !important;
   line-height: 1.4 !important;
 }
-[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) { margin-block-start: 8px !important; }
+[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) { margin-block-start: var(--bdeck-post-action-gap) !important; }
 [data-testid="tweet"] [role="group"]:has([data-testid="reply"]) :is(button, a, span) { font-size: 11px !important; }
 [data-testid="tweet"] [role="group"]:has([data-testid="reply"]) svg { width: 16px !important; height: 16px !important; }
 [data-testid="tweet"] [role="group"]:has([data-testid="reply"]) span { padding-inline: 0 !important; }
 
-[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) :is(button, a) { min-height: 28px !important; }
+[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) :is(button, a) { min-height: var(--bdeck-post-action-height) !important; }
 
 [data-testid="primaryColumn"] nav:has([role="tab"]):not([data-testid="tweet"] nav) [data-testid="ScrollSnap-List"] {
   flex-wrap: nowrap !important;

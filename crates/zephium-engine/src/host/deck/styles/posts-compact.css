@@ -1,0 +1,11 @@
+:root {
+  --bdeck-post-padding: 4px 8px;
+  --bdeck-post-action-gap: 2px;
+  --bdeck-post-action-height: 24px;
+}
+[data-testid="tweet"] > div > div > div:first-child > div > div {
+  padding-block-start: 0 !important;
+}
+[data-testid="tweet"] > div > div > div:last-child > div:last-child {
+  padding-block-end: 0 !important;
+}
