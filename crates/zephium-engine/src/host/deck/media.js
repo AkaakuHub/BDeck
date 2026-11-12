@@ -16,7 +16,12 @@
     document.documentElement.removeAttribute("data-bdeck-media");
     document.documentElement.style.removeProperty("--bdeck-media-column-width");
   };
+  const stopMediaClick = event => {
+    event.stopPropagation();
+    if (!(active?.element instanceof HTMLVideoElement)) event.preventDefault();
+  };
   const release = element => {
+    element.removeEventListener("click", stopMediaClick);
     element.hidePopover();
     element.removeAttribute("popover");
     element.removeAttribute("data-bdeck-media-content");
@@ -40,6 +45,7 @@
   const present = element => {
     element.setAttribute("popover", "manual");
     element.setAttribute("data-bdeck-media-content", "");
+    element.addEventListener("click", stopMediaClick);
     element.showPopover();
     closeButton.showPopover();
   };
@@ -112,11 +118,7 @@
       event.stopImmediatePropagation();
       return;
     }
-    if (active && event.composedPath().includes(active.element)) {
-      event.stopImmediatePropagation();
-      if (!(active.element instanceof HTMLVideoElement)) event.preventDefault();
-      return;
-    }
+    if (active && event.composedPath().includes(active.element)) return;
     activate(event);
   }, true);
   window.addEventListener("keydown", event => {
