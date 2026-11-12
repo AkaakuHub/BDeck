@@ -63,6 +63,7 @@ fn stylesheet(appearance: DeckAppearance, hide_advertisements: bool) -> String {
     };
     let mut css = format!(":root{{--bdeck-font-size:14px;--bdeck-avatar-radius:{radius};}}");
     css.push_str(include_str!("styles/columns.css"));
+    css.push_str(include_str!("styles/media.css"));
     if appearance.density == Density::Compact {
         css.push_str(include_str!("styles/spacing-compact.css"));
     }

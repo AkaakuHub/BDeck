@@ -4,15 +4,7 @@ impl Shell {
     pub(in crate::shell) fn handle_deck_shortcut(&mut self, item: ItemId, command: String) {
         match command.as_str() {
             "media.close" => self.close_media(item),
-            value if value.starts_with("media.open=") => {
-                if let Some(url) = value.strip_prefix("media.open=")
-                    .and_then(|value| serde_json::from_str::<String>(value).ok())
-                    .and_then(|value| url::Url::parse(&value).ok())
-                    .filter(|url| url.scheme() == "https" && matches!(url.host_str(), Some("x.com" | "twitter.com")))
-                {
-                    self.open_media(item, url);
-                }
-            }
+            "media.open" => self.open_media(item),
             value if value.starts_with("account.identity=") => {
                 if let Some(identity) = value
                     .strip_prefix("account.identity=")

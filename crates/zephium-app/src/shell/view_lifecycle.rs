@@ -224,7 +224,7 @@ impl Shell {
     }
 
     fn site_kept_awake(&self, id: ItemId) -> bool {
-        if self.composer.is_prepared(id) || self.deck.media.item() == Some(id) {
+        if self.composer.is_prepared(id) {
             return false;
         }
         if self.deck_profile_for_item(id).is_some() {
@@ -417,7 +417,6 @@ impl Shell {
                 .map(|t| t.tabs().into_iter().collect())
                 .unwrap_or_default();
             shown.extend(self.composer.active_item());
-            shown.extend(self.deck.media.active_item());
             // A failure in front of the page is what the person is looking
             // at; its view must not go to sleep under it.
             shown.extend(
@@ -653,7 +652,6 @@ impl Shell {
             .composer
             .retained_items()
             .chain(self.accounts.active_item())
-            .chain(self.deck.media.active_item())
             .collect();
         let Some(window) = self.windows.focused() else {
             return protected;

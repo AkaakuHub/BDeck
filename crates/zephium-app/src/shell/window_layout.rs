@@ -31,15 +31,13 @@ impl Shell {
     /// A relayout that is one step of a deliberate change of shape, which
     /// the chrome and the content carry out as a journey.
     pub(super) fn relayout_with(&self, travel: bool) -> NativeDispatch {
-        let overlay = self.deck.media.active_item().filter(|_| {
-            self.deck.media.view.as_ref().is_some_and(|view| {
-                self.pane_tree().is_some_and(|tree| tree.contains(view.source))
-            }) && !self.settings_visible() && !self.page_permission_modal()
+        let overlay = self.deck.overlay.get().filter(|id| {
+            self.pane_tree().is_some_and(|tree| tree.contains(*id))
+                && !self.settings_visible()
+                && !self.page_permission_modal()
         });
-        if overlay.is_none() && self.deck.media.active.replace(false) {
-            if let Some(item) = self.deck.media.item() {
-                let _ = self.engine.media_action(item, zephium_core::ports::engine::MediaAction::Pause);
-            }
+        if overlay.is_none() {
+            self.deck.overlay.set(None);
         }
         let fullscreen = self.window_filling_fullscreen();
         let filling = fullscreen.or(overlay);
@@ -342,8 +340,6 @@ impl Shell {
         let win = self.windows.focused()?;
         let active = if win.active == self.composer.active_item() {
             self.composer.return_to.or_else(|| self.deck.active_item())
-        } else if win.active == self.deck.media.item() {
-            self.deck.media.view.as_ref().map(|view| view.source)
         } else {
             win.active
         }?;

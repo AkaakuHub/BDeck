@@ -1692,6 +1692,7 @@ impl EngineHost {
                 include_str!("deck/composer-overlay.js"),
                 include_str!("deck/shortcuts.js"),
             ))
+            .with_initialization_script(include_str!("deck/media.js"))
             .with_initialization_script(include_str!("deck/session.js"));
 
         #[cfg(not(target_os = "macos"))]

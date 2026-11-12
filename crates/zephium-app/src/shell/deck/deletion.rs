@@ -58,9 +58,6 @@ pub(in crate::shell) fn filter_session(
 impl Shell {
     pub(in crate::shell) fn deck_item_owners(&self) -> HashMap<ItemId, ProfileId> {
         let mut owners = self.deck.item_profiles.clone();
-        if let Some(view) = &self.deck.media.view {
-            owners.insert(view.item, view.profile);
-        }
         owners.extend(self.composer.retained_items().filter_map(|item| {
             self.composer
                 .profile_for_item(item)
@@ -76,10 +73,6 @@ impl Shell {
 
     pub(in crate::shell) fn retire_deck_profile(&mut self, profile: ProfileId) -> bool {
         let owners = self.deck_item_owners();
-        if self.deck.media.view.as_ref().is_some_and(|view| view.profile == profile) {
-            self.deck.media.active.set(false);
-            self.deck.media.view = None;
-        }
         self.composer.retire_profile(profile);
         self.accounts.retire_profile(profile);
         (self.emit)(Projection::UiCommand(format!(
