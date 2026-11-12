@@ -84,7 +84,7 @@ const apply = () => {
   const bootstrap = new MutationObserver(schedule);
   let overlay = false;
   const refreshOverlay = () => {
-    const active = !!layers?.querySelector('[role="dialog"][aria-modal="true"]:not(:has([data-testid="tweetTextarea_0"]))');
+    const active = !!layers?.querySelector('[role="dialog"]:not(:has([data-testid="tweetTextarea_0"]))');
     if (active === overlay) return;
     overlay = active;
     window.ipc.postMessage(active ? "overlay.open" : "overlay.close");
@@ -97,6 +97,13 @@ const apply = () => {
     frame = 0;
     const primary = document.querySelector(primarySelector);
     const content = primary || document.querySelector('[data-testid="xchatEmbedRoute"]');
+    const currentLayers = document.getElementById("layers");
+    if (currentLayers !== layers) {
+      menu.disconnect();
+      layers = currentLayers;
+      if (layers) menu.observe(layers, { childList: true, subtree: true });
+    }
+    refreshOverlay();
     scaffold.disconnect();
     header.disconnect();
     if (!content) {
@@ -123,12 +130,6 @@ const apply = () => {
       header.observe(node, { childList: true, subtree: true });
     });
     if (homeComposer) header.observe(homeComposer, { childList: true, subtree: true });
-    const currentLayers = document.getElementById("layers");
-    if (currentLayers !== layers) {
-      menu.disconnect();
-      layers = currentLayers;
-      if (layers) menu.observe(layers, { childList: true, subtree: true });
-    }
     homeSelection.refreshMenu();
     refreshOverlay();
   };
