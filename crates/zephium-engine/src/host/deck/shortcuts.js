@@ -14,6 +14,27 @@
     document.querySelectorAll("video").forEach(video => video.pause());
     send("media.close");
   };
+  const openVideo = event => {
+    if (!event.isTrusted || mediaRoute()) return false;
+    const path = event.composedPath();
+    const player = path.find(node => node instanceof Element && node.matches('[data-testid="videoPlayer"], [data-testid="playButton"]'));
+    const tweetLink = player?.closest('[data-testid="tweet"]')?.querySelector('a[href*="/status/"]');
+    if (tweetLink instanceof HTMLAnchorElement) {
+      const target = new URL(tweetLink.href);
+      if (/\/status\/\d+$/.test(target.pathname)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        player.querySelectorAll("video").forEach(video => video.pause());
+        target.pathname += "/video/1";
+        send(`media.open=${JSON.stringify(target.href)}`);
+        return true;
+      }
+    }
+    return false;
+  };
+  document.addEventListener("pointerdown", event => {
+    if (event.button === 0) openVideo(event);
+  }, true);
   document.addEventListener("click", event => {
     if (!event.isTrusted || event.defaultPrevented) return;
     const path = event.composedPath();
@@ -25,19 +46,7 @@
       }
       return;
     }
-    const player = path.find(node => node instanceof Element && node.matches('[data-testid="videoPlayer"], [data-testid="playButton"]'));
-    const tweetLink = player?.closest('[data-testid="tweet"]')?.querySelector('a[href*="/status/"]');
-    if (tweetLink instanceof HTMLAnchorElement) {
-      const target = new URL(tweetLink.href);
-      if (/\/status\/\d+$/.test(target.pathname)) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        player.querySelectorAll("video").forEach(video => video.pause());
-        target.pathname += "/video/1";
-        send(`media.open=${JSON.stringify(target.href)}`);
-        return;
-      }
-    }
+    if (openVideo(event)) return;
     const link = path.find(node => node instanceof HTMLAnchorElement);
     if (!link) return;
     const target = new URL(link.href);
