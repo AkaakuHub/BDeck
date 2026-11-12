@@ -4,6 +4,7 @@
   let columnWidth = 0;
   let closeButton = null;
   let consumeClick = false;
+  let pendingVideoUrl = null;
   const restoreColumn = () => {
     if (active || Math.abs(innerWidth - columnWidth) > 1) return;
     document.documentElement.removeAttribute("data-bdeck-media");
@@ -39,7 +40,7 @@
     video.controls = true;
     video.play().catch(() => {});
   };
-  const open = (element, player) => {
+  const open = element => {
     columnWidth = innerWidth;
     document.documentElement.style.setProperty("--bdeck-media-column-width", `${columnWidth}px`);
     document.documentElement.setAttribute("data-bdeck-media", "");
@@ -56,7 +57,7 @@
     const slot = element.parentElement;
     slot.style.setProperty("--bdeck-media-slot-height", `${slot.getBoundingClientRect().height}px`);
     slot.setAttribute("data-bdeck-media-slot", "");
-    active = { element, player, slot, controls: element instanceof HTMLVideoElement && element.controls };
+    active = { element, slot, controls: element instanceof HTMLVideoElement && element.controls };
     present(element);
     window.ipc.postMessage("media.open");
     if (element instanceof HTMLVideoElement) play(element);
@@ -65,22 +66,23 @@
     if (!event.isTrusted || active || (event.type === "pointerdown" && event.button !== 0)) return;
     const path = event.composedPath();
     const player = path.find(node => node instanceof HTMLElement && node.matches('[data-testid="videoPlayer"]'));
-    if (player && !player.querySelector("video")) {
-      if (event.type === "click") requestAnimationFrame(() => {
-        if (!active && player.isConnected) open(player.querySelector("video") || player, player);
-      });
+    const photo = path.find(node => node instanceof HTMLElement && node.matches('[data-testid="tweetPhoto"]'));
+    const video = player?.querySelector("video");
+    if (photo?.querySelector('[data-testid="playButton"]') || (player && !video?.readyState)) {
+      const tweet = (photo || player).closest('[data-testid="tweet"]');
+      pendingVideoUrl = tweet?.querySelector('a[href*="/status/"]')?.href || null;
       return;
     }
-    const photo = path.find(node => node instanceof HTMLElement && node.matches('[data-testid="tweetPhoto"]'));
-    const element = player?.querySelector("video") || player || photo?.querySelector('[style*="background-image"]');
+    const element = video || photo?.querySelector('[style*="background-image"]');
     if (!(element instanceof HTMLElement)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     consumeClick = event.type === "pointerdown";
-    open(element, player);
+    open(element);
   };
   window.addEventListener("pointerdown", event => {
     consumeClick = false;
+    pendingVideoUrl = null;
     activate(event);
   }, true);
   window.addEventListener("click", event => {
@@ -98,15 +100,13 @@
     }
     activate(event);
   }, true);
-  document.addEventListener("canplay", event => {
+  document.addEventListener("play", event => {
     const video = event.target;
-    if (!(video instanceof HTMLVideoElement) || !active?.player?.contains(video)) return;
-    if (active.element === video) return;
-    release(active.element);
-    active.controls = video.controls;
-    active.element = video;
-    present(video);
-    play(video);
+    if (active || !pendingVideoUrl || !(video instanceof HTMLVideoElement)) return;
+    const tweet = video.closest('[data-testid="tweet"]');
+    if (tweet?.querySelector('a[href*="/status/"]')?.href !== pendingVideoUrl) return;
+    pendingVideoUrl = null;
+    open(video);
   }, true);
   window.addEventListener("keydown", event => {
     if (!event.isTrusted || !active || event.key !== "Escape") return;
