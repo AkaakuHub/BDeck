@@ -1,1 +1,1 @@
-[data-testid="primaryColumn"] [data-testid="cellInnerDiv"]:has([data-testid="placementTracking"]) { display: none !important; }
+[data-testid="primaryColumn"] [data-testid="cellInnerDiv"]:has([data-testid="placementTracking"]):not(:has(video, [data-testid="videoPlayer"])) { display: none !important; }

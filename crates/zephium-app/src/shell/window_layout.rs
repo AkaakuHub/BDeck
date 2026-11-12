@@ -39,7 +39,8 @@ impl Shell {
         if overlay.is_none() {
             self.deck.overlay.set(None);
         }
-        let filling = self.window_filling_fullscreen().or(overlay);
+        let fullscreen = self.window_filling_fullscreen();
+        let filling = fullscreen.or(overlay);
         let Some(win) = self.windows.focused() else {
             return NativeDispatch::Rejected;
         };
@@ -68,8 +69,14 @@ impl Shell {
         if !self.window_visible || privileged_overlay_active {
             l.content = None;
         }
-        if filling.is_some() {
+        if fullscreen.is_some() {
             l.content = Some(Rect::new(0.0, 0.0, win.size.width, win.size.height));
+        } else if overlay.is_some() {
+            if let Some(region) = l.content {
+                let header = zephium_core::deck::layout::COLUMN_HEADER_HEIGHT;
+                let y = (region.y - header).max(0.0);
+                l.content = Some(Rect::new(0.0, y, win.size.width, win.size.height - y));
+            }
         }
         // Raw native children still receive their final geometry while a
         // first navigation is provisional, but macOS must not shrink the
