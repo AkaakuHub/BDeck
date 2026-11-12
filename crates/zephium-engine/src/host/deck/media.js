@@ -4,7 +4,11 @@
   let columnWidth = 0;
   let closeButton = null;
   let consumeClick = false;
-  let pendingVideoUrl = null;
+  let pendingVideo = null;
+  const stopPendingVideo = () => {
+    pendingVideo?.disconnect();
+    pendingVideo = null;
+  };
   const restoreColumn = () => {
     if (active || Math.abs(innerWidth - columnWidth) > 1) return;
     document.documentElement.removeAttribute("data-bdeck-media");
@@ -16,6 +20,7 @@
     element.removeAttribute("data-bdeck-media-content");
   };
   const close = () => {
+    stopPendingVideo();
     if (!active) return;
     const { element, controls, slot } = active;
     slot.removeAttribute("data-bdeck-media-slot");
@@ -41,6 +46,7 @@
     video.play().catch(() => {});
   };
   const open = element => {
+    stopPendingVideo();
     columnWidth = innerWidth;
     document.documentElement.style.setProperty("--bdeck-media-column-width", `${columnWidth}px`);
     document.documentElement.setAttribute("data-bdeck-media", "");
@@ -68,9 +74,19 @@
     const player = path.find(node => node instanceof HTMLElement && node.matches('[data-testid="videoPlayer"]'));
     const photo = path.find(node => node instanceof HTMLElement && node.matches('[data-testid="tweetPhoto"]'));
     const video = player?.querySelector("video");
-    if (photo?.querySelector('[data-testid="playButton"]') || (player && !video?.readyState)) {
+    if (photo?.querySelector('[data-testid="playButton"]') || (player && !video)) {
       const tweet = (photo || player).closest('[data-testid="tweet"]');
-      pendingVideoUrl = tweet?.querySelector('a[href*="/status/"]')?.href || null;
+      if (!tweet) return;
+      stopPendingVideo();
+      pendingVideo = new MutationObserver(records => {
+        for (const record of records) for (const node of record.addedNodes) {
+          const added = node instanceof HTMLVideoElement ? node : node instanceof Element ? node.querySelector("video") : null;
+          if (!(added instanceof HTMLVideoElement)) continue;
+          open(added);
+          return;
+        }
+      });
+      pendingVideo.observe(tweet, { childList: true, subtree: true });
       return;
     }
     const element = video || photo?.querySelector('[style*="background-image"]');
@@ -82,7 +98,7 @@
   };
   window.addEventListener("pointerdown", event => {
     consumeClick = false;
-    pendingVideoUrl = null;
+    stopPendingVideo();
     activate(event);
   }, true);
   window.addEventListener("click", event => {
@@ -100,16 +116,10 @@
     }
     activate(event);
   }, true);
-  document.addEventListener("play", event => {
-    const video = event.target;
-    if (active || !pendingVideoUrl || !(video instanceof HTMLVideoElement)) return;
-    const tweet = video.closest('[data-testid="tweet"]');
-    if (tweet?.querySelector('a[href*="/status/"]')?.href !== pendingVideoUrl) return;
-    pendingVideoUrl = null;
-    open(video);
-  }, true);
   window.addEventListener("keydown", event => {
-    if (!event.isTrusted || !active || event.key !== "Escape") return;
+    if (!event.isTrusted || event.key !== "Escape") return;
+    stopPendingVideo();
+    if (!active) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     close();
