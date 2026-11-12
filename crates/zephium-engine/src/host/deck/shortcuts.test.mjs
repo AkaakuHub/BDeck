@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
-const source = readFileSync(new URL("./shortcuts.js", import.meta.url), "utf8");
-function shortcuts(pathname = "/Viewed_User", overlayOpen = false) {
+const shortcutSource = readFileSync(new URL("./shortcuts.js", import.meta.url), "utf8");
+const wheelSource = readFileSync(new URL("./wheel.js", import.meta.url), "utf8");
+function shortcuts(pathname = "/Viewed_User", overlayOpen = false, source = shortcutSource) {
   const listeners = new Map();
   const frames = [];
   const messages = [];
@@ -23,12 +24,12 @@ function shortcuts(pathname = "/Viewed_User", overlayOpen = false) {
   } };
 }
 test("ordinary horizontal trackpad input is left to browser navigation", () => {
-  const page = shortcuts();
+  const page = shortcuts("/home", false, wheelSource);
   assert.equal(page.dispatch("wheel", { deltaX: 150 }), false);
   assert.deepEqual(page.messages, []);
 });
 test("shift wheel explicitly scrolls the deck instead", () => {
-  const page = shortcuts();
+  const page = shortcuts("/home", false, wheelSource);
   assert.equal(page.dispatch("wheel", { shiftKey: true, deltaY: 120 }), true);
   assert.deepEqual(page.messages, ["deck.scrollBy=120"]);
 });
