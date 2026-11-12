@@ -9,35 +9,11 @@
     startedVideos.add(video);
     video.play().catch(() => {});
   }, true);
-  let requestedVideoUrl = null;
-  const requestMedia = event => {
-    const tweet = event.isTrusted && event.target instanceof Element
-      ? event.target.closest('[data-testid="tweet"]')
-      : null;
-    requestedVideoUrl = tweet?.querySelector('a[href*="/status/"]')?.href || null;
-  };
-  document.addEventListener("pointerdown", requestMedia, true);
-  document.addEventListener("keydown", event => {
-    if (event.key === "Enter" || event.key === " ") requestMedia(event);
-  }, true);
   const mediaRoute = () => /\/(photo|video)(?:\/\d+)?$/.test(location.pathname);
   const closeMedia = () => {
     document.querySelectorAll("video").forEach(video => video.pause());
     send("media.close");
   };
-  document.addEventListener("play", event => {
-    const video = event.target;
-    if (!(video instanceof HTMLVideoElement) || mediaRoute()) return;
-    const tweet = video.closest('[data-testid="tweet"]');
-    const link = tweet?.querySelector('a[href*="/status/"]');
-    if (!(link instanceof HTMLAnchorElement) || link.href !== requestedVideoUrl) return;
-    requestedVideoUrl = null;
-    const target = new URL(link.href);
-    if (!/\/status\/\d+$/.test(target.pathname)) return;
-    video.pause();
-    target.pathname += "/video/1";
-    send(`media.open=${JSON.stringify(target.href)}`);
-  }, true);
   document.addEventListener("click", event => {
     if (!event.isTrusted || event.defaultPrevented) return;
     const path = event.composedPath();
@@ -48,6 +24,19 @@
         closeMedia();
       }
       return;
+    }
+    const player = path.find(node => node instanceof Element && node.matches('[data-testid="videoPlayer"], [data-testid="playButton"]'));
+    const tweetLink = player?.closest('[data-testid="tweet"]')?.querySelector('a[href*="/status/"]');
+    if (tweetLink instanceof HTMLAnchorElement) {
+      const target = new URL(tweetLink.href);
+      if (/\/status\/\d+$/.test(target.pathname)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        player.querySelectorAll("video").forEach(video => video.pause());
+        target.pathname += "/video/1";
+        send(`media.open=${JSON.stringify(target.href)}`);
+        return;
+      }
     }
     const link = path.find(node => node instanceof HTMLAnchorElement);
     if (!link) return;
