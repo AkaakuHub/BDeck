@@ -9,11 +9,12 @@
     startedVideos.add(video);
     video.play().catch(() => {});
   }, true);
-  let requestedTweet = null;
+  let requestedVideoUrl = null;
   const requestMedia = event => {
-    requestedTweet = event.isTrusted && event.target instanceof Element
+    const tweet = event.isTrusted && event.target instanceof Element
       ? event.target.closest('[data-testid="tweet"]')
       : null;
+    requestedVideoUrl = tweet?.querySelector('a[href*="/status/"]')?.href || null;
   };
   document.addEventListener("pointerdown", requestMedia, true);
   document.addEventListener("keydown", event => {
@@ -28,10 +29,9 @@
     const video = event.target;
     if (!(video instanceof HTMLVideoElement) || mediaRoute()) return;
     const tweet = video.closest('[data-testid="tweet"]');
-    if (!tweet || tweet !== requestedTweet) return;
-    requestedTweet = null;
     const link = tweet?.querySelector('a[href*="/status/"]');
-    if (!(link instanceof HTMLAnchorElement)) return;
+    if (!(link instanceof HTMLAnchorElement) || link.href !== requestedVideoUrl) return;
+    requestedVideoUrl = null;
     const target = new URL(link.href);
     if (!/\/status\/\d+$/.test(target.pathname)) return;
     video.pause();
