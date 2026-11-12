@@ -1,3 +1,4 @@
+const videoViewer = /\/video\/\d+$/.test(location.pathname);
 const primarySelector = '[data-testid="primaryColumn"]';
 const tweetSelector = '[data-testid="tweet"]';
 const applyProfileHeader = () => {
@@ -84,7 +85,7 @@ const apply = () => {
   const bootstrap = new MutationObserver(schedule);
   const startedPreviews = new WeakSet();
   const startViewer = () => {
-    if (!/\/video\/\d+$/.test(location.pathname)) return;
+    if (!videoViewer) return;
     const button = layers?.querySelector('[data-testid="playButton"], [aria-label="この動画を再生する"]');
     if (!(button instanceof HTMLElement) || startedPreviews.has(button)) return;
     startedPreviews.add(button);

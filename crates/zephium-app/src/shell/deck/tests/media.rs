@@ -12,6 +12,12 @@ fn media_uses_a_separate_reusable_view_without_navigating_the_timeline() {
     assert_ne!(viewer, source);
     assert_eq!(fixture.shell.items.tab(source).unwrap().url, url);
     assert_eq!(fixture.shell.pane_tree(), panes);
+    fixture.shell.on_engine_event(zephium_core::ports::engine::EngineEvent::UrlChanged {
+        id: viewer,
+        url: "https://x.com/user/status/1".into(),
+    });
+    assert_eq!(fixture.shell.items.tab(viewer).unwrap().url.as_ref().map(url::Url::as_str), Some("https://x.com/user/status/1"));
+    assert_eq!(fixture.shell.deck.media.active_item(), Some(viewer));
     fixture.shell.close_media(viewer);
     let navigations = fixture.engine.navigations.lock().unwrap().len();
     fixture.shell.open_media(source, url::Url::parse("https://x.com/user/status/1/photo/1").unwrap());

@@ -4,6 +4,7 @@ pub(in crate::shell) struct MediaView {
     pub(in crate::shell) item: ItemId,
     pub(in crate::shell) profile: ProfileId,
     pub(in crate::shell) source: ItemId,
+    url: url::Url,
 }
 
 #[derive(Default)]
@@ -45,13 +46,15 @@ impl Shell {
             if !self.items.insert_unloaded_tab(item, placement, url.clone(), "X") {
                 return;
             }
-            self.deck.media.view = Some(MediaView { item, profile, source });
+            self.deck.media.view = Some(MediaView { item, profile, source, url: url.clone() });
         }
         let Some(view) = self.deck.media.view.as_mut() else { return; };
         view.source = source;
         let item = view.item;
+        let same_media = view.url == url;
+        view.url = url.clone();
         self.deck.media.active.set(true);
-        let loaded = self.items.tab(item).is_some_and(|tab| tab.has_view() && tab.url.as_ref() == Some(&url));
+        let loaded = self.items.tab(item).is_some_and(|tab| tab.has_view() && same_media);
         let mut effects = if loaded { Vec::new() } else { self.items.navigate(item, url.as_str()) };
         effects.extend(self.items.ensure_view(item));
         self.apply(effects);

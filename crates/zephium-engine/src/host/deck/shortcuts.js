@@ -2,20 +2,20 @@
   const host = location.hostname.toLowerCase();
   if (window !== window.top || !(host === "x.com" || host.endsWith(".x.com") || host === "twitter.com" || host.endsWith(".twitter.com"))) return;
   const send = (command) => window.ipc.postMessage(command);
+  const viewer = /\/(photo|video)(?:\/\d+)?$/.test(location.pathname);
   const startedVideos = new WeakSet();
   document.addEventListener("canplay", event => {
     const video = event.target;
-    if (!(video instanceof HTMLVideoElement) || !/\/video\/\d+$/.test(location.pathname) || startedVideos.has(video)) return;
+    if (!(video instanceof HTMLVideoElement) || !viewer || startedVideos.has(video)) return;
     startedVideos.add(video);
     video.play().catch(() => {});
   }, true);
-  const mediaRoute = () => /\/(photo|video)(?:\/\d+)?$/.test(location.pathname);
   const closeMedia = () => {
     document.querySelectorAll("video").forEach(video => video.pause());
     send("media.close");
   };
   const openVideo = event => {
-    if (!event.isTrusted || mediaRoute()) return false;
+    if (!event.isTrusted || viewer) return false;
     const path = event.composedPath();
     const player = path.find(node => node instanceof Element && node.matches('[data-testid="videoPlayer"], [data-testid="playButton"]'));
     const tweetLink = player?.closest('[data-testid="tweet"]')?.querySelector('a[href*="/status/"]');
@@ -38,7 +38,7 @@
   document.addEventListener("click", event => {
     if (!event.isTrusted || event.defaultPrevented) return;
     const path = event.composedPath();
-    if (mediaRoute()) {
+    if (viewer) {
       if (path.some(node => node instanceof Element && node.matches('[data-testid="app-bar-close"], [aria-label="閉じる"], [aria-label="Close"]'))) {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -56,7 +56,7 @@
     send(`media.open=${JSON.stringify(target.href)}`);
   }, true);
   document.addEventListener("keydown", event => {
-    if (event.isTrusted && event.key === "Escape" && mediaRoute()) {
+    if (event.isTrusted && event.key === "Escape" && viewer) {
       event.preventDefault();
       event.stopImmediatePropagation();
       closeMedia();
