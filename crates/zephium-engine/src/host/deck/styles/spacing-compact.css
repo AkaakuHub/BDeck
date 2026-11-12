@@ -1,8 +1,9 @@
 :root {
-  --bdeck-post-padding: 4px 8px;
+  --bdeck-item-padding: 4px 8px;
   --bdeck-post-action-gap: 2px;
   --bdeck-post-action-height: 24px;
 }
+[data-testid="notification"] { padding: var(--bdeck-item-padding) !important; }
 [data-testid="tweet"] > div > div > div:first-child > div > div {
   padding-block-start: 0 !important;
 }

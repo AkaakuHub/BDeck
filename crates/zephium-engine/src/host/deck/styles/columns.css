@@ -1,5 +1,5 @@
 :root {
-  --bdeck-post-padding: 8px 10px;
+  --bdeck-item-padding: 8px 10px;
   --bdeck-post-action-gap: 8px;
   --bdeck-post-action-height: 28px;
 }
@@ -68,7 +68,7 @@ html[data-bdeck-home] [data-testid="primaryColumn"] > div > div:has(.bdeck-home-
 }
 [data-testid="primaryColumn"] [data-testid="tweet"] {
   font-size: var(--bdeck-font-size) !important;
-  padding: var(--bdeck-post-padding) !important;
+  padding: var(--bdeck-item-padding) !important;
   border-radius: 0 !important;
 }
 [data-testid="primaryColumn"] [data-testid="tweetPhoto"] { border-radius: 4px !important; }
