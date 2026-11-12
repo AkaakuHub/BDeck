@@ -1,5 +1,6 @@
 use zephium_core::extensions::ExtensionBrowserRequestId;
 mod support;
+mod media;
 mod portable;
 mod composer;
 mod authentication;

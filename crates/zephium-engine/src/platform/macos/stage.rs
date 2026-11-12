@@ -1009,6 +1009,7 @@ impl ContentStage {
         // `addSubview:` can synchronously enter AppKit callbacks. Native work
         // happens only after the view registry borrow has been released.
         if !presenting {
+            view.setAutoresizingMask(objc2_app_kit::NSAutoresizingMaskOptions::empty());
             self.addSubview(&view);
         }
         if self.ivars().stage_retry_terminal.get() {

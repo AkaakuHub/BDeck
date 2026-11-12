@@ -83,6 +83,7 @@ impl Shell {
             .composer
             .retained_items()
             .chain(self.accounts.active_item())
+            .chain(self.deck.media.item())
             .collect();
         let active = active
             .filter(|id| !transient.contains(id))

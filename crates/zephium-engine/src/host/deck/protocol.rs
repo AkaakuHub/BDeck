@@ -34,7 +34,15 @@ pub(in crate::host) fn accepts_command(command: &str) -> bool {
         .and_then(|encoded| serde_json::from_str::<String>(encoded).ok())
         .and_then(|value| url::Url::parse(&value).ok())
         .is_some_and(|url| allows_origin(&url));
+    let media = command.strip_prefix("media.open=")
+        .filter(|encoded| encoded.len() <= 8192)
+        .and_then(|encoded| serde_json::from_str::<String>(encoded).ok())
+        .and_then(|value| url::Url::parse(&value).ok())
+        .is_some_and(|url| allows_origin(&url) && url.path_segments().is_some_and(|segments| {
+            segments.into_iter().any(|segment| matches!(segment, "photo" | "video"))
+        }));
     identity
+        || media
         || composer
         || avatar
         || scroll
@@ -44,7 +52,7 @@ pub(in crate::host) fn accepts_command(command: &str) -> bool {
             .is_some_and(|height| height.is_finite() && (160.0..=640.0).contains(&height))
         || matches!(
             command,
-            "composer.close"
+            "media.close" | "composer.close"
                 | "composer.ready"
                 | "account.logged-in"
                 | "account.logged-out"

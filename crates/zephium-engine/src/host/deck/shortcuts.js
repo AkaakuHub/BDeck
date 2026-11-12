@@ -9,17 +9,60 @@
     startedVideos.add(video);
     video.play().catch(() => {});
   }, true);
+  let requestedTweet = null;
+  const requestMedia = event => {
+    requestedTweet = event.isTrusted && event.target instanceof Element
+      ? event.target.closest('[data-testid="tweet"]')
+      : null;
+  };
+  document.addEventListener("pointerdown", requestMedia, true);
+  document.addEventListener("keydown", event => {
+    if (event.key === "Enter" || event.key === " ") requestMedia(event);
+  }, true);
+  const mediaRoute = () => /\/(photo|video)(?:\/\d+)?$/.test(location.pathname);
+  const closeMedia = () => {
+    document.querySelectorAll("video").forEach(video => video.pause());
+    send("media.close");
+  };
   document.addEventListener("play", event => {
     const video = event.target;
-    if (!(video instanceof HTMLVideoElement) || /\/(photo|video)\/\d+$/.test(location.pathname)) return;
+    if (!(video instanceof HTMLVideoElement) || mediaRoute()) return;
     const tweet = video.closest('[data-testid="tweet"]');
+    if (!tweet || tweet !== requestedTweet) return;
+    requestedTweet = null;
     const link = tweet?.querySelector('a[href*="/status/"]');
     if (!(link instanceof HTMLAnchorElement)) return;
     const target = new URL(link.href);
     if (!/\/status\/\d+$/.test(target.pathname)) return;
+    video.pause();
     target.pathname += "/video/1";
-    history.pushState(history.state, "", target.href);
-    window.dispatchEvent(new PopStateEvent("popstate", { state: history.state }));
+    send(`media.open=${JSON.stringify(target.href)}`);
+  }, true);
+  document.addEventListener("click", event => {
+    if (!event.isTrusted || event.defaultPrevented) return;
+    const path = event.composedPath();
+    if (mediaRoute()) {
+      if (path.some(node => node instanceof Element && node.matches('[data-testid="app-bar-close"], [aria-label="閉じる"], [aria-label="Close"]'))) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        closeMedia();
+      }
+      return;
+    }
+    const link = path.find(node => node instanceof HTMLAnchorElement);
+    if (!link) return;
+    const target = new URL(link.href);
+    if (target.origin !== location.origin || !/\/(photo|video)(?:\/\d+)?$/.test(target.pathname)) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    send(`media.open=${JSON.stringify(target.href)}`);
+  }, true);
+  document.addEventListener("keydown", event => {
+    if (event.isTrusted && event.key === "Escape" && mediaRoute()) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      closeMedia();
+    }
   }, true);
   document.addEventListener("click", event => {
     if (!event.isTrusted || event.defaultPrevented) return;

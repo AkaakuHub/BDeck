@@ -586,11 +586,10 @@ impl Shell {
                     self.project_tab(id);
                 }
                 self.reset_composer_after_navigation(id, &committed_url);
-                if self.deck.profile_for_item(id).is_some() {
-                    let media = committed_url.path_segments().is_some_and(|segments| {
-                        segments.into_iter().any(|segment| matches!(segment, "photo" | "video"))
-                    });
-                    self.set_media_overlay(id, media);
+                if self.deck.media.item() == Some(id) && !committed_url.path_segments().is_some_and(|segments| {
+                    segments.into_iter().any(|segment| matches!(segment, "photo" | "video"))
+                }) {
+                    self.close_media(id);
                 }
             }
         }

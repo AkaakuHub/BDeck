@@ -29,7 +29,7 @@ pub(super) fn view_preferences(
 #[derive(Default)]
 pub(super) struct DeckRuntime {
     pub(super) pending_import: Option<portable::PendingImport>,
-    pub(super) overlay: std::cell::Cell<Option<ItemId>>,
+    pub(super) media: media::MediaRuntime,
     state: Option<zephium_core::deck::DeckState>,
     pub(super) scroll_offset: std::cell::Cell<f64>,
     item_profiles: std::collections::HashMap<ItemId, ProfileId>,
@@ -43,7 +43,7 @@ impl DeckRuntime {
             .filter(|state: &zephium_core::deck::DeckState| state.valid());
         Self {
             pending_import: None,
-            overlay: std::cell::Cell::new(None),
+            media: media::MediaRuntime::default(),
             state,
             item_profiles: std::collections::HashMap::new(),
             scroll_offset: std::cell::Cell::new(0.0),
@@ -144,6 +144,7 @@ impl Shell {
             .pages
             .get(&item)
             .map(|page| page.profile)
+            .or_else(|| self.deck.media.profile_for_item(item))
             .or_else(|| self.composer.profile_for_item(item))
             .or_else(|| self.accounts.profile_for_item(item))
             .or_else(|| self.deck.profile_for_item(item))
