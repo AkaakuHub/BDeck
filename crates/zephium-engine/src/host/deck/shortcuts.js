@@ -2,13 +2,17 @@
   const host = location.hostname.toLowerCase();
   if (window !== window.top || !(host === "x.com" || host.endsWith(".x.com") || host === "twitter.com" || host.endsWith(".twitter.com"))) return;
   const send = (command) => window.ipc.postMessage(command);
-  document.addEventListener("play", event => {
-    if (!(event.target instanceof HTMLVideoElement) || /\/(photo|video)\/\d+$/.test(location.pathname)) return;
-    const tweet = event.target.closest('[data-testid="tweet"]');
+  document.addEventListener("click", event => {
+    if (!event.isTrusted || event.defaultPrevented || /\/(photo|video)\/\d+$/.test(location.pathname)) return;
+    const player = event.composedPath().find(node => node instanceof Element && node.matches('[data-testid="videoPlayer"]'));
+    if (!player) return;
+    const tweet = player.closest('[data-testid="tweet"]');
     const link = tweet?.querySelector('a:has(time)');
     if (!(link instanceof HTMLAnchorElement)) return;
     const target = new URL(link.href);
     if (!/\/status\/\d+$/.test(target.pathname)) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
     target.pathname += "/video/1";
     history.pushState(history.state, "", target.href);
     window.dispatchEvent(new PopStateEvent("popstate", { state: history.state }));
