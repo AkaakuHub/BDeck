@@ -2,6 +2,13 @@
   const host = location.hostname.toLowerCase();
   if (window !== window.top || !(host === "x.com" || host.endsWith(".x.com") || host === "twitter.com" || host.endsWith(".twitter.com"))) return;
   const send = (command) => window.ipc.postMessage(command);
+  const startedVideos = new WeakSet();
+  document.addEventListener("canplay", event => {
+    const video = event.target;
+    if (!(video instanceof HTMLVideoElement) || !/\/video\/\d+$/.test(location.pathname) || startedVideos.has(video)) return;
+    startedVideos.add(video);
+    video.play().catch(() => {});
+  }, true);
   document.addEventListener("click", event => {
     if (!event.isTrusted || event.defaultPrevented || /\/(photo|video)\/\d+$/.test(location.pathname)) return;
     const player = event.composedPath().find(node => node instanceof Element && node.matches('[data-testid="videoPlayer"]'));
