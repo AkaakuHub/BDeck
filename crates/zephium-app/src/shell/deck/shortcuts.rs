@@ -3,6 +3,18 @@ use super::*;
 impl Shell {
     pub(in crate::shell) fn handle_deck_shortcut(&mut self, item: ItemId, command: String) {
         match command.as_str() {
+            "overlay.open" | "overlay.close" if self.deck.profile_for_item(item).is_some() => {
+                let next = if command == "overlay.open" {
+                    self.pane_tree()
+                        .filter(|tree| tree.contains(item))
+                        .map(|_| item)
+                } else {
+                    self.deck.overlay.get().filter(|current| *current != item)
+                };
+                if self.deck.overlay.replace(next) != next {
+                    let _ = self.relayout();
+                }
+            }
             value if value.starts_with("account.identity=") => {
                 if let Some(identity) = value
                     .strip_prefix("account.identity=")

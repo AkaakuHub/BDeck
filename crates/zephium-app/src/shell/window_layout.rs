@@ -31,7 +31,15 @@ impl Shell {
     /// A relayout that is one step of a deliberate change of shape, which
     /// the chrome and the content carry out as a journey.
     pub(super) fn relayout_with(&self, travel: bool) -> NativeDispatch {
-        let filling = self.window_filling_fullscreen();
+        let overlay = self.deck.overlay.get().filter(|id| {
+            self.pane_tree().is_some_and(|tree| tree.contains(*id))
+                && !self.settings_visible()
+                && !self.page_permission_modal()
+        });
+        if overlay.is_none() {
+            self.deck.overlay.set(None);
+        }
+        let filling = self.window_filling_fullscreen().or(overlay);
         let Some(win) = self.windows.focused() else {
             return NativeDispatch::Rejected;
         };

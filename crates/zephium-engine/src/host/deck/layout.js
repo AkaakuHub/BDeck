@@ -82,7 +82,17 @@ const apply = () => {
   const scaffold = new MutationObserver(schedule);
   const header = new MutationObserver(schedule);
   const bootstrap = new MutationObserver(schedule);
-  const menu = new MutationObserver(() => homeSelection.refreshMenu());
+  let overlay = false;
+  const refreshOverlay = () => {
+    const active = !!layers?.querySelector('[role="dialog"][aria-modal="true"]:not(:has([data-testid="tweetTextarea_0"]))');
+    if (active === overlay) return;
+    overlay = active;
+    window.ipc.postMessage(active ? "overlay.open" : "overlay.close");
+  };
+  const menu = new MutationObserver(() => {
+    homeSelection.refreshMenu();
+    refreshOverlay();
+  });
   const refresh = () => {
     frame = 0;
     const primary = document.querySelector(primarySelector);
@@ -120,6 +130,7 @@ const apply = () => {
       if (layers) menu.observe(layers, { childList: true, subtree: true });
     }
     homeSelection.refreshMenu();
+    refreshOverlay();
   };
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {

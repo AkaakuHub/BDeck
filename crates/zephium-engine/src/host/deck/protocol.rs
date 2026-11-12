@@ -44,7 +44,12 @@ pub(in crate::host) fn accepts_command(command: &str) -> bool {
             .is_some_and(|height| height.is_finite() && (160.0..=640.0).contains(&height))
         || matches!(
             command,
-            "composer.close" | "composer.ready" | "account.logged-in" | "account.logged-out"
+            "overlay.open"
+                | "overlay.close"
+                | "composer.close"
+                | "composer.ready"
+                | "account.logged-in"
+                | "account.logged-out"
         )
 }
 
