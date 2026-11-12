@@ -9,23 +9,18 @@
     startedVideos.add(video);
     video.play().catch(() => {});
   }, true);
-  const openVideoViewer = event => {
-    if (!event.isTrusted || ("button" in event && event.button !== 0) || event.defaultPrevented || /\/(photo|video)\/\d+$/.test(location.pathname)) return;
-    const player = event.composedPath().find(node => node instanceof Element && node.matches('[data-testid="videoPlayer"], [data-testid="videoComponent"], [data-testid="playButton"], [aria-label="この動画を再生する"]'));
-    if (!player) return;
-    const tweet = player.closest('[data-testid="tweet"]');
+  document.addEventListener("play", event => {
+    const video = event.target;
+    if (!(video instanceof HTMLVideoElement) || /\/(photo|video)\/\d+$/.test(location.pathname)) return;
+    const tweet = video.closest('[data-testid="tweet"]');
     const link = tweet?.querySelector('a[href*="/status/"]');
     if (!(link instanceof HTMLAnchorElement)) return;
     const target = new URL(link.href);
     if (!/\/status\/\d+$/.test(target.pathname)) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
     target.pathname += "/video/1";
     history.pushState(history.state, "", target.href);
     window.dispatchEvent(new PopStateEvent("popstate", { state: history.state }));
-  };
-  document.addEventListener("pointerdown", openVideoViewer, true);
-  document.addEventListener("click", openVideoViewer, true);
+  }, true);
   document.addEventListener("click", event => {
     if (!event.isTrusted || event.defaultPrevented) return;
     const anchor = event.composedPath().find(node => node instanceof HTMLAnchorElement);
