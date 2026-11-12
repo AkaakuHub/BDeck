@@ -124,5 +124,8 @@
     event.stopImmediatePropagation();
     close();
   }, true);
+  window.addEventListener("wheel", event => {
+    if (active) event.preventDefault();
+  }, { capture: true, passive: false });
   window.addEventListener("resize", restoreColumn);
 })();
