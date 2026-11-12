@@ -60,12 +60,17 @@
     present(element);
     window.ipc.postMessage("media.open");
     if (element instanceof HTMLVideoElement) play(element);
-    else if (player) player.querySelector('[data-testid="playButton"], [aria-label="この動画を再生する"], [aria-label="Play Video"]')?.click();
   };
   const activate = event => {
     if (!event.isTrusted || active || (event.type === "pointerdown" && event.button !== 0)) return;
     const path = event.composedPath();
     const player = path.find(node => node instanceof HTMLElement && node.matches('[data-testid="videoPlayer"]'));
+    if (player && !player.querySelector("video")) {
+      if (event.type === "click") requestAnimationFrame(() => {
+        if (!active && player.isConnected) open(player.querySelector("video") || player, player);
+      });
+      return;
+    }
     const photo = path.find(node => node instanceof HTMLElement && node.matches('[data-testid="tweetPhoto"]'));
     const element = player?.querySelector("video") || player || photo?.querySelector('[style*="background-image"]');
     if (!(element instanceof HTMLElement)) return;
