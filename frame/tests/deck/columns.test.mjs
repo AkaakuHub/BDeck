@@ -5,7 +5,7 @@ import { normalizeColumnRows, repositionColumn } from "../../src/domain/deck/col
 function deck() {
   return {
     id: "deck", name: "main", layout: "horizontal", row_ratio: 50,
-    columns: ["a", "b", "c"].map((id) => ({ id, account: "account", target: { kind: "home" }, width: 320, row: 0, suspended: false })),
+    columns: ["a", "b", "c"].map((id) => ({ id, account: "account", target: { kind: "home" }, width: 320, row: 0, suspended: false, secret: false })),
   };
 }
 

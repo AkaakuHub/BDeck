@@ -20,6 +20,7 @@ fn state(account: u128, profile: u128, user: &str) -> DeckState {
         width: 420,
         row: 1,
         suspended: true,
+        secret: false,
     });
     DeckState {
         accounts: vec![account],

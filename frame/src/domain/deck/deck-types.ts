@@ -22,6 +22,7 @@ export type DeckColumn = {
   width: number;
   row: number;
   suspended: boolean;
+  secret: boolean;
 };
 
 export type Deck = {
@@ -97,6 +98,7 @@ export function isDeckState(value: unknown): value is DeckState {
             typeof column.width === "number" &&
             typeof column.row === "number" &&
             typeof column.suspended === "boolean" &&
+            typeof column.secret === "boolean" &&
             isTarget(column.target),
         ),
     )

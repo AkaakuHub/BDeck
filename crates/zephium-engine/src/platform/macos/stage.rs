@@ -198,6 +198,8 @@ pub struct StageIvars {
     /// The pages, parked while a hidden sidebar's chrome is over them.
     under_chrome: RefCell<Option<Parked>>,
     covers: RefCell<HashMap<ItemId, PaintCover>>,
+    concealed: RefCell<HashSet<ItemId>>,
+    privacy_covers: RefCell<HashMap<ItemId, Retained<NSView>>>,
     indicator: RefCell<Option<Retained<NSView>>>,
     /// A drop target the pointer has reached but not yet rested on.
     armed: RefCell<Option<Box<DropPreview>>>,
@@ -718,6 +720,25 @@ impl ContentStage {
                 .map_or(true, |ids| ids.contains(&id))
     }
 
+    pub fn set_concealed(&self, concealed: &[ItemId]) {
+        let next = concealed.iter().copied().collect::<HashSet<_>>();
+        let changed = self
+            .ivars()
+            .concealed
+            .try_borrow_mut()
+            .ok()
+            .map(|mut current| {
+                let changed = *current != next;
+                *current = next;
+                changed
+            })
+            .unwrap_or(false);
+        if changed {
+            self.bump_layout_epoch();
+        }
+        self.sync_privacy_covers();
+    }
+
     /// A transient visual cover never grants document presentation authority.
     /// It is installed while the shared document permit is still revoked.
     pub fn cover(&self, id: ItemId, token: u64, image: Option<&CGImage>) -> bool {
@@ -843,6 +864,104 @@ impl ContentStage {
         }
     }
 
+    fn clear_privacy_cover(&self, id: ItemId) {
+        let cover = self
+            .ivars()
+            .privacy_covers
+            .try_borrow_mut()
+            .ok()
+            .and_then(|mut covers| covers.remove(&id));
+        if let Some(cover) = cover {
+            cover.removeFromSuperview();
+        }
+    }
+
+    fn clear_privacy_covers(&self) {
+        let covers = self
+            .ivars()
+            .privacy_covers
+            .try_borrow_mut()
+            .ok()
+            .map(|mut covers| std::mem::take(&mut *covers));
+        if let Some(covers) = covers {
+            for cover in covers.into_values() {
+                cover.removeFromSuperview();
+            }
+        }
+    }
+
+    fn sync_privacy_covers(&self) {
+        let concealed = self
+            .ivars()
+            .concealed
+            .try_borrow()
+            .ok()
+            .map(|ids| ids.clone())
+            .unwrap_or_default();
+        let visible = concealed
+            .into_iter()
+            .filter(|id| self.wants_visible(*id))
+            .collect::<HashSet<_>>();
+        let current = self
+            .ivars()
+            .privacy_covers
+            .try_borrow()
+            .ok()
+            .map(|covers| covers.keys().copied().collect::<Vec<_>>())
+            .unwrap_or_default();
+        for id in current.into_iter().filter(|id| !visible.contains(id)) {
+            self.clear_privacy_cover(id);
+        }
+        for id in visible {
+            let Some(host) = self
+                .ivars()
+                .views
+                .try_borrow()
+                .ok()
+                .and_then(|views| views.get(&id).map(|view| view.view.clone()))
+            else {
+                continue;
+            };
+            // SAFETY: retained parent access on the AppKit main thread.
+            if !unsafe { host.superview() }
+                .as_deref()
+                .is_some_and(|parent| std::ptr::eq(parent, &**self))
+            {
+                self.clear_privacy_cover(id);
+                continue;
+            }
+            if let Some(cover) = self
+                .ivars()
+                .privacy_covers
+                .try_borrow()
+                .ok()
+                .and_then(|covers| covers.get(&id).cloned())
+            {
+                cover.setFrame(host.frame());
+                continue;
+            }
+            let cover: Retained<PaintCoverView> =
+                unsafe { msg_send![PaintCoverView::alloc(self.mtm()), init] };
+            let cover = cover.into_super();
+            cover.setWantsLayer(true);
+            cover.setTranslatesAutoresizingMaskIntoConstraints(false);
+            cover.setFrame(host.frame());
+            if let Some(layer) = cover.layer() {
+                layer.setBackgroundColor(Some(&page_ground(self).CGColor()));
+                layer.setMasksToBounds(true);
+            }
+            if let Ok(mut covers) = self.ivars().privacy_covers.try_borrow_mut() {
+                if covers.contains_key(&id) {
+                    continue;
+                }
+                covers.insert(id, cover.clone());
+            } else {
+                continue;
+            }
+            self.addSubview_positioned_relativeTo(&cover, NSWindowOrderingMode::Above, Some(&host));
+        }
+    }
+
     fn clear_covers(&self) {
         let covers = self
             .ivars()
@@ -855,6 +974,7 @@ impl ContentStage {
                 cover.view.removeFromSuperview();
             }
         }
+        self.clear_privacy_covers();
     }
 
     /// Returns whether the latest authoritative layout expects this item.
@@ -1022,6 +1142,7 @@ impl ContentStage {
 
     pub fn remove_view(&self, id: ItemId) {
         self.clear_cover(id);
+        self.clear_privacy_cover(id);
         if self.ivars().stage_retry_terminal.get() && !self.isHidden() {
             self.setHidden(true);
         }
@@ -1941,6 +2062,17 @@ impl ContentStage {
                             continue 'attempt;
                         }
                     }
+                    let privacy_cover = ivars
+                        .privacy_covers
+                        .try_borrow()
+                        .ok()
+                        .and_then(|covers| covers.get(&id).cloned());
+                    if let Some(privacy_cover) = privacy_cover {
+                        privacy_cover.setFrame(frame);
+                        if !self.layout_epoch_is_current(epoch) {
+                            continue 'attempt;
+                        }
+                    }
                 }
             }
             if self.layout_epoch_is_current(epoch) {
@@ -1961,6 +2093,7 @@ impl ContentStage {
                 if !self.layout_epoch_is_current(epoch) {
                     continue 'attempt;
                 }
+                self.sync_privacy_covers();
                 return true;
             }
         }

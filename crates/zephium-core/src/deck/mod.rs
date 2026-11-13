@@ -126,6 +126,7 @@ pub struct DeckColumn {
     pub width: u16,
     pub row: u8,
     pub suspended: bool,
+    pub secret: bool,
 }
 
 impl DeckColumn {
@@ -351,6 +352,7 @@ mod tests {
             width: 360,
             row: 0,
             suspended: false,
+            secret: false,
         }
     }
 

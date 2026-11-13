@@ -177,6 +177,8 @@ struct State {
     caption_moving: bool,
     /// Paint covers by view, each with the token of the handoff that owns it.
     covers: HashMap<ItemId, (HWND, u64)>,
+    concealed: HashSet<ItemId>,
+    privacy_covers: HashMap<ItemId, HWND>,
     /// The page shown fullscreen: square corners, above everything else.
     fullscreen: Option<ItemId>,
     /// The chrome's host window, once a hidden sidebar's card has needed it.
@@ -368,6 +370,9 @@ impl Drop for State {
                 timers.borrow_mut().remove(&timer);
             });
         }
+        for cover in self.privacy_covers.drain().map(|(_, cover)| cover) {
+            let _ = unsafe { DestroyWindow(cover) };
+        }
     }
 }
 
@@ -422,6 +427,8 @@ impl Stage {
             caption_offset,
             caption_moving,
             covers: HashMap::new(),
+            concealed: HashSet::new(),
+            privacy_covers: HashMap::new(),
             fullscreen: None,
             chrome: None,
             card: None,
@@ -660,11 +667,15 @@ impl Stage {
         state.visibility_uncertain.remove(&id);
         state.visible.remove(&id);
         let cover = state.covers.remove(&id);
+        let privacy_cover = state.privacy_covers.remove(&id);
         drop(state);
         if let Some(container) = container {
             super::sidebar_card::forget(container);
         }
         if let Some((cover, _)) = cover {
+            let _ = unsafe { DestroyWindow(cover) };
+        }
+        if let Some(cover) = privacy_cover {
             let _ = unsafe { DestroyWindow(cover) };
         }
     }
@@ -699,6 +710,24 @@ impl Stage {
         }
         drop(state);
         settle_card(&self.state);
+    }
+
+    pub fn set_concealed(&self, concealed: &[ItemId]) {
+        let changed = self.state.try_borrow_mut().is_ok_and(|mut state| {
+            let next = concealed.iter().copied().collect::<HashSet<_>>();
+            let changed = state.concealed != next;
+            state.concealed = next;
+            if changed {
+                state.revision = state.revision.wrapping_add(1).max(1);
+                state.dirty.extend(state.views.keys().copied());
+            }
+            changed
+        });
+        if changed {
+            schedule_sync(&self.state);
+        } else {
+            sync_privacy_covers(&self.state);
+        }
     }
 
     /// Stacks an opaque child in the page ground over the WebView2 inside its
@@ -1158,6 +1187,123 @@ fn raise_cover(state: &Rc<RefCell<State>>, id: ItemId) {
     }
 }
 
+fn raise_privacy_cover(state: &Rc<RefCell<State>>, id: ItemId) {
+    let cover = state
+        .try_borrow()
+        .ok()
+        .and_then(|state| state.privacy_covers.get(&id).copied());
+    if let Some(cover) = cover {
+        let _ = unsafe {
+            SetWindowPos(
+                cover,
+                Some(HWND_TOP),
+                0,
+                0,
+                0,
+                0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
+            )
+        };
+    }
+}
+
+fn sync_privacy_covers(state: &Rc<RefCell<State>>) {
+    let desired = state
+        .try_borrow()
+        .ok()
+        .map(|state| {
+            (!state.hidden)
+                .then(|| {
+                    state
+                        .concealed
+                        .iter()
+                        .filter_map(|id| {
+                            state
+                                .views
+                                .get(id)
+                                .filter(|_| state.visible.contains(id))
+                                .map(|view| (*id, view.container, state.parent))
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default()
+        })
+        .unwrap_or_default();
+    let desired_ids = desired
+        .iter()
+        .map(|(id, _, _)| *id)
+        .collect::<HashSet<_>>();
+    let current = state
+        .try_borrow()
+        .ok()
+        .map(|state| state.privacy_covers.keys().copied().collect::<Vec<_>>())
+        .unwrap_or_default();
+    for id in current.into_iter().filter(|id| !desired_ids.contains(id)) {
+        let cover = state
+            .try_borrow_mut()
+            .ok()
+            .and_then(|mut state| state.privacy_covers.remove(&id));
+        if let Some(cover) = cover {
+            let _ = unsafe { DestroyWindow(cover) };
+        }
+    }
+    for (id, container, parent) in desired {
+        if state
+            .try_borrow()
+            .ok()
+            .is_some_and(|state| state.privacy_covers.contains_key(&id))
+        {
+            raise_privacy_cover(state, id);
+            continue;
+        }
+        let module = unsafe { GetModuleHandleW(None) }.unwrap_or_default();
+        let Ok(cover) = (unsafe {
+            CreateWindowExW(
+                WS_EX_NOACTIVATE,
+                cover_class(),
+                PCWSTR::null(),
+                WS_CHILD | WS_CLIPSIBLINGS,
+                0,
+                0,
+                COVER_EXTENT,
+                COVER_EXTENT,
+                Some(container),
+                None,
+                Some(module.into()),
+                None,
+            )
+        }) else {
+            continue;
+        };
+        unsafe { SetWindowLongPtrW(cover, GWLP_USERDATA, page_ground(parent).0 as isize) };
+        let _ = unsafe {
+            SetWindowPos(
+                cover,
+                Some(HWND_TOP),
+                0,
+                0,
+                0,
+                0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
+            )
+        };
+        let _ = unsafe { ShowWindow(cover, SW_SHOWNA) };
+        let inserted = state.try_borrow_mut().is_ok_and(|mut state| {
+            state.concealed.contains(&id)
+                && state.visible.contains(&id)
+                && !state.hidden
+                && state
+                    .views
+                    .get(&id)
+                    .is_some_and(|view| view.container == container)
+                && state.privacy_covers.insert(id, cover).is_none()
+        });
+        if !inserted {
+            let _ = unsafe { DestroyWindow(cover) };
+        }
+    }
+}
+
 /// The pointer has rested on a drop target: the page makes room.
 unsafe extern "system" fn dwell_timer_proc(_: HWND, _: u32, timer: usize, _: u32) {
     let _ = unsafe { KillTimer(None, timer) };
@@ -1587,6 +1733,7 @@ fn sync(state: &Rc<RefCell<State>>) {
     for placement in placements.iter().filter(|placement| placement.show) {
         apply_native_placement(state, placement);
     }
+    sync_privacy_covers(state);
     // A displaced page is clipped to the stage, so what slides out of it
     // never covers the chrome around.
     if state.borrow().revision != revision {
@@ -2019,6 +2166,7 @@ fn apply_native_placement(state: &Rc<RefCell<State>>, placement: &NativePlacemen
             let _ = unsafe { ShowWindow(placement.container, SW_SHOWNA) };
             applied.window_visible = Some(true);
             raise_cover(state, placement.id);
+            raise_privacy_cover(state, placement.id);
         }
         if !placement_may_reveal(state, placement) {
             // Both COM visibility and ShowWindow can pump a nested native

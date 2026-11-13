@@ -60,6 +60,7 @@ export const commands = {
 	row: number,
 	two_rows: boolean,
 	suspended: boolean,
+	secret: boolean,
 	failed: boolean,
 } | null, x: number | null, y: number | null) => __TAURI_INVOKE<null>("column_panel_composer_sync", { view, x, y }),
 	columnPanelAction: (revision: number, action: PanelAction) => __TAURI_INVOKE<null>("column_panel_action", { revision, action }),
@@ -76,6 +77,7 @@ export const commands = {
 	row: number,
 	two_rows: boolean,
 	suspended: boolean,
+	secret: boolean,
 	failed: boolean,
 } | null) => __TAURI_INVOKE<null>("column_panel_sync", { view }),
 	extensionActionInvoke: (profileId: string, installId: string, runtimeGeneration: string, actionRevision: string, anchorX: number | null, anchorY: number | null, anchorWidth: number | null, anchorHeight: number | null) => __TAURI_INVOKE<OperationAdmission>("extension_action_invoke", { profileId, installId, runtimeGeneration, actionRevision, anchorX, anchorY, anchorWidth, anchorHeight }),
@@ -364,7 +366,7 @@ retry: boolean } |
 /**  The page stopped responding: wait for it, or reload it. */
 { kind: "unresponsive" };
 
-export type PanelAction = { kind: "create"; value: ColumnDraft } | { kind: "width"; value: number } | { kind: "account"; value: string } | { kind: "row"; value: number } | { kind: "previous" } | { kind: "next" } | { kind: "duplicate" } | { kind: "suspend" } | { kind: "remove" };
+export type PanelAction = { kind: "create"; value: ColumnDraft } | { kind: "width"; value: number } | { kind: "account"; value: string } | { kind: "row"; value: number } | { kind: "previous" } | { kind: "next" } | { kind: "duplicate" } | { kind: "suspend" } | { kind: "secret" } | { kind: "remove" };
 
 export type PanelSnapshot = {
 	revision: number,
@@ -384,6 +386,7 @@ export type PanelView = {
 	row: number,
 	two_rows: boolean,
 	suspended: boolean,
+	secret: boolean,
 	failed: boolean,
 };
 

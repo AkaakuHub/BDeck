@@ -49,7 +49,7 @@ impl EngineHost {
     pub(crate) fn attach_composer_parent(&mut self, parent: RawWindowHandle) {
         self.composer_parent = Some(super::ParentHandle(parent));
         if let Some((tree, region, motion)) = self.pending_composer.take() {
-            self.set_content(super::COMPOSER_WINDOW, tree, region, motion);
+            self.set_content(super::COMPOSER_WINDOW, tree, region, &[], motion);
         }
     }
     pub(crate) fn focus(&self, item: ItemId) {
@@ -214,6 +214,7 @@ impl EngineHost {
         window: WindowId,
         tree: Option<Pane>,
         region: Option<Rect>,
+        concealed: &[ItemId],
         motion: Option<StageMotion>,
     ) -> bool {
         #[cfg(any(target_os = "macos", target_os = "windows"))]
@@ -239,6 +240,9 @@ impl EngineHost {
             None => Vec::new(),
         };
         let applied = self.apply_content(window, tree, region, motion);
+        if let Some(stage) = self.stages.get(&window) {
+            stage.set_concealed(concealed);
+        }
         #[cfg(any(target_os = "macos", target_os = "windows"))]
         self.fullscreen_layout_applied(window, &shown);
         applied

@@ -27,7 +27,7 @@
       composer: true, content_height: Math.round(current.height - 42), id: current.tab, title: "", index: 0, count: 0,
       account: current.account,
       accounts: deck.readyAccounts().map(account => ({ id: account.id, title: deck.displayName(account.id), screen_name: account.identity?.screen_name ?? null, avatar: accountAvatars.url(account.profile) })),
-      width: Math.round(current.width), row: 0, two_rows: false, suspended: false, failed: false,
+      width: Math.round(current.width), row: 0, two_rows: false, suspended: false, secret: false, failed: false,
     } : null;
     const x = current ? current.x + current.width : 0;
     const y = current?.y ?? 0;

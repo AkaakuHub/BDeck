@@ -144,6 +144,7 @@ async function addColumn(target: ColumnTarget, account: string, width: number, r
         width,
         row,
         suspended: false,
+        secret: false,
       },
     ],
   }));
@@ -200,6 +201,10 @@ async function moveColumn(id: string, offset: -1 | 1) {
 
 async function toggleSuspended(id: string) {
   return updateColumn(id, (column) => ({ ...column, suspended: !column.suspended }));
+}
+
+async function toggleSecret(id: string) {
+  return updateColumn(id, (column) => ({ ...column, secret: !column.secret }));
 }
 
 function columnAction(id: string, action: "reload" | "back" | "forward") {
@@ -279,5 +284,5 @@ export const deck = {
     return account?.identity?.display_name ?? "";
   },
   save, setAppearance, addColumn, updateColumn, removeColumn, duplicateColumn, moveColumn, reorderColumn,
-  toggleSuspended, columnAction, setRowRatio, setColumnRow, createAccount, openComposer,
+  toggleSuspended, toggleSecret, columnAction, setRowRatio, setColumnRow, createAccount, openComposer,
 };

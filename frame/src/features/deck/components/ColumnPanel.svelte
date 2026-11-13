@@ -98,6 +98,7 @@
       <IconButton icon={ArrowLeft02Icon} label="前へ移動" disabled={view.index === 0 || pending} onclick={() => void action({ kind: "previous" })} />
       <IconButton icon={ArrowRight02Icon} label="次へ移動" disabled={view.index + 1 === view.count || pending} onclick={() => void action({ kind: "next" })} />
       <IconButton icon={Copy01Icon} label="カラムを複製" disabled={pending} onclick={() => void action({ kind: "duplicate" })} />
+      <Button variant="ghost" disabled={pending} onclick={() => void action({ kind: "secret" })}>{view.secret ? "シークレットを解除" : "シークレットにする"}</Button>
       <Button variant="ghost" disabled={pending} onclick={() => void action({ kind: "suspend" })}>{view.suspended ? "再開" : "休止"}</Button>
       <IconButton icon={Cancel01Icon} label="カラムを削除" disabled={pending} onclick={() => void action({ kind: "remove" })} />
     </footer>

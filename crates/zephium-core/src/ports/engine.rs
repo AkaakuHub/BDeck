@@ -341,6 +341,7 @@ pub trait Engine {
         window: WindowId,
         tree: Option<Pane>,
         region: Option<Rect>,
+        concealed: &[ItemId],
     ) -> NativeDispatch;
     fn set_composer(
         &self,

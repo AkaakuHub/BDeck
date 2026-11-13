@@ -102,6 +102,7 @@ mod tests {
                 width: 320,
                 row: 0,
                 suspended: false,
+                secret: false,
             })
             .collect();
         deck

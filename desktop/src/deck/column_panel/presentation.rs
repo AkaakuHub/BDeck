@@ -90,6 +90,7 @@ mod tests {
             row: 0,
             two_rows: false,
             suspended: false,
+            secret: false,
             failed: false,
         }
     }

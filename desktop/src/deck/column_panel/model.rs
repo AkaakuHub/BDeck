@@ -28,6 +28,7 @@ pub(crate) struct PanelView {
     pub row: u8,
     pub two_rows: bool,
     pub suspended: bool,
+    pub secret: bool,
     pub failed: bool,
 }
 
@@ -47,6 +48,7 @@ pub(crate) enum PanelAction {
     Next,
     Duplicate,
     Suspend,
+    Secret,
     Remove,
 }
 

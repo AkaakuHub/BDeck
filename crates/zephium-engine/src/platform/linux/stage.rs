@@ -92,6 +92,8 @@ impl Stage {
         true
     }
 
+    pub fn set_concealed(&self, _concealed: &[ItemId]) {}
+
     pub fn has_view(&self, id: ItemId) -> bool {
         self.state
             .try_borrow()

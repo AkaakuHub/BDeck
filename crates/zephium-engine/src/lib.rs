@@ -827,7 +827,13 @@ fn dispatch_layout_turn(
                         .lock()
                         .unwrap_or_else(|poisoned| poisoned.into_inner())
                         .remove(&update.window);
-                    let applied = host.set_content(update.window, update.tree, update.region, hint);
+                    let applied = host.set_content(
+                        update.window,
+                        update.tree,
+                        update.region,
+                        &update.concealed,
+                        hint,
+                    );
                     let _ = require_native_layout_application(
                         applied,
                         &application_delivery,
@@ -1012,6 +1018,7 @@ struct PendingLayout {
     window: WindowId,
     tree: Option<Pane>,
     region: Option<Rect>,
+    concealed: Vec<ItemId>,
     item_tokens: Vec<(ItemId, Arc<AtomicBool>)>,
 }
 
@@ -1604,6 +1611,7 @@ impl Engine for WebviewEngine {
         window: WindowId,
         tree: Option<Pane>,
         region: Option<Rect>,
+        concealed: &[ItemId],
     ) -> NativeDispatch {
         // Hiding content is cleanup and remains available. Any operation that
         // could show views must prove every leaf is a currently active item.
@@ -1634,6 +1642,7 @@ impl Engine for WebviewEngine {
             window,
             tree,
             region,
+            concealed: concealed.to_vec(),
             item_tokens,
         };
         match self.layout_updates.submit(window, update) {
@@ -1695,8 +1704,8 @@ impl Engine for WebviewEngine {
         } else {
             host::COMPOSER_WINDOW
         };
-        let _ = self.set_content(hidden, None, None);
-        self.set_content(window, item.map(Pane::Leaf), region)
+        let _ = self.set_content(hidden, None, None, &[]);
+        self.set_content(window, item.map(Pane::Leaf), region, &[])
     }
 
     fn focus_composer(&self, item: ItemId, context: ComposerFocus) -> NativeDispatch {
@@ -2690,7 +2699,7 @@ mod tests {
         );
         assert_eq!(engine.print(id), NativeDispatch::Rejected);
         assert_eq!(
-            engine.set_content(1, None, None),
+            engine.set_content(1, None, None, &[]),
             NativeDispatch::Rejected,
             "an empty layout cannot bypass a terminal retirement gate"
         );
@@ -2699,6 +2708,7 @@ mod tests {
                 1,
                 Some(Pane::leaf(id)),
                 Some(Rect::new(0.0, 0.0, 100.0, 100.0)),
+                &[],
             ),
             NativeDispatch::Rejected
         );
@@ -3312,6 +3322,7 @@ mod tests {
                 1,
                 Some(Pane::leaf(id)),
                 Some(Rect::new(0.0, 0.0, 800.0, 600.0)),
+                &[],
             ),
             NativeDispatch::Rejected
         );
@@ -3378,6 +3389,7 @@ mod tests {
                 1,
                 Some(Pane::leaf(ItemId::from(99))),
                 Some(Rect::new(0.0, 0.0, 800.0, 600.0)),
+                &[],
             ),
             NativeDispatch::Rejected
         );
@@ -3426,6 +3438,7 @@ mod tests {
                     window,
                     Some(Pane::leaf(id)),
                     Some(Rect::new(0.0, 0.0, 800.0, 600.0)),
+                    &[],
                 ),
                 NativeDispatch::Scheduled
             );
@@ -3435,6 +3448,7 @@ mod tests {
                 MAX_PENDING_LAYOUT_WINDOWS as u64,
                 Some(Pane::leaf(id)),
                 Some(Rect::new(0.0, 0.0, 800.0, 600.0)),
+                &[],
             ),
             NativeDispatch::Rejected
         );

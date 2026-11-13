@@ -126,6 +126,20 @@ impl DeckRuntime {
     pub(super) fn active_item(&self) -> Option<ItemId> {
         self.active_columns().first().map(|(item, _, _)| *item)
     }
+
+    pub(super) fn active_secret_items(&self) -> Vec<ItemId> {
+        let Some(state) = self.state.as_ref() else {
+            return Vec::new();
+        };
+        let Some(deck) = state.decks.iter().find(|deck| deck.id == state.active) else {
+            return Vec::new();
+        };
+        deck.columns
+            .iter()
+            .filter(|column| column.secret && !column.suspended)
+            .filter_map(|column| ItemId::parse(&column.id.to_string()))
+            .collect()
+    }
 }
 
 impl Shell {

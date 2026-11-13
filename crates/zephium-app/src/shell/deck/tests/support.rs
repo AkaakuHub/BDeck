@@ -138,6 +138,7 @@ impl Engine for TestEngine {
         _window: WindowId,
         tree: Option<Pane>,
         region: Option<Rect>,
+        _concealed: &[ItemId],
     ) -> NativeDispatch {
         self.contents.lock().unwrap().push((tree, region));
         NativeDispatch::Scheduled
@@ -280,6 +281,7 @@ impl Fixture {
                 width: 320,
                 row: 0,
                 suspended: false,
+                secret: false,
             });
         }
         shell.windows.create(

@@ -21,7 +21,7 @@ function snapshot(): PanelView | null {
   return {
     composer: false, content_height: null, id: column?.id ?? null, title: column ? targetName(column.target) : "カラムを追加", index: column ? active.columns.indexOf(column) : 0, count: active.columns.length,
     account: column?.account ?? accounts.find((account) => account.id === lastAccount)?.id ?? accounts[0]?.id ?? "", accounts,
-    width: column?.width ?? DEFAULT_COLUMN_WIDTH, row: column?.row ?? 0, two_rows: active.layout === "two_rows", suspended: column?.suspended ?? false, failed: deck.failed(),
+    width: column?.width ?? DEFAULT_COLUMN_WIDTH, row: column?.row ?? 0, two_rows: active.layout === "two_rows", suspended: column?.suspended ?? false, secret: column?.secret ?? false, failed: deck.failed(),
   };
 }
 
@@ -74,6 +74,7 @@ async function apply(id: string | null, action: PanelAction) {
           await commands.columnPanelSync(null);
         }
         break;
+      case "secret": await deck.toggleSecret(id); break;
       case "remove": await deck.removeColumn(id); break;
     }
   } finally { if (selection === id) await commands.columnPanelSync(snapshot()); }

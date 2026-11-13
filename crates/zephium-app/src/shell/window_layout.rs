@@ -44,6 +44,13 @@ impl Shell {
         let Some(win) = self.windows.focused() else {
             return NativeDispatch::Rejected;
         };
+        let active = win.active;
+        let concealed = self
+            .deck
+            .active_secret_items()
+            .into_iter()
+            .filter(|id| !self.window_focused || active != Some(*id))
+            .collect::<Vec<_>>();
         let mut tree = if let Some(id) = filling {
             Some(Pane::Leaf(id))
         } else {
@@ -180,7 +187,7 @@ impl Shell {
             composer: composer.clone(),
             scroll,
         }));
-        let applied = self.engine.set_content(win.id, tree, l.content);
+        let applied = self.engine.set_content(win.id, tree, l.content, &concealed);
         let composer_item = composer
             .as_ref()
             .and_then(|frame| ItemId::parse(&frame.tab));

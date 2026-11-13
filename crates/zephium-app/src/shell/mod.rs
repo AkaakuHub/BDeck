@@ -585,6 +585,7 @@ impl Shell {
                 if !focused {
                     self.cancel_page_permission_if_not_foreground();
                 }
+                let _ = self.relayout();
             }
             Command::SetWindowVisible(visible) => {
                 if self.window_visible != visible {
