@@ -19,7 +19,7 @@ tempfile.workspace = true
 
 [target.'cfg(target_os = "windows")'.dev-dependencies]
 wry = { workspace = true, features = ["windows-cleanup-qualification"] }
-windows = { version = "0.61", features = ["Win32_Graphics_DirectComposition", "Win32_Graphics_Direct2D_Common", "Win32_Graphics_Dxgi_Common"] }
+windows = { version = "0.62", features = ["Win32_Graphics_DirectComposition", "Win32_Graphics_Direct2D_Common", "Win32_Graphics_Dxgi_Common"] }
 base64 = "0.22"
 flate2 = "=1.1.10"
 
@@ -29,7 +29,7 @@ base64 = "0.22"
 zephium-webext = { path = "../zephium-webext", version = "=0.1.0" }
 raw-window-handle.workspace = true
 webview2-com = "0.38"
-windows = { version = "0.61", features = [
+windows = { version = "0.62", features = [
     "Foundation_Collections",
     "Foundation_Numerics",
     "System",
