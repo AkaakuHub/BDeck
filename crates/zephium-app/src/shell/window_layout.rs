@@ -44,7 +44,13 @@ impl Shell {
         let Some(win) = self.windows.focused() else {
             return NativeDispatch::Rejected;
         };
-        let concealed = self.deck.active_secret_items();
+        let active = win.active;
+        let concealed = self
+            .deck
+            .active_secret_items()
+            .into_iter()
+            .filter(|id| !self.window_focused || active != Some(*id))
+            .collect::<Vec<_>>();
         let mut tree = if let Some(id) = filling {
             Some(Pane::Leaf(id))
         } else {
