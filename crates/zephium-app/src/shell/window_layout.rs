@@ -44,13 +44,7 @@ impl Shell {
         let Some(win) = self.windows.focused() else {
             return NativeDispatch::Rejected;
         };
-        let active = win.active;
-        let concealed = self
-            .deck
-            .active_secret_items()
-            .into_iter()
-            .filter(|id| !self.window_focused || active != Some(*id))
-            .collect::<Vec<_>>();
+        let concealed = self.deck.active_secret_items();
         let mut tree = if let Some(id) = filling {
             Some(Pane::Leaf(id))
         } else {
@@ -157,12 +151,15 @@ impl Shell {
             (Some(tree), Some(region)) if filling.is_none() => {
                 split::layout(tree, region, win.metrics.gap)
                     .into_iter()
-                    .map(|(id, rect)| zephium_ipc::DeckColumnFrame {
-                        id: id.to_string(),
-                        x: rect.x,
-                        y: rect.y,
-                        width: rect.width,
-                        height: rect.height,
+                    .map(|(id, rect)| {
+                        let header = zephium_core::deck::layout::header_rect(rect);
+                        zephium_ipc::DeckColumnFrame {
+                            id: id.to_string(),
+                            x: header.x,
+                            y: header.y,
+                            width: header.width,
+                            height: header.height,
+                        }
                     })
                     .collect()
             }

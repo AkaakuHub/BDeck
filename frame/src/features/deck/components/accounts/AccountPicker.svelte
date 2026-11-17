@@ -34,7 +34,7 @@
 <style>
   .account-picker { width: 100%; min-width: 0; }
   .account-picker :global(.account-trigger), :global(.account-options .account-option) { display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; text-align: start; color: var(--color-text); }
-  .account-picker :global(.ui-menu.account-options) { min-width: var(--bits-floating-anchor-width, 0); max-width: min(360px, calc(100vw - 24px)); }
+  .account-picker :global(.ui-menu.account-options) { width: var(--bits-floating-anchor-width, auto); min-width: var(--bits-floating-anchor-width, 0); }
   .account-picker :global(.account-viewport) { max-height: 240px; }
   :global(.account-options .account-option) { background: transparent; min-height: 48px; }
   :global(.account-options .account-option[data-highlighted]) { background: var(--row-active); outline: none; }

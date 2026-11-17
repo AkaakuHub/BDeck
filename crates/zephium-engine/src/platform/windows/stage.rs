@@ -1166,6 +1166,15 @@ fn page_ground(parent: HWND) -> COLORREF {
     COLORREF(u32::from(red) | (u32::from(green) << 8) | (u32::from(blue) << 16))
 }
 
+fn privacy_surface(parent: HWND) -> COLORREF {
+    let (red, green, blue) = if dark_theme(parent) {
+        crate::platform::PRIVACY_SURFACE_DARK
+    } else {
+        crate::platform::PRIVACY_SURFACE_LIGHT
+    };
+    COLORREF(u32::from(red) | (u32::from(green) << 8) | (u32::from(blue) << 16))
+}
+
 /// WebView2 may restack its own child when it becomes visible; keep the cover
 /// above it.
 fn raise_cover(state: &Rc<RefCell<State>>, id: ItemId) {
@@ -1273,7 +1282,7 @@ fn sync_privacy_covers(state: &Rc<RefCell<State>>) {
         }) else {
             continue;
         };
-        unsafe { SetWindowLongPtrW(cover, GWLP_USERDATA, page_ground(parent).0 as isize) };
+        unsafe { SetWindowLongPtrW(cover, GWLP_USERDATA, privacy_surface(parent).0 as isize) };
         let _ = unsafe {
             SetWindowPos(
                 cover,

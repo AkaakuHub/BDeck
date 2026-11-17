@@ -947,7 +947,7 @@ impl ContentStage {
             cover.setTranslatesAutoresizingMaskIntoConstraints(false);
             cover.setFrame(host.frame());
             if let Some(layer) = cover.layer() {
-                layer.setBackgroundColor(Some(&page_ground(self).CGColor()));
+                layer.setBackgroundColor(Some(&privacy_surface(self).CGColor()));
                 layer.setMasksToBounds(true);
             }
             if let Ok(mut covers) = self.ivars().privacy_covers.try_borrow_mut() {
@@ -2572,23 +2572,39 @@ fn presented_shift(layer: &objc2_quartz_core::CALayer) -> (f64, f64) {
 
 /// The frame's content ground (`--color-page` in frame/src/styles/tokens.css),
 /// so a cover reads as the empty content pane, not a step to another grey.
-fn page_ground(view: &NSView) -> Retained<NSColor> {
+fn theme_color(
+    view: &NSView,
+    dark_rgb: (u8, u8, u8),
+    light_rgb: (u8, u8, u8),
+) -> Retained<NSColor> {
     // SAFETY: immutable framework constants.
-    let (aqua, dark) = unsafe { (NSAppearanceNameAqua, NSAppearanceNameDarkAqua) };
+    let (aqua, dark_appearance) = unsafe { (NSAppearanceNameAqua, NSAppearanceNameDarkAqua) };
     let is_dark = view
         .effectiveAppearance()
-        .bestMatchFromAppearancesWithNames(&NSArray::from_slice(&[aqua, dark]))
-        .is_some_and(|name| name.isEqualToString(dark));
-    let (red, green, blue) = if is_dark {
-        crate::platform::PAGE_GROUND_DARK
-    } else {
-        crate::platform::PAGE_GROUND_LIGHT
-    };
+        .bestMatchFromAppearancesWithNames(&NSArray::from_slice(&[aqua, dark_appearance]))
+        .is_some_and(|name| name.isEqualToString(dark_appearance));
+    let (red, green, blue) = if is_dark { dark_rgb } else { light_rgb };
     NSColor::colorWithSRGBRed_green_blue_alpha(
         f64::from(red) / 255.0,
         f64::from(green) / 255.0,
         f64::from(blue) / 255.0,
         1.0,
+    )
+}
+
+fn page_ground(view: &NSView) -> Retained<NSColor> {
+    theme_color(
+        view,
+        crate::platform::PAGE_GROUND_DARK,
+        crate::platform::PAGE_GROUND_LIGHT,
+    )
+}
+
+fn privacy_surface(view: &NSView) -> Retained<NSColor> {
+    theme_color(
+        view,
+        crate::platform::PRIVACY_SURFACE_DARK,
+        crate::platform::PRIVACY_SURFACE_LIGHT,
     )
 }
 

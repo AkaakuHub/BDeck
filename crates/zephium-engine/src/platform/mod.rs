@@ -22,3 +22,7 @@ pub use linux as imp;
 pub(crate) const PAGE_GROUND_DARK: (u8, u8, u8) = (0x1a, 0x1a, 0x1d);
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 pub(crate) const PAGE_GROUND_LIGHT: (u8, u8, u8) = (0xf1, 0xf1, 0xf3);
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+pub(crate) const PRIVACY_SURFACE_DARK: (u8, u8, u8) = (0x26, 0x26, 0x2a);
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+pub(crate) const PRIVACY_SURFACE_LIGHT: (u8, u8, u8) = (0xff, 0xff, 0xff);
