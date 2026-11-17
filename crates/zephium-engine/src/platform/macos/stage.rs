@@ -47,6 +47,7 @@ fn slide((x, y): (f64, f64)) -> (f64, f64) {
 const DROP_DWELL: Duration = Duration::from_millis(450);
 type RatioCallback = Rc<dyn Fn(Pane)>;
 type StageFailureCallback = Rc<dyn Fn(usize)>;
+type NativeItemClickCallback = Rc<dyn Fn(ItemId)>;
 const MAX_ASYNC_STAGE_RETRIES: u8 = 4;
 
 #[derive(Clone)]
@@ -83,6 +84,24 @@ define_class!(
         fn other_mouse_down(&self, _event: &NSEvent) {}
         #[unsafe(method(scrollWheel:))]
         fn scroll_wheel(&self, _event: &NSEvent) {}
+    }
+);
+
+define_class!(
+    #[unsafe(super(NSView))]
+    #[thread_kind = MainThreadOnly]
+    #[name = "ZephiumPrivacyCover"]
+    struct PrivacyCoverView;
+
+    impl PrivacyCoverView {
+        #[unsafe(method(mouseDown:))]
+        fn mouse_down(&self, _event: &NSEvent) {}
+
+        #[unsafe(method(rightMouseDown:))]
+        fn right_mouse_down(&self, _event: &NSEvent) {}
+
+        #[unsafe(method(otherMouseDown:))]
+        fn other_mouse_down(&self, _event: &NSEvent) {}
     }
 );
 
@@ -190,6 +209,7 @@ pub struct StageIvars {
     drag_anchor: Cell<(f64, f64)>,
     drag_generation: Cell<u64>,
     drag_observers: RefCell<Option<DragObservers>>,
+    activation_monitor: RefCell<Option<Retained<AnyObject>>>,
     split_feedback: RefCell<Option<Retained<NSView>>>,
     feedback_dragging: Cell<bool>,
     divider_tracking: RefCell<Vec<(NSRect, Retained<NSTrackingArea>)>>,
@@ -207,6 +227,7 @@ pub struct StageIvars {
     displaced: RefCell<Option<Box<Displaced>>>,
     preview_generation: Cell<u64>,
     on_ratio: RefCell<Option<RatioCallback>>,
+    on_privacy_cover_click: RefCell<Option<NativeItemClickCallback>>,
     on_stage_failure: RefCell<Option<StageFailureCallback>>,
     /// A slide that keeps the wider, older frame until it arrives, and the
     /// frame it then takes. The generation retires a completion whose slide
@@ -413,7 +434,78 @@ impl ContentStage {
         // `addSubview:` is a native painting boundary. A newly-created stage
         // remains fail-closed until one exact layout update finishes.
         this.setHidden(true);
+        let weak = Weak::from_retained(&this);
+        let handler = block2::RcBlock::new(move |event: NonNull<NSEvent>| -> *mut NSEvent {
+            let event = unsafe { event.as_ref() };
+            if let Some(stage) = weak.load() {
+                stage.activate_item_for_event(event);
+            }
+            event as *const NSEvent as *mut NSEvent
+        });
+        if let Some(monitor) = unsafe {
+            NSEvent::addLocalMonitorForEventsMatchingMask_handler(
+                NSEventMask::LeftMouseDown,
+                &handler,
+            )
+        } {
+            this.ivars().activation_monitor.replace(Some(monitor));
+        }
         this
+    }
+
+    fn activate_item_for_event(&self, event: &NSEvent) {
+        let Some(window) = self.window() else {
+            return;
+        };
+        if event.windowNumber() != window.windowNumber() {
+            return;
+        }
+        let Some(content) = window.contentView() else {
+            return;
+        };
+        let content_point = content.convertPoint_fromView(event.locationInWindow(), None);
+        let Some(hit) = content.hitTest(content_point) else {
+            return;
+        };
+        if !hit.isDescendantOf(self) {
+            return;
+        }
+        let point = self.convertPoint_fromView(event.locationInWindow(), None);
+        let y = self.bounds().size.height - point.y;
+        let Some(tree) = self
+            .ivars()
+            .tree
+            .try_borrow()
+            .ok()
+            .and_then(|tree| tree.as_deref().cloned())
+        else {
+            return;
+        };
+        let region = Rect::new(
+            0.0,
+            0.0,
+            self.bounds().size.width,
+            self.bounds().size.height,
+        );
+        let item = split::layout(&tree, region, self.ivars().gap.get())
+            .into_iter()
+            .find_map(|(id, pane)| {
+                let content = zephium_core::deck::layout::content_rect(pane);
+                (point.x >= content.x
+                    && point.x < content.x + content.width
+                    && y >= content.y
+                    && y < content.y + content.height)
+                    .then_some(id)
+            });
+        let callback = self
+            .ivars()
+            .on_privacy_cover_click
+            .try_borrow()
+            .ok()
+            .and_then(|callback| callback.clone());
+        if let (Some(callback), Some(item)) = (callback, item) {
+            callback(item);
+        }
     }
 
     /// Whether a slide to `frame` can be carried out on the layer: the stage
@@ -704,6 +796,12 @@ impl ContentStage {
         }
     }
 
+    pub fn set_on_privacy_cover_click(&self, f: Box<dyn Fn(ItemId)>) {
+        if let Ok(mut callback) = self.ivars().on_privacy_cover_click.try_borrow_mut() {
+            *callback = Some(Rc::from(f));
+        }
+    }
+
     pub fn has_view(&self, id: ItemId) -> bool {
         self.ivars()
             .views
@@ -940,8 +1038,8 @@ impl ContentStage {
                 cover.setFrame(host.frame());
                 continue;
             }
-            let cover: Retained<PaintCoverView> =
-                unsafe { msg_send![PaintCoverView::alloc(self.mtm()), init] };
+            let cover: Retained<PrivacyCoverView> =
+                unsafe { msg_send![PrivacyCoverView::alloc(self.mtm()), init] };
             let cover = cover.into_super();
             cover.setWantsLayer(true);
             cover.setTranslatesAutoresizingMaskIntoConstraints(false);
@@ -1083,6 +1181,9 @@ impl ContentStage {
     }
 
     pub fn retire(&self) {
+        if let Some(monitor) = self.ivars().activation_monitor.take() {
+            unsafe { NSEvent::removeMonitor(&monitor) };
+        }
         self.ivars().pointer_cover.take();
         self.ivars().stage_retry_terminal.set(true);
         self.cancel_split_drag(false);

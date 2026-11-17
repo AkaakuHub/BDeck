@@ -24,13 +24,15 @@ use windows::Win32::Graphics::Gdi::{
 };
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::HiDpi::GetDpiForWindow;
+use windows::Win32::UI::Shell::{DefSubclassProc, RemoveWindowSubclass, SetWindowSubclass};
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, DestroyWindow, GetAncestor, GetClientRect, GetWindowLongPtrW,
     KillTimer, LoadCursorW, RegisterClassW, SetTimer, SetWindowLongPtrW, SetWindowPos, ShowWindow,
     UpdateLayeredWindow, GA_ROOT, GWLP_USERDATA, HWND_TOP, IDC_ARROW, MA_NOACTIVATE,
     SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SW_HIDE, SW_SHOWNA, ULW_ALPHA,
-    USER_TIMER_MINIMUM, WM_ERASEBKGND, WM_MOUSEACTIVATE, WNDCLASSW, WS_CHILD, WS_CLIPSIBLINGS,
-    WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP,
+    USER_TIMER_MINIMUM, WM_ERASEBKGND, WM_LBUTTONDOWN, WM_MOUSEACTIVATE, WM_NCDESTROY,
+    WM_PARENTNOTIFY, WNDCLASSW, WS_CHILD, WS_CLIPSIBLINGS, WS_EX_LAYERED, WS_EX_NOACTIVATE,
+    WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP,
 };
 use wry::WebViewExtWindows;
 
@@ -135,6 +137,7 @@ struct HostView {
 }
 
 type PlacementFailureCallback = Rc<dyn Fn(ItemId, Arc<AtomicBool>)>;
+type PrivacyCoverCallback = Rc<dyn Fn(ItemId)>;
 
 struct State {
     fullscreen_transition: Option<super::fullscreen_transition::FullscreenTransition>,
@@ -170,6 +173,7 @@ struct State {
     dwell_timer: Option<usize>,
     preview: Option<PreviewMove>,
     on_placement_failure: PlacementFailureCallback,
+    on_privacy_cover_click: PrivacyCoverCallback,
     /// Motion asked of the next `apply`, and the slide it started.
     pending_motion: Option<StageMotion>,
     slide: Option<Slide>,
@@ -291,6 +295,10 @@ thread_local! {
     /// or `Rc` state cross-thread.
     static LAYOUT_TIMERS: RefCell<HashMap<usize, Weak<RefCell<State>>>> = RefCell::new(HashMap::new());
     static DWELL_TIMERS: RefCell<HashMap<usize, Weak<RefCell<State>>>> = RefCell::new(HashMap::new());
+    static PRIVACY_COVER_OWNERS: RefCell<HashMap<isize, (ItemId, Weak<RefCell<State>>)>> =
+        RefCell::new(HashMap::new());
+    static VIEW_OWNERS: RefCell<HashMap<isize, (ItemId, Weak<RefCell<State>>)>> =
+        RefCell::new(HashMap::new());
 }
 
 /// Translate page containers on their owning UI thread, preserving controller
@@ -355,6 +363,12 @@ pub fn forget_window_caption_offset(parent: isize) {
 
 impl Drop for State {
     fn drop(&mut self) {
+        for view in self.views.values() {
+            forget_view_owner(view.container);
+            let _ = unsafe {
+                RemoveWindowSubclass(view.container, Some(view_proc), view.container.0 as usize)
+            };
+        }
         if let Some(timer) = self.layout_timer.take() {
             let _ = unsafe { KillTimer(None, timer) };
             let _ = LAYOUT_TIMERS.try_with(|timers| {
@@ -371,6 +385,7 @@ impl Drop for State {
             });
         }
         for cover in self.privacy_covers.drain().map(|(_, cover)| cover) {
+            forget_privacy_cover(cover);
             let _ = unsafe { DestroyWindow(cover) };
         }
     }
@@ -390,6 +405,7 @@ impl Stage {
         parent: HWND,
         gap: f64,
         on_placement_failure: impl Fn(ItemId, Arc<AtomicBool>) + 'static,
+        on_privacy_cover_click: impl Fn(ItemId) + 'static,
     ) -> Self {
         let (caption_offset, caption_moving) = CAPTION_OFFSETS.with(|offsets| {
             offsets
@@ -422,6 +438,7 @@ impl Stage {
             dwell_timer: None,
             preview: None,
             on_placement_failure: Rc::new(on_placement_failure),
+            on_privacy_cover_click: Rc::new(on_privacy_cover_click),
             pending_motion: None,
             slide: None,
             caption_offset,
@@ -623,6 +640,12 @@ impl Stage {
         if unsafe { controller.ParentWindow(&mut container) }.is_err() {
             return false;
         }
+        if !unsafe { SetWindowSubclass(container, Some(view_proc), container.0 as usize, 0) }
+            .as_bool()
+        {
+            return false;
+        }
+        register_view_owner(container, id, &self.state);
         let _ = unsafe { ShowWindow(container, SW_HIDE) };
         let controller_hidden = unsafe { controller.SetIsVisible(false) }.is_ok();
         let mut state = self.state.borrow_mut();
@@ -670,12 +693,18 @@ impl Stage {
         let privacy_cover = state.privacy_covers.remove(&id);
         drop(state);
         if let Some(container) = container {
+            forget_view_owner(container);
+            let _ =
+                unsafe { RemoveWindowSubclass(container, Some(view_proc), container.0 as usize) };
+        }
+        if let Some(container) = container {
             super::sidebar_card::forget(container);
         }
         if let Some((cover, _)) = cover {
             let _ = unsafe { DestroyWindow(cover) };
         }
         if let Some(cover) = privacy_cover {
+            forget_privacy_cover(cover);
             let _ = unsafe { DestroyWindow(cover) };
         }
     }
@@ -1118,6 +1147,23 @@ fn cover_class() -> PCWSTR {
     PCWSTR(name.as_ptr())
 }
 
+fn privacy_cover_class() -> PCWSTR {
+    static NAME: OnceLock<Vec<u16>> = OnceLock::new();
+    let name = NAME.get_or_init(|| {
+        let name = wide("ZephiumPrivacyCover");
+        let class = WNDCLASSW {
+            lpfnWndProc: Some(privacy_cover_proc),
+            lpszClassName: PCWSTR(name.as_ptr()),
+            hInstance: unsafe { GetModuleHandleW(None) }.unwrap_or_default().into(),
+            hCursor: unsafe { LoadCursorW(None, IDC_ARROW) }.unwrap_or_default(),
+            ..Default::default()
+        };
+        unsafe { RegisterClassW(&class) };
+        name
+    });
+    PCWSTR(name.as_ptr())
+}
+
 unsafe extern "system" fn cover_proc(
     hwnd: HWND,
     msg: u32,
@@ -1137,6 +1183,105 @@ unsafe extern "system" fn cover_proc(
         }
         WM_MOUSEACTIVATE => LRESULT(MA_NOACTIVATE as isize),
         _ => unsafe { DefWindowProcW(hwnd, msg, wparam, lparam) },
+    }
+}
+
+unsafe extern "system" fn view_proc(
+    hwnd: HWND,
+    msg: u32,
+    wparam: WPARAM,
+    lparam: LPARAM,
+    subclass_id: usize,
+    _ref_data: usize,
+) -> LRESULT {
+    let child_button_down = msg == WM_PARENTNOTIFY && (wparam.0 & 0xffff) as u32 == WM_LBUTTONDOWN;
+    if msg == WM_LBUTTONDOWN || child_button_down {
+        notify_view_click(hwnd);
+    }
+    if msg == WM_NCDESTROY {
+        forget_view_owner(hwnd);
+        let _ = unsafe { RemoveWindowSubclass(hwnd, Some(view_proc), subclass_id) };
+    }
+    unsafe { DefSubclassProc(hwnd, msg, wparam, lparam) }
+}
+
+unsafe extern "system" fn privacy_cover_proc(
+    hwnd: HWND,
+    msg: u32,
+    wparam: WPARAM,
+    lparam: LPARAM,
+) -> LRESULT {
+    match msg {
+        WM_LBUTTONDOWN => {
+            let owner = PRIVACY_COVER_OWNERS
+                .with(|owners| owners.borrow().get(&(hwnd.0 as isize)).cloned());
+            if let Some((id, state)) =
+                owner.and_then(|(id, weak)| weak.upgrade().map(|state| (id, state)))
+            {
+                let callback = state
+                    .try_borrow()
+                    .ok()
+                    .map(|state| state.on_privacy_cover_click.clone());
+                if let Some(callback) = callback {
+                    callback(id);
+                }
+            }
+            LRESULT(0)
+        }
+        WM_ERASEBKGND => {
+            let color = COLORREF(unsafe { GetWindowLongPtrW(hwnd, GWLP_USERDATA) } as u32);
+            let brush = unsafe { CreateSolidBrush(color) };
+            let mut rect = RECT::default();
+            if unsafe { GetClientRect(hwnd, &mut rect) }.is_ok() {
+                unsafe { FillRect(HDC(wparam.0 as _), &rect, brush) };
+            }
+            let _ = unsafe { DeleteObject(brush.into()) };
+            LRESULT(1)
+        }
+        WM_MOUSEACTIVATE => LRESULT(MA_NOACTIVATE as isize),
+        _ => unsafe { DefWindowProcW(hwnd, msg, wparam, lparam) },
+    }
+}
+
+fn register_privacy_cover(cover: HWND, id: ItemId, state: &Rc<RefCell<State>>) {
+    PRIVACY_COVER_OWNERS.with(|owners| {
+        owners
+            .borrow_mut()
+            .insert(cover.0 as isize, (id, Rc::downgrade(state)));
+    });
+}
+
+fn forget_privacy_cover(cover: HWND) {
+    PRIVACY_COVER_OWNERS.with(|owners| {
+        owners.borrow_mut().remove(&(cover.0 as isize));
+    });
+}
+
+fn register_view_owner(container: HWND, id: ItemId, state: &Rc<RefCell<State>>) {
+    VIEW_OWNERS.with(|owners| {
+        owners
+            .borrow_mut()
+            .insert(container.0 as isize, (id, Rc::downgrade(state)));
+    });
+}
+
+fn forget_view_owner(container: HWND) {
+    VIEW_OWNERS.with(|owners| {
+        owners.borrow_mut().remove(&(container.0 as isize));
+    });
+}
+
+fn notify_view_click(container: HWND) {
+    let owner = VIEW_OWNERS.with(|owners| owners.borrow().get(&(container.0 as isize)).cloned());
+    if let Some((id, state)) = owner.and_then(|(id, weak)| weak.upgrade().map(|state| (id, state)))
+    {
+        let callback = state
+            .try_borrow()
+            .ok()
+            .map(|state| state.on_privacy_cover_click.clone());
+        if let Some(callback) = callback {
+            callback(id);
+        }
     }
 }
 
@@ -1251,6 +1396,7 @@ fn sync_privacy_covers(state: &Rc<RefCell<State>>) {
             .ok()
             .and_then(|mut state| state.privacy_covers.remove(&id));
         if let Some(cover) = cover {
+            forget_privacy_cover(cover);
             let _ = unsafe { DestroyWindow(cover) };
         }
     }
@@ -1267,7 +1413,7 @@ fn sync_privacy_covers(state: &Rc<RefCell<State>>) {
         let Ok(cover) = (unsafe {
             CreateWindowExW(
                 WS_EX_NOACTIVATE,
-                cover_class(),
+                privacy_cover_class(),
                 PCWSTR::null(),
                 WS_CHILD | WS_CLIPSIBLINGS,
                 0,
@@ -1282,6 +1428,7 @@ fn sync_privacy_covers(state: &Rc<RefCell<State>>) {
         }) else {
             continue;
         };
+        register_privacy_cover(cover, id, state);
         unsafe { SetWindowLongPtrW(cover, GWLP_USERDATA, privacy_surface(parent).0 as isize) };
         let _ = unsafe {
             SetWindowPos(
@@ -1306,6 +1453,7 @@ fn sync_privacy_covers(state: &Rc<RefCell<State>>) {
                 && state.privacy_covers.insert(id, cover).is_none()
         });
         if !inserted {
+            forget_privacy_cover(cover);
             let _ = unsafe { DestroyWindow(cover) };
         }
     }
@@ -2371,7 +2519,7 @@ mod tests {
 
     #[test]
     fn resource_visibility_keeps_pending_paint_and_uncertain_layouts_awake() {
-        let stage = super::Stage::new(super::HWND::default(), 8.0, |_, _| {});
+        let stage = super::Stage::new(super::HWND::default(), 8.0, |_, _| {}, |_| {});
         let visible = super::ItemId::generate();
         let background = super::ItemId::generate();
         // Layout has selected the item but no controller has attached or
@@ -2479,9 +2627,9 @@ mod tests {
         use super::{forget_window_caption_offset, set_window_caption_offset, Stage};
         use windows::Win32::Foundation::HWND;
         let parent = 101_isize;
-        let other = Stage::new(HWND(102_isize as *mut _), 8.0, |_, _| {});
+        let other = Stage::new(HWND(102_isize as *mut _), 8.0, |_, _| {}, |_| {});
         set_window_caption_offset(parent, 20.0, true);
-        let stage = Stage::new(HWND(parent as *mut _), 8.0, |_, _| {});
+        let stage = Stage::new(HWND(parent as *mut _), 8.0, |_, _| {}, |_| {});
         assert_eq!(stage.state.borrow().caption_offset, 20.0);
         assert!(stage.state.borrow().caption_moving);
         assert_eq!(other.state.borrow().caption_offset, 0.0);
@@ -2490,7 +2638,7 @@ mod tests {
         assert!(!stage.state.borrow().caption_moving);
         set_window_caption_offset(parent, 40.0, false);
         forget_window_caption_offset(parent);
-        let replacement = Stage::new(HWND(parent as *mut _), 8.0, |_, _| {});
+        let replacement = Stage::new(HWND(parent as *mut _), 8.0, |_, _| {}, |_| {});
         assert_eq!(replacement.state.borrow().caption_offset, 0.0);
         set_window_caption_offset(parent, 20.0, false);
         assert_eq!(replacement.state.borrow().caption_offset, 20.0);

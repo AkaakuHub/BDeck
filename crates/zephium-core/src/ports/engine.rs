@@ -1132,6 +1132,9 @@ pub enum EngineEvent {
         window: WindowId,
         tree: Pane,
     },
+    NativeTabFocused {
+        id: ItemId,
+    },
     ShortcutPressed {
         item: ItemId,
         command: String,

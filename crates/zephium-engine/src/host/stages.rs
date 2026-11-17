@@ -572,17 +572,27 @@ impl EngineHost {
         };
         let parent = HWND(h.hwnd.get() as *mut _);
         let native_terminal_failure = self.native_terminal_failure.clone();
-        let stage = Stage::new(parent, GAP, move |id, generation| {
-            let admitted = with_renderer_exit(id, move |host| {
-                host.on_stage_placement_failure(id, &generation)
-            });
-            if !admitted {
-                seal_ingress();
-                native_terminal_failure(
-                    "terminal Windows stage failure was not admitted by the engine host",
-                );
-            }
-        });
+        let sink = self.sink.clone();
+        let stage = Stage::new(
+            parent,
+            GAP,
+            move |id, generation| {
+                let admitted = with_renderer_exit(id, move |host| {
+                    host.on_stage_placement_failure(id, &generation)
+                });
+                if !admitted {
+                    seal_ingress();
+                    native_terminal_failure(
+                        "terminal Windows stage failure was not admitted by the engine host",
+                    );
+                }
+            },
+            move |id| {
+                if window != super::COMPOSER_WINDOW {
+                    sink.emit(EngineEvent::NativeTabFocused { id });
+                }
+            },
+        );
         self.stages.insert(window, stage.clone());
         Some(stage)
     }
@@ -673,6 +683,12 @@ impl EngineHost {
         );
         stage.setAutoresizingMask(crate::platform::imp::managed_autoresizing());
         let sink = self.sink.clone();
+        if window != super::COMPOSER_WINDOW {
+            let focus_sink = sink.clone();
+            stage.set_on_privacy_cover_click(Box::new(move |id| {
+                focus_sink.emit(EngineEvent::NativeTabFocused { id });
+            }));
+        }
         stage.set_on_ratio(Box::new(move |tree| {
             sink.emit(EngineEvent::SplitChanged { window, tree })
         }));

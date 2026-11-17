@@ -286,6 +286,9 @@ impl Shell {
                     let _ = self.relayout();
                 }
             }
+            EngineEvent::NativeTabFocused { id } => {
+                let _ = self.operation_activate(id);
+            }
             EngineEvent::NavState {
                 id,
                 can_go_back,
@@ -612,6 +615,7 @@ impl Shell {
             EngineEvent::SplitChanged { window, .. } => {
                 self.windows.get(*window).map(|window| window.profile)
             }
+            EngineEvent::NativeTabFocused { id } => self.profile_of_item(*id),
             EngineEvent::TitleChanged { id, .. }
             | EngineEvent::UrlChanged { id, .. }
             | EngineEvent::PresentationPending { id, .. }

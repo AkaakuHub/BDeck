@@ -636,7 +636,8 @@ impl RetirementGate {
                     surface_generation,
                 },
             ),
-            event @ EngineEvent::PermissionRequested { .. } => Some(event),
+            event @ EngineEvent::NativeTabFocused { .. }
+            | event @ EngineEvent::PermissionRequested { .. } => Some(event),
             event @ EngineEvent::TitleChanged { id, .. }
             | event @ EngineEvent::UrlChanged { id, .. }
             | event @ EngineEvent::PresentationPending { id, .. }
