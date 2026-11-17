@@ -181,7 +181,6 @@ impl Shell {
         (self.emit)(Projection::Layout(LayoutState {
             dividers,
             columns,
-            concealed_columns: concealed.iter().map(ToString::to_string).collect(),
             composer: composer.clone(),
             scroll,
         }));

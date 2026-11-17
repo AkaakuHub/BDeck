@@ -3,7 +3,6 @@ import { events } from "$shared/ipc/native-events";
 let state = $state<LayoutState>({
   dividers: [],
   columns: [],
-  concealed_columns: [],
   composer: null,
   scroll: null,
 });
@@ -17,13 +16,12 @@ async function init() {
 function dispose() {
   stop?.();
   stop = null;
-  state = { dividers: [], columns: [], concealed_columns: [], composer: null, scroll: null };
+  state = { dividers: [], columns: [], composer: null, scroll: null };
 }
 export const layout = {
   init,
   dispose,
   columns: () => state.columns,
-  concealed: () => state.concealed_columns,
   composer: () => state.composer,
   scroll: () => state.scroll,
 };

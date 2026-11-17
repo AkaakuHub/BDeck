@@ -59,7 +59,7 @@
       {@const y = frame.y ?? 0}
       {@const width = frame.width ?? 0}
       {@const height = frame.height ?? 0}
-      {#if layout.concealed().includes(column.id)}<SecretColumn {x} y={y + Math.min(height, COLUMN_HEADER_HEIGHT)} {width} height={Math.max(0, height - COLUMN_HEADER_HEIGHT)} />{/if}
+      {#if column.secret}<SecretColumn {x} {y} {width} {height} />{/if}
       <header class="column-header" data-tauri-drag-region="deep" style:left={`${x}px`} style:top={`${y}px`} style:width={`${width}px`} style:height={`${Math.min(height, COLUMN_HEADER_HEIGHT)}px`}>
         <button class="column-grip" data-tauri-drag-region="false" aria-label={`${targetName(column.target)}を移動`} title="カラムを移動"
           onpointerdown={(event) => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); drag.begin(event, column.id); }} onpointermove={drag.move} onpointerup={drag.end}
@@ -88,7 +88,7 @@
 
 <style>
   .column-headers { position: absolute; inset: 0; clip-path: inset(48px 0 0 56px); pointer-events: none; color: var(--color-text); }
-  .column-header { pointer-events: auto; position: absolute; display: flex; align-items: center; gap: 8px; padding-inline: 2px 6px; box-sizing: border-box; background: var(--color-surface); border-block-end: 1px solid var(--color-border); }
+  .column-header { pointer-events: auto; position: absolute; z-index: 2; display: flex; align-items: center; gap: 8px; padding-inline: 2px 6px; box-sizing: border-box; background: var(--color-surface); border-block-end: 1px solid var(--color-border); }
   .column-grip { display: grid; place-items: center; flex: none; width: 18px; height: 28px; padding: 0; border: 0; background: transparent; color: var(--color-muted); cursor: grab; touch-action: none; user-select: none; }
   .column-grip:active { cursor: grabbing; }
   .column-grip:focus-visible { outline: 2px solid var(--color-ring); }

@@ -296,7 +296,6 @@ export type ItemsState = {
 export type LayoutState = {
 	dividers: DividerView[],
 	columns: DeckColumnFrame[],
-	concealed_columns: string[],
 	composer: ComposerFrame | null,
 	scroll: DeckScrollFrame | null,
 };
