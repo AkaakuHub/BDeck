@@ -2,6 +2,7 @@
   if (window !== window.top || !/^(?:.*\.)?(?:x|twitter)\.com$/.test(location.hostname)) return;
   let active = null;
   let columnWidth = 0;
+  let columnHeight = 0;
   let closeButton = null;
   let consumeClick = false;
   let pendingVideo = null;
@@ -9,14 +10,40 @@
   let wheelBlockedUntil = 0;
   let swipeHandled = false;
   let gallery = null;
+  let timelinePosition = null;
+  let restoringPosition = null;
+  let scrollRemainder = 0;
+  const restoreTimelinePosition = () => {
+    const saved = restoringPosition;
+    if (!saved || active || innerWidth !== columnWidth || innerHeight !== columnHeight) return;
+    scrollTo({ left: saved.x, top: saved.y, behavior: "instant" });
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (restoringPosition !== saved || active) return;
+        const link = [
+          ...document.querySelectorAll('[data-testid="tweet"] a[href*="/status/"]:has(time)'),
+        ].find((node) => node.href === saved.href);
+        const tweet = link?.closest('[data-testid="tweet"]');
+        if (tweet && typeof saved.top === "number") {
+          const correction = tweet.getBoundingClientRect().top - saved.top + scrollRemainder;
+          const pixels = Math.round(correction);
+          scrollRemainder = correction - pixels;
+          scrollBy({ top: pixels, behavior: "instant" });
+        }
+        restoringPosition = null;
+      }),
+    );
+  };
   const stopPendingVideo = () => {
     pendingVideo?.disconnect();
     pendingVideo = null;
   };
-  const restoreColumn = () => {
+  const restoreColumn = (resized = false) => {
     if (active || Math.abs(innerWidth - columnWidth) > 1) return;
+    if (resized) columnHeight = innerHeight;
     document.documentElement.removeAttribute("data-bdeck-media");
     document.documentElement.style.removeProperty("--bdeck-media-column-width");
+    restoreTimelinePosition();
   };
   const stopMediaClick = (event) => {
     event.stopPropagation();
@@ -56,6 +83,8 @@
   const close = () => {
     stopPendingVideo();
     if (!active) return;
+    restoringPosition = timelinePosition;
+    timelinePosition = null;
     releaseActive();
     window.removeEventListener("wheel", onMediaWheel, true);
     gallery?.dispose();
@@ -85,7 +114,18 @@
       wheelBlockedUntil = 0;
       swipeHandled = false;
       swipeDistance = 0;
+      restoringPosition = null;
+      const tweet = element.closest('[data-testid="tweet"]');
+      timelinePosition = {
+        x: scrollX,
+        y: scrollY,
+        href: tweet?.querySelector('a[href*="/status/"]:has(time)')?.href,
+        top: tweet?.getBoundingClientRect().top,
+      };
       columnWidth = innerWidth;
+      columnHeight = innerHeight;
+      document.documentElement.style.setProperty("--bdeck-media-width", `${innerWidth}px`);
+      document.documentElement.style.setProperty("--bdeck-media-height", `${innerHeight}px`);
       document.documentElement.style.setProperty("--bdeck-media-column-width", `${columnWidth}px`);
       document.documentElement.setAttribute("data-bdeck-media", "");
       gallery = video ? null : createMediaGallery(element, open);
@@ -213,5 +253,11 @@
     if (gallery) gallery.move(Math.sign(swipeDistance));
     else close();
   };
-  window.addEventListener("resize", restoreColumn);
+  window.addEventListener("resize", () => {
+    restoreColumn(true);
+    if (active && (innerWidth !== columnWidth || innerHeight !== columnHeight)) {
+      document.documentElement.style.setProperty("--bdeck-media-width", `${innerWidth}px`);
+      document.documentElement.style.setProperty("--bdeck-media-height", `${innerHeight}px`);
+    }
+  });
 })();

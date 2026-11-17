@@ -1,0 +1,32 @@
+[data-testid="primaryColumn"] :is(button, [role="button"], input, textarea) {
+  font-size: var(--bdeck-font-size) !important;
+  line-height: 1.4 !important;
+}
+[data-testid="primaryColumn"] :is(button, [role="button"]) span {
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+[data-testid="primaryColumn"]
+  :is([data-testid$="-follow"], [data-testid$="-unfollow"], [data-testid="tweetButtonInline"]) {
+  min-height: calc(32px * var(--bdeck-scale)) !important;
+  padding-block: calc(6px * var(--bdeck-scale)) !important;
+  padding-inline: calc(16px * var(--bdeck-scale)) !important;
+}
+[data-testid="primaryColumn"] [data-testid^="tweetTextarea_"] {
+  font-size: calc(20px * var(--bdeck-scale)) !important;
+  line-height: 1.4 !important;
+}
+[data-testid="primaryColumn"] [data-testid^="tweetTextarea_"] :is(div, span) {
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+[data-testid="primaryColumn"]
+  :is([data-testid="User-Name"], [data-testid="socialContext"], [data-testid="app-bar-back"])
+  svg {
+  width: calc(20px * var(--bdeck-scale)) !important;
+  height: calc(20px * var(--bdeck-scale)) !important;
+}
+[data-testid="primaryColumn"] h2 {
+  font-size: calc(20px * var(--bdeck-scale)) !important;
+  line-height: 1.4 !important;
+}

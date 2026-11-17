@@ -76,7 +76,6 @@
     if (/\/(photo|video)(?:\/\d+)?$/.test(location.pathname)) return;
     if (location.pathname !== "/home") {
       nav = null;
-      restored = false;
       followingSortPending = false;
       finishSort();
       return;
@@ -86,7 +85,6 @@
     );
     if (currentNav !== nav) {
       nav = currentNav;
-      restored = false;
     }
     if (!nav) return;
     if (sorting) {

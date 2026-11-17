@@ -7,8 +7,8 @@ html[data-bdeck-media] body {
 [data-bdeck-media-content]:popover-open {
   position: fixed !important;
   inset: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
+  width: var(--bdeck-media-width) !important;
+  height: var(--bdeck-media-height) !important;
   min-width: 0 !important;
   min-height: 0 !important;
   max-width: none !important;
@@ -47,7 +47,7 @@ html[data-bdeck-media] body {
 
 [data-bdeck-media-video]:popover-open {
   top: 44px !important;
-  height: calc(100vh - 44px) !important;
+  height: calc(var(--bdeck-media-height) - 44px) !important;
 }
 
 [data-bdeck-media-video]:popover-open video {

@@ -1,6 +1,9 @@
 use zephium_core::deck::DeckAppearance;
 
 pub(in crate::host) fn content_scale(appearance: DeckAppearance, address: &str) -> f64 {
+    if cfg!(target_os = "macos") {
+        return 1.0;
+    }
     let Ok(url) = url::Url::parse(address) else {
         return 1.0;
     };
@@ -41,7 +44,12 @@ mod tests {
             "https://x.com/notifications",
             "https://twitter.com/example",
         ] {
-            assert_eq!(content_scale(appearance, address), 12.0 / 14.0);
+            let expected = if cfg!(target_os = "macos") {
+                1.0
+            } else {
+                12.0 / 14.0
+            };
+            assert_eq!(content_scale(appearance, address), expected);
         }
         for address in [
             "https://x.com/compose/post",

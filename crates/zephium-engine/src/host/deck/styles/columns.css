@@ -1,28 +1,28 @@
 :root {
-  --bdeck-item-padding: 8px 10px;
-  --bdeck-post-action-gap: 8px;
-  --bdeck-post-action-height: 28px;
+  --bdeck-item-padding: calc(8px * var(--bdeck-scale)) calc(10px * var(--bdeck-scale));
+  --bdeck-post-action-gap: calc(8px * var(--bdeck-scale));
+  --bdeck-post-action-height: calc(28px * var(--bdeck-scale));
 }
 html,
 body {
   overflow-x: clip !important;
 }
 [data-bdeck-profile] [data-bdeck-profile-header] {
-  block-size: 41px !important;
-  min-block-size: 41px !important;
-  max-block-size: 41px !important;
+  block-size: calc(41px * var(--bdeck-scale)) !important;
+  min-block-size: calc(41px * var(--bdeck-scale)) !important;
+  max-block-size: calc(41px * var(--bdeck-scale)) !important;
   box-sizing: border-box !important;
 }
 [data-bdeck-profile] [data-bdeck-profile-back] {
   display: none !important;
 }
 [data-bdeck-profile] [data-bdeck-profile-header] h2 {
-  font-size: 15px !important;
-  line-height: 18px !important;
+  font-size: calc(15px * var(--bdeck-scale)) !important;
+  line-height: calc(18px * var(--bdeck-scale)) !important;
 }
 [data-bdeck-profile] [data-bdeck-profile-header] h2 + div {
-  font-size: 11px !important;
-  line-height: 14px !important;
+  font-size: calc(11px * var(--bdeck-scale)) !important;
+  line-height: calc(14px * var(--bdeck-scale)) !important;
 }
 [data-bdeck-restoring-sort] [role="menu"] {
   visibility: hidden !important;
@@ -39,10 +39,10 @@ body {
 }
 [data-bdeck-notifications] [data-testid="primaryColumn"] a[href="/settings/notifications"] {
   position: fixed !important;
-  inset-block-start: 8px !important;
-  inset-inline-end: 8px !important;
-  inline-size: 24px !important;
-  block-size: 24px !important;
+  inset-block-start: calc(8px * var(--bdeck-scale)) !important;
+  inset-inline-end: calc(8px * var(--bdeck-scale)) !important;
+  inline-size: calc(24px * var(--bdeck-scale)) !important;
+  block-size: calc(24px * var(--bdeck-scale)) !important;
   min-inline-size: 0 !important;
   min-block-size: 0 !important;
   padding: 0 !important;
@@ -54,19 +54,21 @@ body {
   z-index: 10;
 }
 [data-bdeck-notifications] [data-testid="primaryColumn"] a[href="/settings/notifications"] svg {
-  inline-size: 18px !important;
-  block-size: 18px !important;
+  inline-size: calc(18px * var(--bdeck-scale)) !important;
+  block-size: calc(18px * var(--bdeck-scale)) !important;
 }
 [data-bdeck-notifications] [data-testid="primaryColumn"] nav:has([role="tab"]) {
-  padding-inline-end: 40px !important;
+  padding-inline-end: calc(40px * var(--bdeck-scale)) !important;
   box-sizing: border-box !important;
 }
-html[data-bdeck-home] .bdeck-home-composer,
-html[data-bdeck-home] [data-bdeck-home-composer],
-html[data-bdeck-home] [data-bdeck-home-composer] + div:empty {
+[data-testid="primaryColumn"]
+  > div:has(nav [role="tab"])
+  > div:has([data-testid="tweetTextarea_0"]):has([data-testid="tweetButtonInline"]) {
   display: none !important;
 }
-[data-bdeck-column] {
+[role="main"],
+[role="main"] > div,
+[data-testid="primaryColumn"] {
   width: 100% !important;
   min-width: 0 !important;
   max-width: 100% !important;
@@ -86,7 +88,7 @@ html[data-bdeck-home] [data-bdeck-home-composer] + div:empty {
   border-radius: 0 !important;
 }
 [data-testid="primaryColumn"] [data-testid="tweetPhoto"] {
-  border-radius: 4px !important;
+  border-radius: calc(4px * var(--bdeck-scale)) !important;
 }
 [data-testid="tweet"]
   :is([data-testid="User-Name"], [data-testid="socialContext"])
@@ -98,11 +100,11 @@ html[data-bdeck-home] [data-bdeck-home-composer] + div:empty {
   margin-block-start: var(--bdeck-post-action-gap) !important;
 }
 [data-testid="tweet"] [role="group"]:has([data-testid="reply"]) :is(button, a, span) {
-  font-size: 11px !important;
+  font-size: calc(11px * var(--bdeck-scale)) !important;
 }
 [data-testid="tweet"] [role="group"]:has([data-testid="reply"]) svg {
-  width: 16px !important;
-  height: 16px !important;
+  width: calc(16px * var(--bdeck-scale)) !important;
+  height: calc(16px * var(--bdeck-scale)) !important;
 }
 [data-testid="tweet"] [role="group"]:has([data-testid="reply"]) span {
   padding-inline: 0 !important;
@@ -119,19 +121,19 @@ html[data-bdeck-home] [data-bdeck-home-composer] + div:empty {
   inline-size: max-content !important;
   min-inline-size: 100% !important;
   max-inline-size: none !important;
-  block-size: 40px !important;
+  block-size: calc(40px * var(--bdeck-scale)) !important;
 }
-html[data-bdeck-home] [data-testid="primaryColumn"] [data-bdeck-tab-row] {
-  block-size: 41px !important;
-  min-block-size: 41px !important;
-  max-block-size: 41px !important;
+[data-testid="primaryColumn"] div:has(> div > nav [role="tab"]) {
+  block-size: calc(41px * var(--bdeck-scale)) !important;
+  min-block-size: calc(41px * var(--bdeck-scale)) !important;
+  max-block-size: calc(41px * var(--bdeck-scale)) !important;
   box-sizing: border-box !important;
   align-items: center !important;
 }
-html[data-bdeck-home] [data-testid="primaryColumn"] [data-bdeck-tab-row] > div {
-  block-size: 40px !important;
+[data-testid="primaryColumn"] div:has(> div > nav [role="tab"]) > div {
+  block-size: calc(40px * var(--bdeck-scale)) !important;
   min-block-size: 0 !important;
-  max-block-size: 40px !important;
+  max-block-size: calc(40px * var(--bdeck-scale)) !important;
   align-items: center !important;
   justify-content: center !important;
 }
@@ -141,25 +143,25 @@ html[data-bdeck-home] [data-testid="primaryColumn"] [data-bdeck-tab-row] > div {
   overflow-x: auto !important;
   overflow-y: hidden !important;
   scrollbar-width: none;
-  block-size: 40px !important;
+  block-size: calc(40px * var(--bdeck-scale)) !important;
 }
 [data-testid="primaryColumn"]
   nav:has([role="tab"]):not([data-testid="tweet"] nav)
   [data-testid="ScrollSnap-List"]
   > div {
   flex: 1 0 auto !important;
-  min-inline-size: 88px !important;
+  min-inline-size: calc(88px * var(--bdeck-scale)) !important;
   max-inline-size: none !important;
 }
 [data-testid="primaryColumn"] [role="tab"]:not([data-testid="tweet"] [role="tab"]) {
-  padding-inline: 12px !important;
-  block-size: 40px !important;
-  min-block-size: 40px !important;
+  padding-inline: calc(12px * var(--bdeck-scale)) !important;
+  block-size: calc(40px * var(--bdeck-scale)) !important;
+  min-block-size: calc(40px * var(--bdeck-scale)) !important;
   white-space: nowrap !important;
 }
 [data-testid="primaryColumn"] [role="tab"]:not([data-testid="tweet"] [role="tab"]) span {
-  font-size: 13px !important;
-  line-height: 18px !important;
+  font-size: calc(13px * var(--bdeck-scale)) !important;
+  line-height: calc(18px * var(--bdeck-scale)) !important;
 }
 [data-testid="primaryColumn"] [role="tab"]:not([data-testid="tweet"] [role="tab"]) > div {
   block-size: 100% !important;

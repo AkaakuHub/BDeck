@@ -1,5 +1,4 @@
 const primarySelector = '[data-testid="primaryColumn"]';
-const tweetSelector = '[data-testid="tweet"]';
 const applyProfileHeader = (primary) => {
   const profile =
     location.pathname !== "/home" && !!primary?.querySelector('[data-testid="UserName"]');
@@ -52,35 +51,6 @@ const applyChat = () => {
   style.textContent = chatCss;
   root.appendChild(style);
 };
-let homeComposer = null;
-const applyHomeComposer = (primary) => {
-  const home = location.pathname === "/home";
-  document.documentElement.toggleAttribute("data-bdeck-home", home);
-  const button = home && primary?.querySelector('[data-testid="tweetButtonInline"]');
-  const editor = home && primary?.querySelector('[data-testid="tweetTextarea_0"]');
-  let composer = null;
-  if (button && editor) {
-    for (let node = button.parentElement; node && node !== primary; node = node.parentElement) {
-      if (node.querySelector(tweetSelector)) break;
-      if (node.contains(editor) && node.querySelector('[data-testid^="UserAvatar-Container"]')) {
-        composer = node;
-        break;
-      }
-    }
-  }
-  if (homeComposer !== composer) homeComposer?.classList.remove("bdeck-home-composer");
-  if (composer && !composer.classList.contains("bdeck-home-composer"))
-    composer.classList.add("bdeck-home-composer");
-  homeComposer = composer;
-  const container = primary?.children[0];
-  if (container) {
-    for (const child of container.children) {
-      const hidden = home && !!composer && (child === composer || child.contains(composer));
-      if (child.hasAttribute("data-bdeck-home-composer") !== hidden)
-        child.toggleAttribute("data-bdeck-home-composer", hidden);
-    }
-  }
-};
 const apply = () => {
   const style = document.getElementById("bdeck-column-style") || document.createElement("style");
   style.id = "bdeck-column-style";
@@ -127,20 +97,8 @@ const apply = () => {
         break;
       scaffold.observe(child, { childList: true });
     }
-    for (let node = primary; node instanceof Element; node = node.parentElement) {
-      if (
-        (node === primary || node.matches('[role="main"], [role="main"] > div')) &&
-        !node.hasAttribute("data-bdeck-column")
-      )
-        node.setAttribute("data-bdeck-column", "");
-      if (node.matches('[role="main"]')) break;
-    }
     const tabNav = primary?.querySelector('nav:has([role="tab"])');
-    const tabRow = tabNav?.parentElement?.parentElement;
-    if (tabRow && !tabRow.hasAttribute("data-bdeck-tab-row"))
-      tabRow.setAttribute("data-bdeck-tab-row", "");
     applyChat();
-    applyHomeComposer(primary);
     applyNotificationHeader(primary);
     applyProfileHeader(primary);
     homeSelection.refresh();

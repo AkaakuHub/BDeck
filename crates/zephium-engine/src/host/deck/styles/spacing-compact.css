@@ -1,7 +1,7 @@
 :root {
-  --bdeck-item-padding: 4px 8px;
-  --bdeck-post-action-gap: 2px;
-  --bdeck-post-action-height: 24px;
+  --bdeck-item-padding: calc(4px * var(--bdeck-scale)) calc(8px * var(--bdeck-scale));
+  --bdeck-post-action-gap: calc(2px * var(--bdeck-scale));
+  --bdeck-post-action-height: calc(24px * var(--bdeck-scale));
 }
 [data-testid="notification"] {
   padding: var(--bdeck-item-padding) !important;
