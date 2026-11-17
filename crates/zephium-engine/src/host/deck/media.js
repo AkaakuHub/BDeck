@@ -22,7 +22,7 @@
     event.stopPropagation();
     if (active?.video) return;
     event.preventDefault();
-    const image = active?.image;
+    const image = active?.element.parentElement.querySelector("img");
     if (!image?.naturalWidth || !image.naturalHeight) return;
     const bounds = active.element.getBoundingClientRect();
     const scale = Math.min(bounds.width / image.naturalWidth, bounds.height / image.naturalHeight);
@@ -43,14 +43,13 @@
   };
   const releaseActive = () => {
     const { element, video, controls, slot } = active;
-    slot?.removeAttribute("data-bdeck-media-slot");
-    slot?.style.removeProperty("--bdeck-media-slot-height");
+    slot.removeAttribute("data-bdeck-media-slot");
+    slot.style.removeProperty("--bdeck-media-slot-height");
     if (video) {
       video.pause();
       video.controls = controls;
     }
     release(element);
-    if (!video) element.remove();
     active = null;
   };
   const close = () => {
@@ -102,21 +101,10 @@
       closeButton.addEventListener("click", close);
       document.body.appendChild(closeButton);
     }
-    const image = video ? null : element.parentElement.querySelector("img");
-    const slot = video ? element.parentElement : null;
-    if (slot) {
-      slot.style.setProperty(
-        "--bdeck-media-slot-height",
-        `${slot.getBoundingClientRect().height}px`,
-      );
-      slot.setAttribute("data-bdeck-media-slot", "");
-    } else {
-      const overlay = document.createElement("div");
-      overlay.style.backgroundImage = element.style.backgroundImage;
-      document.body.appendChild(overlay);
-      element = overlay;
-    }
-    active = { element, image, video, slot, controls: video?.controls };
+    const slot = element.parentElement;
+    slot.style.setProperty("--bdeck-media-slot-height", `${slot.getBoundingClientRect().height}px`);
+    slot.setAttribute("data-bdeck-media-slot", "");
+    active = { element, video, slot, controls: video?.controls };
     if (video) element.setAttribute("data-bdeck-media-video", "");
     present(element);
     if (opening) window.ipc.postMessage("media.open");
