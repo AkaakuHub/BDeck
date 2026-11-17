@@ -20,8 +20,6 @@ jobs:
     permissions:
       contents: read
       actions: read
-    outputs:
-      installers: ${{ steps.installers.outputs.enabled }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -134,20 +132,10 @@ jobs:
           test "$(shasum -a 256 "${archive}" | cut -d ' ' -f1)" = "${ACTIONLINT_SHA256}"
           tar --extract --gzip --file "${archive}" --directory "${RUNNER_TEMP}" actionlint
           "${RUNNER_TEMP}/actionlint" -color
-      - name: Check whether the release owns the installer build
-        id: installers
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]] || [[ "$(gh run list --workflow release.yml --commit "${GITHUB_SHA}" --limit 1 --json databaseId --jq length)" == 0 ]]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-          fi
   installers:
     name: ${{ matrix.platform }}
     needs: checks
-    if: needs.checks.outputs.installers == 'true'
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     concurrency:
