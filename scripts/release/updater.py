@@ -6,7 +6,6 @@ from pathlib import Path
 
 PLATFORMS = {
     "aarch64-apple-darwin": "darwin-aarch64",
-    "x86_64-apple-darwin": "darwin-x86_64",
     "x86_64-pc-windows-msvc": "windows-x86_64",
 }
 
@@ -40,7 +39,7 @@ def manifest(directory, tag):
     platforms = {}
     metadata = sorted(root.glob("*.json"))
     if len(metadata) != len(PLATFORMS):
-        raise ValueError("Expected metadata from all three platforms")
+        raise ValueError("Expected metadata from all supported platforms")
     for file in metadata:
         entry = json.loads(file.read_text())
         platform = entry.pop("platform")
@@ -51,8 +50,8 @@ def manifest(directory, tag):
         if not archive.is_file() or Path(f"{archive}.sig").read_text().strip() != entry["signature"]:
             raise ValueError("Updater archive and signature must be present")
         platforms[platform] = entry
-    if len(list(root.glob("*.dmg"))) != 2 or len(list(root.glob("*.exe"))) != 1:
-        raise ValueError("Expected two macOS DMGs and one Windows installer")
+    if len(list(root.glob("*.dmg"))) != 1 or len(list(root.glob("*.exe"))) != 1:
+        raise ValueError("Expected one macOS DMG and one Windows installer")
     for file in metadata:
         file.unlink()
     (root / "latest.json").write_text(json.dumps({"version": tag.removeprefix("v"), "platforms": platforms}, indent=2) + "\n")

@@ -66,4 +66,4 @@ jobs:
           test "$(gh api "repos/${GH_REPO}/commits/${TAG}" --jq .sha)" = "${CANDIDATE}"
           gh release create "${TAG}" dist/* --verify-tag --prerelease="$([[ "${TAG}" == *-* ]] && echo true || echo false)" \
             --title "BDeck ${TAG}" \
-            --notes 'macOS: Apple Silicon / Intel DMG. Windows: x64 installer. macOS is ad-hoc signed without notarization; Windows has no publisher signature.'
+            --notes 'macOS: Apple Silicon DMG. Windows: x64 installer. macOS is ad-hoc signed without notarization; Windows has no publisher signature.'
