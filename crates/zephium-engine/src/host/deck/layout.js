@@ -1,7 +1,6 @@
 const primarySelector = '[data-testid="primaryColumn"]';
 const tweetSelector = '[data-testid="tweet"]';
-const applyProfileHeader = () => {
-  const primary = document.querySelector(primarySelector);
+const applyProfileHeader = (primary) => {
   const profile =
     location.pathname !== "/home" && !!primary?.querySelector('[data-testid="UserName"]');
   document.documentElement.toggleAttribute("data-bdeck-profile", profile);
@@ -23,12 +22,11 @@ const applyProfileHeader = () => {
   if (back.parentElement && !back.parentElement.hasAttribute("data-bdeck-profile-back"))
     back.parentElement.setAttribute("data-bdeck-profile-back", "");
 };
-const applyNotificationHeader = () => {
+const applyNotificationHeader = (primary) => {
   const notifications =
     location.pathname === "/notifications" || location.pathname.startsWith("/notifications/");
   document.documentElement.toggleAttribute("data-bdeck-notifications", notifications);
   if (!notifications) return;
-  const primary = document.querySelector(primarySelector);
   const heading = primary?.querySelector("h2");
   const settings = primary?.querySelector('a[href="/settings/notifications"]');
   if (!heading || !settings) return;
@@ -55,10 +53,9 @@ const applyChat = () => {
   root.appendChild(style);
 };
 let homeComposer = null;
-const applyHomeComposer = () => {
+const applyHomeComposer = (primary) => {
   const home = location.pathname === "/home";
   document.documentElement.toggleAttribute("data-bdeck-home", home);
-  const primary = document.querySelector(primarySelector);
   const button = home && primary?.querySelector('[data-testid="tweetButtonInline"]');
   const editor = home && primary?.querySelector('[data-testid="tweetTextarea_0"]');
   let composer = null;
@@ -75,6 +72,14 @@ const applyHomeComposer = () => {
   if (composer && !composer.classList.contains("bdeck-home-composer"))
     composer.classList.add("bdeck-home-composer");
   homeComposer = composer;
+  const container = primary?.children[0];
+  if (container) {
+    for (const child of container.children) {
+      const hidden = home && !!composer && (child === composer || child.contains(composer));
+      if (child.hasAttribute("data-bdeck-home-composer") !== hidden)
+        child.toggleAttribute("data-bdeck-home-composer", hidden);
+    }
+  }
 };
 const apply = () => {
   const style = document.getElementById("bdeck-column-style") || document.createElement("style");
@@ -96,6 +101,7 @@ const apply = () => {
   };
   const scaffold = new MutationObserver(schedule);
   const header = new MutationObserver(schedule);
+  const tabs = new MutationObserver(() => homeSelection.refresh());
   const bootstrap = new MutationObserver(schedule);
   const menu = new MutationObserver(() => homeSelection.refreshMenu());
   const refresh = () => {
@@ -104,6 +110,7 @@ const apply = () => {
     const content = primary || document.querySelector('[data-testid="xchatEmbedRoute"]');
     scaffold.disconnect();
     header.disconnect();
+    tabs.disconnect();
     if (!content) {
       bootstrap.observe(document.documentElement, { childList: true, subtree: true });
       return;
@@ -133,13 +140,13 @@ const apply = () => {
     if (tabRow && !tabRow.hasAttribute("data-bdeck-tab-row"))
       tabRow.setAttribute("data-bdeck-tab-row", "");
     applyChat();
-    applyHomeComposer();
-    applyNotificationHeader();
-    applyProfileHeader();
+    applyHomeComposer(primary);
+    applyNotificationHeader(primary);
+    applyProfileHeader(primary);
     homeSelection.refresh();
     const nav = tabNav;
     if (nav)
-      header.observe(nav, {
+      tabs.observe(nav, {
         childList: true,
         subtree: true,
         attributes: true,
@@ -150,7 +157,6 @@ const apply = () => {
       .forEach((node) => {
         header.observe(node, { childList: true, subtree: true });
       });
-    if (homeComposer) header.observe(homeComposer, { childList: true, subtree: true });
     const currentLayers = document.getElementById("layers");
     if (currentLayers !== layers) {
       menu.disconnect();

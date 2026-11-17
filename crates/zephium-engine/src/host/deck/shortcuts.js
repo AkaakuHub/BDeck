@@ -60,11 +60,11 @@
     true,
   );
   if (!location.pathname.startsWith("/compose/")) return;
+  let backgrounds = new Set();
   const measure = () => {
-    document.documentElement.setAttribute("data-bdeck-compose", "");
-    document
-      .querySelectorAll(".bdeck-compose-background")
-      .forEach((node) => node.classList.remove("bdeck-compose-background"));
+    if (!document.documentElement.hasAttribute("data-bdeck-compose"))
+      document.documentElement.setAttribute("data-bdeck-compose", "");
+    const nextBackgrounds = new Set();
     const editors = [
       ...document.querySelectorAll('[data-testid="tweetTextarea_0"][contenteditable="true"]'),
     ];
@@ -86,17 +86,25 @@
             (sibling.matches('[role="main"], [data-testid="primaryColumn"]') ||
               sibling.querySelector('[role="main"], [data-testid="primaryColumn"]'))
           )
-            sibling.classList.add("bdeck-compose-background");
+            nextBackgrounds.add(sibling);
         }
       }
     }
+    for (const node of backgrounds)
+      if (!nextBackgrounds.has(node)) node.classList.remove("bdeck-compose-background");
+    for (const node of nextBackgrounds)
+      if (!backgrounds.has(node)) node.classList.add("bdeck-compose-background");
+    backgrounds = nextBackgrounds;
     let content = editor?.parentElement;
     while (content && !content.querySelector('[data-testid="toolBar"]'))
       content = content.parentElement;
     const toolbar = content?.querySelector('[data-testid="toolBar"]');
     if (!(editor instanceof HTMLElement) || !(toolbar instanceof HTMLElement)) return;
     for (let node = toolbar.parentElement; node && node !== content; node = node.parentElement) {
-      if (["absolute", "fixed", "sticky"].includes(getComputedStyle(node).position))
+      if (
+        !node.classList.contains("bdeck-compose-tools") &&
+        ["absolute", "fixed", "sticky"].includes(getComputedStyle(node).position)
+      )
         node.classList.add("bdeck-compose-tools");
     }
     if (!editor.getBoundingClientRect().width || !toolbar.getBoundingClientRect().height) return;
@@ -137,7 +145,18 @@
   const ready = () => {
     const sizing = new ResizeObserver(scheduleMeasure);
     sizing.observe(document.body);
-    new MutationObserver(scheduleMeasure).observe(document.documentElement, {
+    new MutationObserver((records) => {
+      if (
+        records.some(
+          (record) =>
+            !(record.target instanceof Element) ||
+            !record.target.closest(
+              '.bdeck-compose-background, section[role="region"], [data-testid="cellInnerDiv"]',
+            ),
+        )
+      )
+        scheduleMeasure();
+    }).observe(document.documentElement, {
       subtree: true,
       childList: true,
       characterData: true,

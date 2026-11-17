@@ -62,12 +62,8 @@ body {
   box-sizing: border-box !important;
 }
 html[data-bdeck-home] .bdeck-home-composer,
-html[data-bdeck-home] [data-testid="primaryColumn"] > div > div:has(.bdeck-home-composer),
-html[data-bdeck-home]
-  [data-testid="primaryColumn"]
-  > div
-  > div:has(.bdeck-home-composer)
-  + div:empty {
+html[data-bdeck-home] [data-bdeck-home-composer],
+html[data-bdeck-home] [data-bdeck-home-composer] + div:empty {
   display: none !important;
 }
 [data-bdeck-column] {

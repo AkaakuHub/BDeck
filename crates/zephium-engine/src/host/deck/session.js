@@ -82,7 +82,7 @@
         if (
           record.target instanceof Element &&
           record.target.closest(
-            '[data-testid="cellInnerDiv"], [data-testid="tweet"], [data-testid="tweetTextarea_0"]',
+            'section[role="region"], [data-testid="cellInnerDiv"], [data-testid="tweet"], [data-testid="tweetTextarea_0"]',
           )
         )
           return false;
