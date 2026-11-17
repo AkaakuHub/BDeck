@@ -98,12 +98,6 @@ jobs:
             bundle: app,dmg
             installer: dmg
             extension: dmg
-          - platform: macos-x64
-            runner: macos-15
-            target: x86_64-apple-darwin
-            bundle: app,dmg
-            installer: dmg
-            extension: dmg
           - platform: windows-x64
             runner: windows-2025
             target: x86_64-pc-windows-msvc
