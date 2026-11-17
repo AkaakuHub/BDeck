@@ -89,7 +89,7 @@ jobs:
       group: installers-${{ github.sha }}-${{ matrix.platform }}
       cancel-in-progress: ${{ startsWith(github.ref, 'refs/tags/v') }}
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         include:
           - platform: macos-arm64
