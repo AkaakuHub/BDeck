@@ -63,16 +63,15 @@ impl Engine for TestEngine {
             },
         ) = settlement
         {
-            assert!(
-                self.extension_surfaces
-                    .lock()
-                    .unwrap()
-                    .last()
-                    .unwrap()
-                    .windows()
-                    .iter()
-                    .any(|window| window.tabs().iter().any(|published| published.id() == tab))
-            );
+            assert!(self
+                .extension_surfaces
+                .lock()
+                .unwrap()
+                .last()
+                .unwrap()
+                .windows()
+                .iter()
+                .any(|window| window.tabs().iter().any(|published| published.id() == tab)));
         }
         NativeDispatch::Scheduled
     }

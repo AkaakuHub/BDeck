@@ -14,11 +14,10 @@ struct SidebarProjection {
 
 impl Shell {
     pub(super) fn project_extension_actions(&self, profile: ProfileId) {
-        let Some(window) = self
-            .windows
-            .focused()
-            .filter(|_| self.web_extension_target(None).is_some_and(|target| target.profile == profile))
-        else {
+        let Some(window) = self.windows.focused().filter(|_| {
+            self.web_extension_target(None)
+                .is_some_and(|target| target.profile == profile)
+        }) else {
             return;
         };
         let surface = self
@@ -59,7 +58,10 @@ impl Shell {
         let Some(tab) = self
             .windows
             .focused()
-            .filter(|_| self.web_extension_target(None).is_some_and(|target| target.profile == profile))
+            .filter(|_| {
+                self.web_extension_target(None)
+                    .is_some_and(|target| target.profile == profile)
+            })
             .and_then(|window| window.active)
             .filter(|tab| expected_tab.is_none_or(|expected| expected == *tab))
         else {
@@ -81,12 +83,9 @@ impl Shell {
         tab: ItemId,
         action_revision: zephium_core::extensions::ExtensionActionRevision,
     ) {
-        if !self
-            .windows
-            .focused()
-            .filter(|window| self.profile_of_item(tab) == Some(runtime.profile()) && window.active == Some(tab))
-            .is_some()
-        {
+        if self.windows.focused().is_none_or(|window| {
+            self.profile_of_item(tab) != Some(runtime.profile()) || window.active != Some(tab)
+        }) {
             return;
         }
         (self.emit)(Projection::ExtensionActionShortcut(
@@ -383,11 +382,6 @@ impl Shell {
     }
 
     pub(super) fn project_tab(&self, id: ItemId) {
-        if self
-            .windows
-            .focused()
-            .is_some_and(|window| window.active == Some(id))
-        {}
         let profile = self.profile_of_item(id);
         if let Some(tab) = self.items.tab(id) {
             let projection = self.generic_tab_view(id, tab, profile);

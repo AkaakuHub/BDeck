@@ -164,10 +164,12 @@ impl NativeResourceLedger {
         })
     }
 
+    #[cfg(any(test, target_os = "windows"))]
     pub(super) fn is_healthy(&self) -> bool {
         !self.shared.invariant_failed.get()
     }
 
+    #[cfg(test)]
     fn is_empty(&self) -> bool {
         self.shared
             .state
@@ -180,6 +182,7 @@ impl NativeResourceLedger {
     }
 
     /// The only resource-ledger state admissible at a clean host shutdown.
+    #[cfg(any(test, target_os = "windows"))]
     pub(super) fn is_quiescent(&self) -> bool {
         self.is_healthy() && self.is_empty()
     }

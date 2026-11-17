@@ -124,21 +124,6 @@ impl PagePermissionPromptState {
         self.visible().is_some()
     }
 
-    #[cfg(test)]
-    pub(super) fn has_pending(&self) -> bool {
-        self.pending.is_some()
-    }
-
-    #[cfg(test)]
-    pub(super) fn failed_until_restart(&self) -> bool {
-        self.failed_until_restart
-    }
-
-    #[cfg(test)]
-    pub(super) fn remembered_documents(&self) -> usize {
-        self.documents.len()
-    }
-
     pub(super) fn record_projected_placement(&self, in_sidebar: Option<bool>) {
         self.projected_in_sidebar.set(in_sidebar);
     }

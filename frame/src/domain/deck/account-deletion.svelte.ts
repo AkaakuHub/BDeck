@@ -13,9 +13,26 @@ async function remove(account: string) {
   failed = false;
   try {
     const result = await runOperation(() => commands.accountDelete(account));
-    if (current === generation) failed = result.kind !== "cancelled" && (result.kind !== "processed" || result.disposition.outcome !== "applied" || result.disposition.reason !== "profile_deletion_completed");
-  } catch { if (current === generation) failed = true; }
-  finally { if (current === generation) pending = false; }
+    if (current === generation)
+      failed =
+        result.kind !== "cancelled" &&
+        (result.kind !== "processed" ||
+          result.disposition.outcome !== "applied" ||
+          result.disposition.reason !== "profile_deletion_completed");
+  } catch {
+    if (current === generation) failed = true;
+  } finally {
+    if (current === generation) pending = false;
+  }
 }
-function dispose() { generation += 1; pending = false; failed = false; }
-export const accountDeletion = { dispose, remove, pending: () => pending || accountSessions.deleting(), failed: () => failed };
+function dispose() {
+  generation += 1;
+  pending = false;
+  failed = false;
+}
+export const accountDeletion = {
+  dispose,
+  remove,
+  pending: () => pending || accountSessions.deleting(),
+  failed: () => failed,
+};

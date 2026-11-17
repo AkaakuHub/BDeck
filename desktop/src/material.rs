@@ -193,8 +193,8 @@ mod macos {
         let ns_window = unsafe { &*(pointer as *const NSWindow) };
         let workspace = NSWorkspace::sharedWorkspace();
         let preference = super::preference();
-        let reduce_transparency = ns_window.isOpaque()
-            || workspace.accessibilityDisplayShouldReduceTransparency();
+        let reduce_transparency =
+            ns_window.isOpaque() || workspace.accessibilityDisplayShouldReduceTransparency();
         // Clear before reapplying: the upstream glass API inserts a new view.
         let _ = clear_liquid_glass(window);
         let _ = clear_vibrancy(window);

@@ -10,8 +10,8 @@ pub mod manifest;
 pub mod package;
 pub mod permissions;
 pub mod prepare;
-pub mod store;
 pub mod storage;
+pub mod store;
 pub mod windows;
 
 pub use id::ExtensionId;

@@ -1,4 +1,9 @@
-import { commands, type WebExtensionReview, type WebExtensionView, type WebExtensionAccessRequestView } from "$shared/ipc/bindings";
+import {
+  commands,
+  type WebExtensionReview,
+  type WebExtensionView,
+  type WebExtensionAccessRequestView,
+} from "$shared/ipc/bindings";
 import { events } from "$shared/ipc/native-events";
 
 let installed = $state<WebExtensionView[]>([]);
@@ -27,69 +32,124 @@ export async function refresh() {
     installed = result;
     error = null;
     clearTimeout(refreshTimer);
-    if (result.some(extension => extension.state === "starting")) refreshTimer = setTimeout(() => void refresh(), 600);
-  } catch (reason) { if (current === generation) error = String(reason); }
+    if (result.some((extension) => extension.state === "starting"))
+      refreshTimer = setTimeout(() => void refresh(), 600);
+  } catch (reason) {
+    if (current === generation) error = String(reason);
+  }
 }
 export async function retain(onAccess: () => void) {
   const current = ++generation;
-  const unlisten = await events.webExtensionAccessRequested.listen(({ payload }) => { requests = [...requests, payload]; onAccess(); });
-  if (current !== generation) { unlisten(); return; }
+  const unlisten = await events.webExtensionAccessRequested.listen(({ payload }) => {
+    requests = [...requests, payload];
+    onAccess();
+  });
+  if (current !== generation) {
+    unlisten();
+    return;
+  }
   stop = unlisten;
   await refresh();
 }
 export function release() {
   generation += 1;
   clearTimeout(refreshTimer);
-  stop?.(); stop = null;
+  stop?.();
+  stop = null;
   if (review) void commands.webExtensionCancel(review.review_id);
-  review = null; installed = []; requests = []; busy = false; preparing = false; preparingExtension = null; error = null;
+  review = null;
+  installed = [];
+  requests = [];
+  busy = false;
+  preparing = false;
+  preparingExtension = null;
+  error = null;
 }
 async function perform(action: () => Promise<void>) {
   if (busy) return;
   const current = generation;
-  busy = true; error = null;
-  try { await action(); }
-  catch (reason) { if (current === generation) error = String(reason); }
-  finally { if (current === generation) busy = false; }
+  busy = true;
+  error = null;
+  try {
+    await action();
+  } catch (reason) {
+    if (current === generation) error = String(reason);
+  } finally {
+    if (current === generation) busy = false;
+  }
 }
-async function prepare(request: () => Promise<WebExtensionReview | null>, extension: string | null = null) {
+async function prepare(
+  request: () => Promise<WebExtensionReview | null>,
+  extension: string | null = null,
+) {
   await perform(async () => {
     const current = generation;
-    preparing = true; preparingExtension = extension;
+    preparing = true;
+    preparingExtension = extension;
     try {
       const result = await request();
-      if (current !== generation) { if (result) await commands.webExtensionCancel(result.review_id); return; }
+      if (current !== generation) {
+        if (result) await commands.webExtensionCancel(result.review_id);
+        return;
+      }
       if (review) await commands.webExtensionCancel(review.review_id);
       review = result;
     } finally {
-      if (current === generation) { preparing = false; preparingExtension = null; }
+      if (current === generation) {
+        preparing = false;
+        preparingExtension = null;
+      }
     }
   });
 }
 export const prepareListing = (url: string) => prepare(() => commands.webExtensionPrepare(url));
-export const chooseFile = (folder: boolean) => prepare(() => commands.webExtensionChooseFile(folder));
-export const reviewUpdate = (id: string) => prepare(() => commands.webExtensionReviewUpdate(id), id);
-export const confirm = () => perform(async () => {
-  const current = review;
-  if (!current) return;
-  await commands.webExtensionConfirm(current.id, current.review_id);
-  if (review?.review_id === current.review_id) review = null;
-  await refresh();
-});
-export const cancel = () => perform(async () => {
-  const current = review;
-  if (!current) return;
-  await commands.webExtensionCancel(current.review_id);
-  if (review?.review_id === current.review_id) review = null;
-});
-export const setEnabled = (id: string, enabled: boolean) => perform(async () => { await commands.webExtensionSetEnabled(id, enabled); await refresh(); });
-export const uninstall = (id: string) => perform(async () => { await commands.webExtensionUninstall(id); await refresh(); });
-export const retry = (extension: WebExtensionView) => perform(async () => { await commands.webExtensionRetry(extension.install_id); await refresh(); });
-export const openOptions = (id: string) => perform(async () => { await commands.webExtensionOpenOptions(id); });
-export const setAccess = (id: string, mode: string, sites: string[]) => perform(async () => { await commands.webExtensionSetAccess(id, mode, sites); await refresh(); });
-export const answerAccess = (allowed: boolean) => perform(async () => {
-  const request = requests[0];
-  if (!request) return;
-  await commands.webExtensionAnswerAccess(request, allowed);
-  requests = requests.slice(1);
-});
+export const chooseFile = (folder: boolean) =>
+  prepare(() => commands.webExtensionChooseFile(folder));
+export const reviewUpdate = (id: string) =>
+  prepare(() => commands.webExtensionReviewUpdate(id), id);
+export const confirm = () =>
+  perform(async () => {
+    const current = review;
+    if (!current) return;
+    await commands.webExtensionConfirm(current.id, current.review_id);
+    if (review?.review_id === current.review_id) review = null;
+    await refresh();
+  });
+export const cancel = () =>
+  perform(async () => {
+    const current = review;
+    if (!current) return;
+    await commands.webExtensionCancel(current.review_id);
+    if (review?.review_id === current.review_id) review = null;
+  });
+export const setEnabled = (id: string, enabled: boolean) =>
+  perform(async () => {
+    await commands.webExtensionSetEnabled(id, enabled);
+    await refresh();
+  });
+export const uninstall = (id: string) =>
+  perform(async () => {
+    await commands.webExtensionUninstall(id);
+    await refresh();
+  });
+export const retry = (extension: WebExtensionView) =>
+  perform(async () => {
+    await commands.webExtensionRetry(extension.install_id);
+    await refresh();
+  });
+export const openOptions = (id: string) =>
+  perform(async () => {
+    await commands.webExtensionOpenOptions(id);
+  });
+export const setAccess = (id: string, mode: string, sites: string[]) =>
+  perform(async () => {
+    await commands.webExtensionSetAccess(id, mode, sites);
+    await refresh();
+  });
+export const answerAccess = (allowed: boolean) =>
+  perform(async () => {
+    const request = requests[0];
+    if (!request) return;
+    await commands.webExtensionAnswerAccess(request, allowed);
+    requests = requests.slice(1);
+  });

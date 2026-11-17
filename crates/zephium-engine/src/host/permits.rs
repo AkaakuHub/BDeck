@@ -241,7 +241,6 @@ pub(super) fn queue_navigation_completion(
         {
             host.complete_title_attribution(id, &queued_permit, &queued_navigation, epoch);
             host.emit_navigation_ready(id, &queued_permit, &queued_navigation, epoch);
-
         }
     });
 }
@@ -270,4 +269,3 @@ pub(super) fn queue_navigation_failure(
         );
     });
 }
-

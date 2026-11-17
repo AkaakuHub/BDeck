@@ -183,11 +183,6 @@ impl Hub {
             }
         }
     }
-
-    #[cfg(test)]
-    pub(crate) fn make_next_page_permission_commit_ambiguous(&mut self) {
-        self.ambiguous_page_permission_commit_once = true;
-    }
 }
 
 fn load_catalog(conn: &Connection) -> rusqlite::Result<PagePermissionCatalog> {

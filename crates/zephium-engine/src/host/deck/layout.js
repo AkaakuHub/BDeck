@@ -11,13 +11,20 @@ const applyProfileHeader = () => {
   let row = heading.parentElement;
   while (row && row !== primary && !row.contains(back)) row = row.parentElement;
   if (!row || row === primary) return;
-  for (let node = row; node && node !== primary && !node.querySelector('[data-testid="UserName"]'); node = node.parentElement) {
-    if (!node.hasAttribute("data-bdeck-profile-header")) node.setAttribute("data-bdeck-profile-header", "");
+  for (
+    let node = row;
+    node && node !== primary && !node.querySelector('[data-testid="UserName"]');
+    node = node.parentElement
+  ) {
+    if (!node.hasAttribute("data-bdeck-profile-header"))
+      node.setAttribute("data-bdeck-profile-header", "");
   }
-  if (back.parentElement && !back.parentElement.hasAttribute("data-bdeck-profile-back")) back.parentElement.setAttribute("data-bdeck-profile-back", "");
+  if (back.parentElement && !back.parentElement.hasAttribute("data-bdeck-profile-back"))
+    back.parentElement.setAttribute("data-bdeck-profile-back", "");
 };
 const applyNotificationHeader = () => {
-  const notifications = location.pathname === "/notifications" || location.pathname.startsWith("/notifications/");
+  const notifications =
+    location.pathname === "/notifications" || location.pathname.startsWith("/notifications/");
   document.documentElement.toggleAttribute("data-bdeck-notifications", notifications);
   if (!notifications) return;
   const primary = document.querySelector(primarySelector);
@@ -27,10 +34,16 @@ const applyNotificationHeader = () => {
   let row = heading.parentElement;
   while (row && row !== primary && !row.contains(settings)) row = row.parentElement;
   if (!row || row === primary) return;
-  for (let node = row; node && node !== primary && !node.querySelector("nav"); node = node.parentElement) {
-    if (!node.hasAttribute("data-bdeck-notification-header")) node.setAttribute("data-bdeck-notification-header", "");
+  for (
+    let node = row;
+    node && node !== primary && !node.querySelector("nav");
+    node = node.parentElement
+  ) {
+    if (!node.hasAttribute("data-bdeck-notification-header"))
+      node.setAttribute("data-bdeck-notification-header", "");
   }
-  if (!heading.hasAttribute("data-bdeck-notification-title")) heading.setAttribute("data-bdeck-notification-title", "");
+  if (!heading.hasAttribute("data-bdeck-notification-title"))
+    heading.setAttribute("data-bdeck-notification-title", "");
 };
 const applyChat = () => {
   const root = document.querySelector('[data-testid="xchatEmbedRoute"]')?.shadowRoot;
@@ -58,7 +71,8 @@ const applyHomeComposer = () => {
     }
   }
   if (homeComposer !== composer) homeComposer?.classList.remove("bdeck-home-composer");
-  if (composer && !composer.classList.contains("bdeck-home-composer")) composer.classList.add("bdeck-home-composer");
+  if (composer && !composer.classList.contains("bdeck-home-composer"))
+    composer.classList.add("bdeck-home-composer");
   homeComposer = composer;
 };
 const apply = () => {
@@ -99,7 +113,10 @@ const apply = () => {
     }
     let child = content.firstElementChild;
     for (let depth = 0; child && depth < 3; depth++, child = child.firstElementChild) {
-      if (child.closest('section[role="region"], [data-testid="cellInnerDiv"], [data-testid="tweet"]')) break;
+      if (
+        child.closest('section[role="region"], [data-testid="cellInnerDiv"], [data-testid="tweet"]')
+      )
+        break;
       scaffold.observe(child, { childList: true });
     }
     applyChat();
@@ -108,10 +125,18 @@ const apply = () => {
     applyProfileHeader();
     homeSelection.refresh();
     const nav = primary?.querySelector('nav:has([role="tab"])');
-    if (nav) header.observe(nav, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-selected", "aria-haspopup"] });
-    primary?.querySelectorAll("[data-bdeck-profile-header], [data-bdeck-notification-header]").forEach(node => {
-      header.observe(node, { childList: true, subtree: true });
-    });
+    if (nav)
+      header.observe(nav, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["aria-selected", "aria-haspopup"],
+      });
+    primary
+      ?.querySelectorAll("[data-bdeck-profile-header], [data-bdeck-notification-header]")
+      .forEach((node) => {
+        header.observe(node, { childList: true, subtree: true });
+      });
     if (homeComposer) header.observe(homeComposer, { childList: true, subtree: true });
     const currentLayers = document.getElementById("layers");
     if (currentLayers !== layers) {

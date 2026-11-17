@@ -2,9 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "main",
   "description": "Zone-2 main chrome: its own window controls only, and whether its window is fullscreen",
-  "windows": [
-    "main"
-  ],
+  "windows": ["main"],
   "permissions": [
     "core:window:allow-start-dragging",
     "core:window:allow-minimize",

@@ -221,41 +221,6 @@ impl Hub {
         Some((Some(RGBA32_MIME.to_owned()), bytes))
     }
 
-    #[cfg(test)]
-    pub(crate) fn favicon_rows(&mut self, profile: ProfileId) -> i64 {
-        self.profile_conn(profile)
-            .and_then(|conn| conn.query_row("SELECT count(*) FROM favicons", [], |r| r.get(0)))
-            .unwrap_or(-1)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn page_favicon_rows(&mut self, profile: ProfileId) -> i64 {
-        self.profile_conn(profile)
-            .and_then(|conn| conn.query_row("SELECT count(*) FROM page_favicons", [], |r| r.get(0)))
-            .unwrap_or(-1)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn backdate_page_favicons(&mut self, profile: ProfileId, seconds: i64) {
-        let _ = self.profile_conn(profile).map(|conn| {
-            conn.execute(
-                "UPDATE page_favicons SET fetched_at = fetched_at - ?1",
-                [seconds],
-            )
-        });
-    }
-
-    #[cfg(test)]
-    pub(crate) fn seed_malformed_favicon(&mut self, profile: ProfileId, origin: &str, len: usize) {
-        let _ = self.profile_conn(profile).map(|conn| {
-            conn.execute(
-                "INSERT INTO favicons(origin, content_type, icon, fetched_at)
-                 VALUES (?1, ?2, ?3, ?4)",
-                params![origin, RGBA32_MIME, vec![7u8; len], now_secs()],
-            )
-        });
-    }
-
     pub(crate) fn favicon_raster_with_age(
         &mut self,
         profile: ProfileId,

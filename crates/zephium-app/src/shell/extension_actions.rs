@@ -47,11 +47,6 @@ impl ExtensionActionState {
             .retain(|_, request| request.runtime().profile() != profile);
     }
 
-    #[cfg(test)]
-    pub(super) fn snapshot(&self, profile: ProfileId) -> Option<&ExtensionActionSnapshot> {
-        self.snapshots.get(&profile)
-    }
-
     pub(super) fn projected_actions(
         &self,
         profile: ProfileId,
@@ -188,11 +183,6 @@ impl ExtensionActionState {
 
     fn record_refresh(&mut self, profile: ProfileId) -> bool {
         self.retry_profiles.try_insert(profile)
-    }
-
-    #[cfg(test)]
-    fn retry_profiles(&self) -> zephium_core::extensions::ExtensionActiveProfiles {
-        self.retry_profiles
     }
 
     pub(super) fn clear_projection(&mut self, profile: ProfileId) -> bool {
@@ -345,19 +335,6 @@ impl Shell {
             && self.extension_actions.clear_projection(profile)
         {
             self.project_extension_actions(profile);
-        }
-        native
-    }
-
-    /// Retries only reads that were synchronously refused, terminally
-    /// rejected, or lost after native scheduling. With no pending work this is
-    /// a fixed-size empty iteration and performs no allocation or dispatch.
-    #[cfg(test)]
-    pub(super) fn retry_extension_actions(&mut self) -> NativeWork {
-        let profiles = self.extension_actions.retry_profiles();
-        let mut native = NativeWork::default();
-        for profile in profiles.iter() {
-            native.merge(self.refresh_extension_actions(profile));
         }
         native
     }

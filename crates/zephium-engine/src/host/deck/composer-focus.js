@@ -1,8 +1,21 @@
 (() => {
   const host = location.hostname.toLowerCase();
-  if (!(host === "x.com" || host.endsWith(".x.com") || host === "twitter.com" || host.endsWith(".twitter.com")) || !location.pathname.startsWith("/compose/")) return;
-  const editors = [...document.querySelectorAll('[data-testid="tweetTextarea_0"][contenteditable="true"]')];
-  const editor = editors.find(node => node.closest('[role="dialog"]')) || editors.find(node => node.getClientRects().length && !node.closest('[aria-hidden="true"]'));
+  if (
+    !(
+      host === "x.com" ||
+      host.endsWith(".x.com") ||
+      host === "twitter.com" ||
+      host.endsWith(".twitter.com")
+    ) ||
+    !location.pathname.startsWith("/compose/")
+  )
+    return;
+  const editors = [
+    ...document.querySelectorAll('[data-testid="tweetTextarea_0"][contenteditable="true"]'),
+  ];
+  const editor =
+    editors.find((node) => node.closest('[role="dialog"]')) ||
+    editors.find((node) => node.getClientRects().length && !node.closest('[aria-hidden="true"]'));
   if (!(editor instanceof HTMLElement)) return;
   if (mention !== undefined) composerOverlay(true);
   if (mention !== undefined) editor.dataset.bdeckMention = mention || "";
@@ -12,7 +25,10 @@
       window.removeEventListener("focus", update);
     };
     const update = () => {
-      if (!editor.isConnected || !Object.hasOwn(editor.dataset, "bdeckMention")) { cleanup(); return; }
+      if (!editor.isConnected || !Object.hasOwn(editor.dataset, "bdeckMention")) {
+        cleanup();
+        return;
+      }
       if (!document.hasFocus() || document.activeElement !== editor) return;
       const recipient = editor.dataset.bdeckMention;
       const previous = editor.dataset.bdeckInsertedMention;
@@ -30,7 +46,8 @@
         cleanup();
         return;
       }
-      const insert = recipient && !prefixLength(recipient, text.slice(remove)) ? `@${recipient} ` : "";
+      const insert =
+        recipient && !prefixLength(recipient, text.slice(remove)) ? `@${recipient} ` : "";
       if (remove || insert) {
         const selection = window.getSelection();
         if (!selection) return;

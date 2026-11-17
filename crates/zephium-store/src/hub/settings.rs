@@ -105,16 +105,4 @@ impl Hub {
         )?;
         Ok(changed == 1)
     }
-
-    #[cfg(test)]
-    pub(crate) fn fail_setting_writes(&mut self) {
-        self.meta
-            .execute_batch(
-                "CREATE TRIGGER test_fail_setting_write
-                 BEFORE INSERT ON settings BEGIN
-                     SELECT RAISE(FAIL, 'injected setting failure');
-                 END;",
-            )
-            .unwrap();
-    }
 }

@@ -239,7 +239,9 @@ pub(crate) fn runtime_failure(reported: &str, error: AdmissionError) -> StartupF
         }
         AdmissionError::InvalidVersion(_) => StartupFailure::new(
             StartupProblem::Other,
-            format!("the WebView2 runtime reported a version BDeck can't read ({reported:?}): {error}"),
+            format!(
+                "the WebView2 runtime reported a version BDeck can't read ({reported:?}): {error}"
+            ),
         ),
     }
 }

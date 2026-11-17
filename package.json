@@ -1,14 +1,23 @@
 {
   "name": "bdeck",
   "private": true,
-  "engines": {
-    "node": ">=24.18.0 <25"
-  },
   "scripts": {
-    "dev": "pnpm -C desktop dev",
-    "build": "pnpm -C desktop build",
-    "frame:dev": "pnpm -C frame dev",
-    "frame:build": "pnpm -C frame build"
+    "dev": "vp -C desktop run dev",
+    "build": "vp -C desktop run build",
+    "frame:dev": "vp -C frame run dev",
+    "frame:build": "vp -C frame run build",
+    "check": "vp -C frame check --deny-warnings",
+    "format": "vp fmt vite.config.ts package.json frame/package.json frame --write",
+    "format:check": "vp fmt --check vite.config.ts package.json frame/package.json",
+    "lint": "vp -C frame lint --deny-warnings",
+    "knip": "knip --include dependencies --no-progress"
+  },
+  "devDependencies": {
+    "knip": "6.45.1",
+    "vite-plus": "catalog:"
+  },
+  "engines": {
+    "node": ">=26.13.1 <27"
   },
   "packageManager": "pnpm@11.17.0"
 }

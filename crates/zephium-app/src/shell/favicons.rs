@@ -153,11 +153,6 @@ impl FailedIcons {
         self.at.retain(|(owner, _), _| *owner != profile);
         self.order.retain(|(owner, _)| *owner != profile);
     }
-
-    #[cfg(test)]
-    pub(super) fn len(&self) -> usize {
-        self.at.len()
-    }
 }
 
 /// The icon a tab last drew, kept while its next page's is looked for.

@@ -1068,7 +1068,7 @@ mod qa_settings_recovery_tests {
 
     #[test]
     fn privacy_clear_retires_pending_source_before_load_reopen_or_later_save() {
-        for history in [false, true] {
+        for _ in [false, true] {
             let dir = tempfile::tempdir().unwrap();
             let mut state = saved_qa_session();
             Hub::open(dir.path().to_path_buf())
@@ -1085,11 +1085,7 @@ mod qa_settings_recovery_tests {
             let mut hub = Hub::open(dir.path().to_path_buf()).unwrap();
             assert!(hub.pending_session_backup.is_some());
             let profile = state.profiles[0].id;
-            if history {
-                hub.discard_session_backup(profile).unwrap();
-            } else {
-                hub.discard_session_backup(profile).unwrap();
-            }
+            hub.discard_session_backup(profile).unwrap();
             assert!(hub.pending_session_backup.is_none());
             let canonical = hub.load().unwrap().unwrap();
             assert!(hub.pending_session_backup.is_none());

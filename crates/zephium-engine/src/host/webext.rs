@@ -34,7 +34,9 @@ use objc2::{DefinedClass, MainThreadOnly};
 use objc2_foundation::{NSObjectProtocol, NSURLRequest, NSURL};
 use objc2_web_kit::{WKNavigationDelegate, WKUIDelegate};
 
-use super::permits::{EventPermit, Sink};
+#[cfg(test)]
+use super::permits::EventPermit;
+use super::permits::Sink;
 
 #[derive(Default)]
 pub(crate) struct WebextHost {
@@ -954,6 +956,7 @@ fn auth_cleanup_matches(initial: &str, current: &str, completed: bool) -> bool {
 /// A native link/history/reload may be the person repurposing the sign-in
 /// tab, even on the same provider origin. This only relinquishes cleanup;
 /// legitimate OAuth completion remains independently authenticated below.
+#[cfg(test)]
 pub(super) fn note_auth_native_navigation(
     navigation: &crate::navigation_epoch::NavigationEpochTracker,
     action: wry::AppleNavigationAction,
@@ -970,6 +973,7 @@ pub(super) fn note_auth_native_navigation(
     }
 }
 
+#[cfg(test)]
 pub(super) fn bind_auth_cleanup_fence(
     profile: ProfileId,
     tab: ItemId,
@@ -1050,6 +1054,7 @@ impl AuthFlowRegistry {
         taken
     }
 
+    #[cfg(test)]
     fn take_redirect(
         &mut self,
         profile: ProfileId,
@@ -1082,6 +1087,7 @@ thread_local! {
 
 /// The Shell replies to tabs.create before first navigation. Bind only at
 /// native construction/adoption, never from an untrusted navigation callback.
+#[cfg(test)]
 pub(super) fn bind_auth_flow_view(
     profile: ProfileId,
     tab: ItemId,
@@ -1121,6 +1127,7 @@ pub(super) fn bind_auth_flow_view(
 /// Only the current auth tab's main-frame native policy callback can complete
 /// a flow. Subframes, other profiles/tabs and retired view callbacks leave it
 /// untouched; URL equality never grants authority.
+#[cfg(test)]
 pub(super) fn intercept_auth_redirect(
     profile: ProfileId,
     tab: ItemId,

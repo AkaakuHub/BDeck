@@ -80,7 +80,7 @@ export const commands = {
 	secret: boolean,
 	failed: boolean,
 } | null) => __TAURI_INVOKE<null>("column_panel_sync", { view }),
-	extensionActionInvoke: (profileId: string, installId: string, runtimeGeneration: string, actionRevision: string, anchorX: number | null, anchorY: number | null, anchorWidth: number | null, anchorHeight: number | null) => __TAURI_INVOKE<OperationAdmission>("extension_action_invoke", { profileId, installId, runtimeGeneration, actionRevision, anchorX, anchorY, anchorWidth, anchorHeight }),
+	extensionActionInvoke: (request: ExtensionActionInvokeRequest) => __TAURI_INVOKE<OperationAdmission>("extension_action_invoke", { request }),
 	/**
 	 *  Downloads and verifies the extension on the active store page, and
 	 *  returns what the user is asked to approve.
@@ -220,6 +220,17 @@ export type ExtensionActionFailedView = {
 };
 
 export type ExtensionActionFailure = "invalid_request" | "runtime_unavailable" | "runtime_superseded" | "tab_unavailable" | "tab_discarded" | "action_unavailable" | "action_disabled" | "capacity_exceeded" | "popup_unavailable" | "popup_capacity_exceeded" | "native_admission_failed" | "shutting_down" | "unsupported_platform";
+
+export type ExtensionActionInvokeRequest = {
+	profileId: string,
+	installId: string,
+	runtimeGeneration: string,
+	actionRevision: string,
+	anchorX: number | null,
+	anchorY: number | null,
+	anchorWidth: number | null,
+	anchorHeight: number | null,
+};
 
 export type ExtensionActionRuntimeView = {
 	install_id: string,

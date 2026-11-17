@@ -1,7 +1,10 @@
 use super::DeckAccount;
 
 pub(super) fn url(account: &DeckAccount) -> Option<String> {
-    let identity = account.identity.as_ref().filter(|identity| identity.valid())?;
+    let identity = account
+        .identity
+        .as_ref()
+        .filter(|identity| identity.valid())?;
     Some(format!("https://x.com/i/user/{}", identity.user_id))
 }
 
@@ -21,9 +24,15 @@ mod tests {
             screen_name: "first_user".into(),
         });
         let expected = "https://x.com/i/user/9007199254740993";
-        assert_eq!(ColumnTarget::Profile.url(&account).as_deref(), Some(expected));
+        assert_eq!(
+            ColumnTarget::Profile.url(&account).as_deref(),
+            Some(expected)
+        );
         account.identity.as_mut().unwrap().screen_name = "renamed_user".into();
-        assert_eq!(ColumnTarget::Profile.url(&account).as_deref(), Some(expected));
+        assert_eq!(
+            ColumnTarget::Profile.url(&account).as_deref(),
+            Some(expected)
+        );
         account.identity.as_mut().unwrap().user_id = "../settings".into();
         assert!(ColumnTarget::Profile.url(&account).is_none());
     }

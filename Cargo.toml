@@ -1,12 +1,7 @@
 [workspace]
 resolver = "2"
 members = ["crates/*", "desktop", "xtask"]
-exclude = [
-    "vendor/tao",
-    "vendor/tauri",
-    "vendor/tauri-runtime-wry",
-    "vendor/wry",
-]
+exclude = ["vendor/tao", "vendor/tauri", "vendor/tauri-runtime-wry", "vendor/wry"]
 
 [workspace.package]
 version = "0.1.0"

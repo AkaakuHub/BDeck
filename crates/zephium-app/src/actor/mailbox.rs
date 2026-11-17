@@ -428,16 +428,6 @@ impl CommandQueue {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn try_recv(&self) -> Option<Command> {
-        let mut state = self
-            .inner
-            .state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        state.commands.pop_front()
-    }
-
     pub(crate) fn reopen_after_failed_shutdown(&self) -> Vec<Command> {
         let mut state = self
             .inner
@@ -875,14 +865,6 @@ impl CommandQueue {
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
             timer = next;
         }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn wait_for_tick(&self, interval: std::time::Duration) -> bool {
-        matches!(
-            self.wait_for_timer(std::time::Instant::now() + interval),
-            TimerWake::Maintenance
-        )
     }
 }
 

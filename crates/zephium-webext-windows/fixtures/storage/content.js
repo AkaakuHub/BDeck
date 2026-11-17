@@ -1,1 +1,1 @@
-document.documentElement.dataset.zephiumStorageQualifier = 'injected';
+document.documentElement.dataset.zephiumStorageQualifier = "injected";

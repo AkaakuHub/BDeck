@@ -19,15 +19,18 @@ export function createSettingsTransfer() {
         if (result.kind === "cancelled") return;
         if (!accepted(result)) {
           failed = true;
-          message = result.kind === "processed" && result.disposition.reason === "store_outcome_unknown"
-            ? "保存結果を確認できません。BDeckを再起動してください。"
-            : "設定を読み込めませんでした。";
+          message =
+            result.kind === "processed" && result.disposition.reason === "store_outcome_unknown"
+              ? "保存結果を確認できません。BDeckを再起動してください。"
+              : "設定を読み込めませんでした。";
         } else message = "設定を読み込みました。";
       }
     } catch (error) {
       failed = true;
       message = typeof error === "string" ? error : "設定を処理できませんでした。";
-    } finally { pending = null; }
+    } finally {
+      pending = null;
+    }
   }
 
   return { transfer, pending: () => pending, message: () => message, failed: () => failed };

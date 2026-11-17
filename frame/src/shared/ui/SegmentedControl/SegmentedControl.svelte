@@ -1,15 +1,6 @@
-<script lang="ts" module>
-  import type { IconSvgElement } from "@hugeicons/svelte";
-  export type SegmentedOption = {
-    value: string;
-    label: string;
-    icon?: IconSvgElement;
-    disabled?: boolean;
-  };
-</script>
-
 <script lang="ts">
   import Icon from "../Icon/Icon.svelte";
+  import type { SegmentedOption } from "./model";
 
   let {
     label,

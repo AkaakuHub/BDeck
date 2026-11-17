@@ -1,10 +1,10 @@
 use zephium_core::extensions::ExtensionBrowserRequestId;
-mod support;
-mod media;
-mod portable;
-mod composer;
 mod authentication;
+mod composer;
+mod media;
 mod navigation;
+mod portable;
+mod support;
 use super::*;
 use support::Fixture;
 use zephium_core::ids::DeckAccountId;
@@ -214,19 +214,27 @@ fn extension_options_from_each_account_return_to_the_original_column() {
         let _ = shell.operation_activate(column);
         let mut profiles = zephium_core::extensions::ExtensionActiveProfiles::EMPTY;
         assert!(profiles.try_insert(profile));
-        assert!(shell.extension_browser_surfaces.replace_active_profiles(profiles));
+        assert!(shell
+            .extension_browser_surfaces
+            .replace_active_profiles(profiles));
         shell.browser_page = Some(shell.windows.focused().unwrap().id);
-        shell.on_extension_browser_request(ExtensionBrowserRequest::new(
-            profile,
-            ExtensionBrowserRequestId::new(1).unwrap(),
-            ExtensionBrowserRequestAction::OpenExtensionPage,
-        ).unwrap());
+        shell.on_extension_browser_request(
+            ExtensionBrowserRequest::new(
+                profile,
+                ExtensionBrowserRequestId::new(1).unwrap(),
+                ExtensionBrowserRequestAction::OpenExtensionPage,
+            )
+            .unwrap(),
+        );
         let page = shell.windows.focused().unwrap().active.unwrap();
         assert_ne!(page, column);
         assert_eq!(shell.deck_profile_for_item(page), Some(profile));
         assert_eq!(shell.pane_tree(), Some(Pane::Leaf(page)));
         assert_eq!(shell.browser_page, None);
-        assert_eq!(shell.items.tab(page).unwrap().content, zephium_core::item::TabContent::ExtensionOwned);
+        assert_eq!(
+            shell.items.tab(page).unwrap().content,
+            zephium_core::item::TabContent::ExtensionOwned
+        );
         let closed = shell.operation_run_command("tab.close");
         assert_ne!(closed.outcome, OperationOutcome::Rejected);
         assert_eq!(shell.windows.focused().unwrap().active, Some(column));
@@ -246,12 +254,17 @@ fn extension_options_without_columns_close_without_creating_a_browser_tab() {
     let profile = ProfileId::from(1);
     let mut profiles = zephium_core::extensions::ExtensionActiveProfiles::EMPTY;
     assert!(profiles.try_insert(profile));
-    assert!(shell.extension_browser_surfaces.replace_active_profiles(profiles));
-    shell.on_extension_browser_request(ExtensionBrowserRequest::new(
-        profile,
-        ExtensionBrowserRequestId::new(1).unwrap(),
-        ExtensionBrowserRequestAction::OpenExtensionPage,
-    ).unwrap());
+    assert!(shell
+        .extension_browser_surfaces
+        .replace_active_profiles(profiles));
+    shell.on_extension_browser_request(
+        ExtensionBrowserRequest::new(
+            profile,
+            ExtensionBrowserRequestId::new(1).unwrap(),
+            ExtensionBrowserRequestAction::OpenExtensionPage,
+        )
+        .unwrap(),
+    );
     let page = shell.windows.focused().unwrap().active.unwrap();
     let _ = shell.close(page);
     assert_eq!(shell.windows.focused().unwrap().active, None);
@@ -261,7 +274,10 @@ fn extension_options_without_columns_close_without_creating_a_browser_tab() {
 
 #[test]
 fn extension_toolbar_events_follow_the_selected_account_and_reject_another_account() {
-    use zephium_core::extensions::{ExtensionActionRejection, ExtensionActionRevision, ExtensionRuntimeGeneration, ExtensionRuntimeInstance};
+    use zephium_core::extensions::{
+        ExtensionActionRejection, ExtensionActionRevision, ExtensionRuntimeGeneration,
+        ExtensionRuntimeInstance,
+    };
     use zephium_core::ids::ExtensionInstallId;
     for account in [1, 2] {
         let mut fixture = Fixture::new(2);
@@ -270,9 +286,17 @@ fn extension_toolbar_events_follow_the_selected_account_and_reject_another_accou
         fixture.events.lock().unwrap().clear();
         for profile in [ProfileId::from(1), ProfileId::from(2)] {
             fixture.shell.project_extension_actions(profile);
-            fixture.shell.project_extension_action_failure(profile, Some(column), ExtensionActionRejection::NativeAdmissionFailed);
+            fixture.shell.project_extension_action_failure(
+                profile,
+                Some(column),
+                ExtensionActionRejection::NativeAdmissionFailed,
+            );
             fixture.shell.project_extension_action_shortcut(
-                ExtensionRuntimeInstance::new(profile, ExtensionInstallId::from(1), ExtensionRuntimeGeneration::INITIAL),
+                ExtensionRuntimeInstance::new(
+                    profile,
+                    ExtensionInstallId::from(1),
+                    ExtensionRuntimeGeneration::INITIAL,
+                ),
                 column,
                 ExtensionActionRevision::INITIAL,
             );
@@ -282,8 +306,10 @@ fn extension_toolbar_events_follow_the_selected_account_and_reject_another_accou
         assert_eq!(events.len(), 3);
         assert!(events.iter().all(|event| match event {
             Projection::ExtensionActions(view) => view.profile_id == expected,
-            Projection::ExtensionActionFailed(view) => view.profile_id == expected && view.tab_id == column.to_string(),
-            Projection::ExtensionActionShortcut(view) => view.profile_id == expected && view.tab_id == column.to_string(),
+            Projection::ExtensionActionFailed(view) =>
+                view.profile_id == expected && view.tab_id == column.to_string(),
+            Projection::ExtensionActionShortcut(view) =>
+                view.profile_id == expected && view.tab_id == column.to_string(),
             _ => false,
         }));
     }
@@ -297,20 +323,42 @@ fn reloading_chrome_replays_extension_actions_without_recreating_views() {
     let views = fixture.engine.views.lock().unwrap().len();
     fixture.shell.bootstrap();
     assert_eq!(fixture.engine.views.lock().unwrap().len(), views);
-    assert!(fixture.events.lock().unwrap().iter().any(|event| matches!(event,
-        Projection::ExtensionActions(view) if view.profile_id == ProfileId::from(2).to_string()
-    )));
+    assert!(fixture
+        .events
+        .lock()
+        .unwrap()
+        .iter()
+        .any(|event| matches!(event,
+            Projection::ExtensionActions(view) if view.profile_id == ProfileId::from(2).to_string()
+        )));
 }
 
 #[test]
 fn columns_beyond_the_browser_split_limit_remain_accessible_without_loading_every_page() {
     let mut fixture = Fixture::new(14);
     assert!(fixture.shell.items.tab(ItemId::from(114)).is_some());
-    assert!(!fixture.shell.items.tab(ItemId::from(114)).unwrap().has_view());
+    assert!(!fixture
+        .shell
+        .items
+        .tab(ItemId::from(114))
+        .unwrap()
+        .has_view());
     assert!(fixture.engine.views.lock().unwrap().len() < 8);
     let _ = fixture.shell.operation_run_command("deck.scroll=100000");
-    assert!(fixture.shell.items.tab(ItemId::from(114)).unwrap().has_view());
-    assert!(fixture.shell.pane_tree().unwrap().contains(ItemId::from(114)));
+    assert!(fixture
+        .shell
+        .items
+        .tab(ItemId::from(114))
+        .unwrap()
+        .has_view());
+    assert!(fixture
+        .shell
+        .pane_tree()
+        .unwrap()
+        .contains(ItemId::from(114)));
     assert!(fixture.engine.views.lock().unwrap().len() < 14);
-    assert_eq!(fixture.shell.deck.profile_for_item(ItemId::from(114)), Some(ProfileId::from(14)));
+    assert_eq!(
+        fixture.shell.deck.profile_for_item(ItemId::from(114)),
+        Some(ProfileId::from(14))
+    );
 }

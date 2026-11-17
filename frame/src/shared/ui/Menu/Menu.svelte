@@ -1,19 +1,3 @@
-<script lang="ts" module>
-  import type { IconSvgElement } from "@hugeicons/svelte";
-  export type MenuEntry =
-    | {
-        kind: "item";
-        id: string;
-        label: string;
-        icon?: IconSvgElement;
-            checked?: boolean;
-        danger?: boolean;
-        disabled?: boolean;
-      }
-    | { kind: "separator" }
-    | { kind: "heading"; label: string };
-</script>
-
 <script lang="ts">
   import { DropdownMenu } from "bits-ui";
   import type { Snippet } from "svelte";
@@ -22,6 +6,7 @@
   import "./popover.css";
   import { menuMaterialFor } from "./material";
   import { layoutAnchor } from "./anchor";
+  import type { MenuEntry } from "./model";
   let {
     label,
     entries,

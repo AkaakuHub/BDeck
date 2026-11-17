@@ -1,2 +1,4 @@
 header[role="banner"],
-[data-testid="sidebarColumn"] { display: none !important; }
+[data-testid="sidebarColumn"] {
+  display: none !important;
+}

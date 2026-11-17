@@ -334,7 +334,8 @@ impl EngineHost {
                 }
                 if let Some(native_view) = webview_nsview(view) {
                     if window == super::COMPOSER_WINDOW {
-                        native_view.setAutoresizingMask(objc2_app_kit::NSAutoresizingMaskOptions::empty());
+                        native_view
+                            .setAutoresizingMask(objc2_app_kit::NSAutoresizingMaskOptions::empty());
                     }
                     if !stage.insert_view(*id, native_view, view.presentation_permit.clone()) {
                         stage.abort_content_update(update_epoch);

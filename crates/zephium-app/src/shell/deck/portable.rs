@@ -41,7 +41,7 @@ impl Shell {
             self.profiles.iter().map(|profile| profile.id),
             ProfileId::generate,
             zephium_core::ids::DeckAccountId::generate,
-            || zephium_core::ids::DeckColumnId::generate(),
+            zephium_core::ids::DeckColumnId::generate,
         ) else {
             return rejected();
         };

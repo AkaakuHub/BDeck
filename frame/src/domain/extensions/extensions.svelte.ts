@@ -200,16 +200,16 @@ export async function invoke(
   if (!action.enabled || invoking.has(key)) return;
   invoking.add(key);
   try {
-    const admission = await commands.extensionActionInvoke(
+    const admission = await commands.extensionActionInvoke({
       profileId,
-      action.runtime.install_id,
-      action.runtime.generation,
-      action.revision,
-      anchor.left,
-      anchor.top,
-      anchor.width,
-      anchor.height,
-    );
+      installId: action.runtime.install_id,
+      runtimeGeneration: action.runtime.generation,
+      actionRevision: action.revision,
+      anchorX: anchor.left,
+      anchorY: anchor.top,
+      anchorWidth: anchor.width,
+      anchorHeight: anchor.height,
+    });
     if (!admission.accepted) publishFailure("invalid_request", profileId, tabId);
   } catch {
     publishFailure("native_admission_failed", profileId, tabId);

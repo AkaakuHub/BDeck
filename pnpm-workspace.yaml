@@ -3,7 +3,7 @@ packages:
   - desktop
 
 allowBuilds:
-  '@hugeicons/svelte': true
+  "@hugeicons/svelte": true
   esbuild: true
   unrs-resolver: false
 
@@ -18,3 +18,12 @@ overrides:
   "devalue@<5.9.3": ^5.9.3
   # Keep the parser peers and build pipeline on the same patched release.
   postcss: 8.5.28
+  vite@*: 'catalog:'
+catalog:
+  vite: npm:@voidzero-dev/vite-plus-core@1.6.0
+  vite-plus: 1.6.0
+peerDependencyRules:
+  allowAny:
+    - vite
+  allowedVersions:
+    vite: '*'

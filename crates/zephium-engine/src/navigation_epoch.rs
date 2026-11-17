@@ -440,6 +440,7 @@ impl NavigationEpochTracker {
         !state.revoked && state.auth_cleanup_owned
     }
 
+    #[cfg(test)]
     pub(crate) fn release_auth_cleanup(&self) {
         let mut state = self
             .state
@@ -452,6 +453,7 @@ impl NavigationEpochTracker {
     }
 
     #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn attach_auth_cleanup_fence(
         &self,
         fence: zephium_core::extensions::AuthTabCleanupPermit,

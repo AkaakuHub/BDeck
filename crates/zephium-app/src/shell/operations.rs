@@ -6,8 +6,11 @@ impl Shell {
     pub(super) fn handle_operation(&mut self, command: Command) -> OperationDisposition {
         match command {
             Command::Open => self.operation_open(),
-            Command::InvokeExtensionAction { runtime, revision, anchor } =>
-                self.operation_invoke_extension_action(runtime, revision, anchor),
+            Command::InvokeExtensionAction {
+                runtime,
+                revision,
+                anchor,
+            } => self.operation_invoke_extension_action(runtime, revision, anchor),
             Command::Activate(id) => self.operation_activate(id),
             Command::Close(id) => self.operation_close(id),
             Command::CreateProfile {
@@ -163,10 +166,7 @@ impl Shell {
         anchor: zephium_core::extensions::ExtensionPopupAnchor,
     ) -> OperationDisposition {
         match self.invoke_extension_action(runtime, revision, anchor) {
-            Ok(_) => operation_result(
-                OperationOutcome::Deferred,
-                OperationReason::NativePending,
-            ),
+            Ok(_) => operation_result(OperationOutcome::Deferred, OperationReason::NativePending),
             Err(
                 reason @ zephium_core::extensions::ExtensionActionRejection::NativeAdmissionFailed,
             ) => {
@@ -632,12 +632,24 @@ impl Shell {
             if !self.can_apply_deck(&state) {
                 return operation_result(OperationOutcome::Rejected, OperationReason::InvalidScope);
             }
-            if state.decks.iter().flat_map(|deck| &deck.columns).any(|column| {
-                let existing = self.deck.state().is_some_and(|previous| previous.decks.iter()
-                    .flat_map(|deck| &deck.columns)
-                    .any(|saved| saved.id == column.id && saved.account == column.account));
-                !existing && state.account(column.account).is_none_or(|account| !self.account_available(account))
-            }) {
+            if state
+                .decks
+                .iter()
+                .flat_map(|deck| &deck.columns)
+                .any(|column| {
+                    let existing = self.deck.state().is_some_and(|previous| {
+                        previous
+                            .decks
+                            .iter()
+                            .flat_map(|deck| &deck.columns)
+                            .any(|saved| saved.id == column.id && saved.account == column.account)
+                    });
+                    !existing
+                        && state
+                            .account(column.account)
+                            .is_none_or(|account| !self.account_available(account))
+                })
+            {
                 return operation_result(OperationOutcome::Rejected, OperationReason::InvalidScope);
             }
             Some(state)

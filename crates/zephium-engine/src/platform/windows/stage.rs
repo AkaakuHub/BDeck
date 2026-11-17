@@ -719,7 +719,8 @@ impl Stage {
             state.concealed = next;
             if changed {
                 state.revision = state.revision.wrapping_add(1).max(1);
-                state.dirty.extend(state.views.keys().copied());
+                let dirty_views = state.views.keys().copied().collect::<Vec<_>>();
+                state.dirty.extend(dirty_views);
             }
             changed
         });
@@ -1229,10 +1230,7 @@ fn sync_privacy_covers(state: &Rc<RefCell<State>>) {
                 .unwrap_or_default()
         })
         .unwrap_or_default();
-    let desired_ids = desired
-        .iter()
-        .map(|(id, _, _)| *id)
-        .collect::<HashSet<_>>();
+    let desired_ids = desired.iter().map(|(id, _, _)| *id).collect::<HashSet<_>>();
     let current = state
         .try_borrow()
         .ok()

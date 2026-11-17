@@ -850,20 +850,6 @@ impl Shell {
         self.commit(fx);
     }
 
-    /// A new Today tab of `space` for an ordinary web page, right after
-    /// `after` when that tab is a root of the same Today, never focused:
-    /// the active tab, window focus and split stay as they are.
-    #[cfg(test)]
-    pub(super) fn open_background_tab(
-        &mut self,
-        profile: ProfileId,
-        space: SpaceId,
-        after: Option<ItemId>,
-        url: &str,
-    ) -> Option<ItemId> {
-        self.open_page_tab(profile, space, after, url, false)
-    }
-
     pub(super) fn open_page_tab(
         &mut self,
         profile: ProfileId,

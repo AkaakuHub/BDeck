@@ -9,19 +9,33 @@ let failed = $state(false);
 let stops: (() => void)[] = [];
 let returning: Promise<boolean> | null = null;
 let returned: ((success: boolean) => void) | null = null;
-function finishReturn(success: boolean) { const finish = returned; returned = null; returning = null; finish?.(success); }
+function finishReturn(success: boolean) {
+  const finish = returned;
+  returned = null;
+  returning = null;
+  finish?.(success);
+}
 
 async function init() {
   if (stops.length) return;
   stops = await Promise.all([
     events.uiCommand.listen(({ payload }) => {
       if (payload === "browser.settings" || payload === "browser.return") {
-        flushSync(() => { visible = payload === "browser.settings"; });
+        flushSync(() => {
+          visible = payload === "browser.settings";
+        });
         finishReturn(payload === "browser.return");
       }
-      if (payload === "browser.return-failed") { failed = true; finishReturn(false); }
+      if (payload === "browser.return-failed") {
+        failed = true;
+        finishReturn(false);
+      }
     }),
-    events.browserReturn.listen(() => flushSync(() => { visible = false; })),
+    events.browserReturn.listen(() =>
+      flushSync(() => {
+        visible = false;
+      }),
+    ),
   ]);
 }
 
@@ -49,14 +63,33 @@ async function close(): Promise<boolean> {
   if (returning) return returning;
   if (!visible) return true;
   failed = false;
-  const result = new Promise<boolean>((resolve) => { returned = resolve; });
+  const result = new Promise<boolean>((resolve) => {
+    returned = resolve;
+  });
   returning = result;
   try {
-    if (!(await commands.runCommand("browser.return")).accepted) { failed = true; finishReturn(false); }
-  } catch { failed = true; finishReturn(false); }
+    if (!(await commands.runCommand("browser.return")).accepted) {
+      failed = true;
+      finishReturn(false);
+    }
+  } catch {
+    failed = true;
+    finishReturn(false);
+  }
   return result;
 }
 
-function toggle(next: SettingsSection) { return visible && section === next ? close() : open(next); }
+function toggle(next: SettingsSection) {
+  return visible && section === next ? close() : open(next);
+}
 
-export const surface = { init, dispose, open, close, toggle, visible: () => visible, section: () => section, failed: () => failed };
+export const surface = {
+  init,
+  dispose,
+  open,
+  close,
+  toggle,
+  visible: () => visible,
+  section: () => section,
+  failed: () => failed,
+};

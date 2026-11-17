@@ -53,13 +53,19 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function isAccountIdentity(value: unknown): value is AccountIdentity {
-  return isRecord(value) && typeof value.user_id === "string" && /^[1-9][0-9]{0,19}$/u.test(value.user_id)
-    && typeof value.display_name === "string" && typeof value.screen_name === "string";
+  return (
+    isRecord(value) &&
+    typeof value.user_id === "string" &&
+    /^[1-9][0-9]{0,19}$/u.test(value.user_id) &&
+    typeof value.display_name === "string" &&
+    typeof value.screen_name === "string"
+  );
 }
 
 function isTarget(value: unknown): value is ColumnTarget {
   if (!isRecord(value) || typeof value.kind !== "string") return false;
-  if (value.kind === "home" || value.kind === "notifications" || value.kind === "profile") return true;
+  if (value.kind === "home" || value.kind === "notifications" || value.kind === "profile")
+    return true;
   if (value.kind === "search") return typeof value.query === "string";
   return (value.kind === "list" || value.kind === "url") && typeof value.url === "string";
 }

@@ -16,6 +16,8 @@ __pycache__/
 
 /frame/reports/
 
+.vite-hooks/_/
+
 # Local tooling and secrets
 .claude/
 .vscode/*

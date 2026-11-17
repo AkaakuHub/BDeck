@@ -1,6 +1,6 @@
 // Lab-only feasibility check. Records calls, without replacing action behavior.
 globalThis.zephiumLabActionReports = [];
-for (const method of ['setTitle', 'setBadgeText', 'setIcon', 'setPopup']) {
+for (const method of ["setTitle", "setBadgeText", "setIcon", "setPopup"]) {
   const original = chrome.action[method];
   chrome.action[method] = function (...args) {
     const result = Reflect.apply(original, this, args);
@@ -13,7 +13,7 @@ for (const method of ['setTitle', 'setBadgeText', 'setIcon', 'setPopup']) {
       text: details.text,
       popup: details.popup,
       path: details.path,
-      image: image && {width: image.width, height: image.height, bytes: image.data?.length}
+      image: image && { width: image.width, height: image.height, bytes: image.data?.length },
     };
     globalThis.zephiumLabActionReports.push(report);
     if (globalThis.zephiumLabActionReports.length > 32) globalThis.zephiumLabActionReports.shift();

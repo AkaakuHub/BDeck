@@ -21,14 +21,10 @@ pub struct NavigationObserverIvars {
 
 /// Closed native signals emitted by the WKWebView chrome observer.
 ///
-/// `URL` carries one bounded native value sample as evidence. It never grants
-/// document authority by itself. `None` means WebKit did not expose a value or
-/// the value crossed the native-to-Rust allocation ceiling. Back/forward
-/// availability only asks ordinary browser chrome to refresh; it does not
-/// prove that the current document or its serialized URL changed.
+/// The document URL changed in native browser chrome.
 pub enum NavigationObservation {
     /// Ordinary chrome refreshes from the current document URL.
-    Url(Option<String>),
+    Url,
     HistoryAvailability,
 }
 
@@ -72,14 +68,7 @@ define_class!(
                 return;
             };
             let observation = match NavigationObservationKind::from_key_path(key_path) {
-                Some(NavigationObservationKind::Url) => {
-                    let current = self
-                        .ivars()
-                        .webview
-                        .load()
-                        .and_then(|webview| super::bounded_native_current_url(&webview));
-                    Some(NavigationObservation::Url(current))
-                }
+                Some(NavigationObservationKind::Url) => Some(NavigationObservation::Url),
                 Some(NavigationObservationKind::HistoryAvailability) => {
                     Some(NavigationObservation::HistoryAvailability)
                 }

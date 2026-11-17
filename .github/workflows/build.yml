@@ -41,7 +41,11 @@ jobs:
           restore-keys: pnpm-${{ runner.os }}-${{ runner.arch }}-
       - run: pnpm install --frozen-lockfile
       - run: ruby scripts/ci/check_action_pins.rb
-      - run: pnpm --dir frame typecheck
+      - run: pnpm exec vp -C frame check --deny-warnings
+      - run: pnpm exec vp fmt --check vite.config.ts package.json frame/package.json
+      - run: pnpm exec knip --include dependencies --no-progress
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: pnpm --dir frame test:ipc
       - run: pnpm --dir frame test:deck
       - name: Extension transport tests

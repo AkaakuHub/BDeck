@@ -2,14 +2,14 @@
 
 元ブラウザの共通処理は元のファイルに残し、X専用の実装を次のディレクトリにまとめています。
 
-| 場所 | 内容 |
-| --- | --- |
-| `crates/zephium-core/src/deck/` | アカウント識別、カラム、配置、表示設定のモデルと検証 |
-| `crates/zephium-app/src/shell/deck/` | X用のアカウント画面、投稿パネル、カラム操作 |
+| 場所                                   | 内容                                                        |
+| -------------------------------------- | ----------------------------------------------------------- |
+| `crates/zephium-core/src/deck/`        | アカウント識別、カラム、配置、表示設定のモデルと検証        |
+| `crates/zephium-app/src/shell/deck/`   | X用のアカウント画面、投稿パネル、カラム操作                 |
 | `crates/zephium-engine/src/host/deck/` | XのDOMに適用するCSSと表示用スクリプト、受信メッセージの検証 |
-| `desktop/src/deck/` | BDeckのネイティブ操作を受け付けるIPCとメニュー |
-| `frame/src/domain/deck/` | Rustが確定したアカウント・カラム情報の画面への反映 |
-| `frame/src/features/deck/` | カラム一覧、操作バー、アカウント画面、BDeckの表示設定 |
+| `desktop/src/deck/`                    | BDeckのネイティブ操作を受け付けるIPCとメニュー              |
+| `frame/src/domain/deck/`               | Rustが確定したアカウント・カラム情報の画面への反映          |
+| `frame/src/features/deck/`             | カラム一覧、操作バー、アカウント画面、BDeckの表示設定       |
 
 WebViewの生成・破棄、プロファイルの保存と消去、OSのウィンドウ処理、設定画面からの復帰などは、元ブラウザの処理を必要な範囲で使用します。共通ファイルには、これらとBDeckを接続する処理を置きます。AIやWorkの機能は復元しません。
 

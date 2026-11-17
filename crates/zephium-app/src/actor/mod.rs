@@ -136,29 +136,6 @@ impl ActorStartupGate {
             }
         }
     }
-
-    #[cfg(test)]
-    fn wait_until_waiting(&self, deadline: std::time::Instant) -> bool {
-        let mut state = self
-            .state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        while *state == ActorStartupState::Pending {
-            let remaining = deadline.saturating_duration_since(std::time::Instant::now());
-            if remaining.is_zero() {
-                return false;
-            }
-            let (next, timeout) = self
-                .changed
-                .wait_timeout(state, remaining)
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            state = next;
-            if timeout.timed_out() && *state == ActorStartupState::Pending {
-                return false;
-            }
-        }
-        *state == ActorStartupState::Waiting
-    }
 }
 
 pub struct Handle {
@@ -308,15 +285,6 @@ fn join_worker_until(slot: &mut Option<WorkerThread>, deadline: std::time::Insta
 }
 
 impl WorkerThreads {
-    #[cfg(test)]
-    pub(super) fn actor_and_timer_stopped(&self) -> bool {
-        let state = self
-            .state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        state.actor.is_none() && state.timer.is_none()
-    }
-
     fn install_actor(&self, worker: WorkerThread) {
         self.state
             .lock()
@@ -519,15 +487,6 @@ impl Handle {
         receiver
     }
 
-    #[cfg(test)]
-    pub(super) fn new(queue: CommandQueue) -> Self {
-        Self::with_workers(
-            queue,
-            Arc::new(WorkerThreads::default()),
-            Arc::new(ActorStartupGate::new()),
-        )
-    }
-
     fn with_workers(
         queue: CommandQueue,
         workers: Arc<WorkerThreads>,
@@ -552,11 +511,6 @@ impl Handle {
 
     fn commit_startup_admission(&self) -> bool {
         self.startup.commit_admission()
-    }
-
-    #[cfg(test)]
-    pub(super) fn wait_until_startup_suspended(&self, deadline: std::time::Instant) -> bool {
-        self.startup.wait_until_waiting(deadline)
     }
 
     /// Returns a non-owning callback ingress. Long-lived dependencies owned
@@ -922,19 +876,6 @@ pub fn spawn_suspended(
         },
         spawn_worker,
     )
-}
-
-#[cfg(test)]
-fn spawn_with_worker_spawner(
-    ports: ShellHandoff,
-    worker_spawner: impl FnMut(&'static str, WorkerTask) -> std::io::Result<WorkerThread>,
-) -> Result<Handle, SpawnFailure> {
-    let handle = spawn_suspended_with_worker_spawner(ports, worker_spawner)?;
-    let admitted = handle.admit_startup();
-    debug_assert!(admitted, "new Shell startup gate must be pending");
-    let committed = handle.commit_startup_admission();
-    debug_assert!(committed, "compatibility startup admission must commit");
-    Ok(handle)
 }
 
 #[cfg_attr(

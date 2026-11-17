@@ -17,7 +17,10 @@ async function init() {
     const listening = await events.updater.listen(({ payload }) => {
       if (lifetime === current) receive(payload);
     });
-    if (lifetime !== current) { listening(); return; }
+    if (lifetime !== current) {
+      listening();
+      return;
+    }
     stop = listening;
     const snapshot = await commands.updaterStatus();
     if (lifetime === current) receive(snapshot);
@@ -34,8 +37,11 @@ function dispose() {
 }
 
 export const updater = {
-  init, dispose,
+  init,
+  dispose,
   status: () => status,
-  available: () => status !== null && status.version !== null
-    && ["checking", "available", "downloading", "verifying", "installing"].includes(status.phase),
+  available: () =>
+    status !== null &&
+    status.version !== null &&
+    ["checking", "available", "downloading", "verifying", "installing"].includes(status.phase),
 };

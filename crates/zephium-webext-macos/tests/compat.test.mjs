@@ -12,12 +12,15 @@ const event = () => {
     addListener: (listener) => void listeners.add(listener),
     removeListener: (listener) => void listeners.delete(listener),
     hasListener: (listener) => listeners.has(listener),
-    dispatch: (...args) => [...listeners].map(listener => listener(...args)),
+    dispatch: (...args) => [...listeners].map((listener) => listener(...args)),
   };
 };
 
 function context(kind, nativeOffscreen = false) {
-  const invalid = (name) => new Error(`Invalid call. The 'permissions' value is invalid, because '${name}' is not a valid permission.`);
+  const invalid = (name) =>
+    new Error(
+      `Invalid call. The 'permissions' value is invalid, because '${name}' is not a valid permission.`,
+    );
   const chrome = {
     runtime: {
       id: "abcdefghijklmnopabcdefghijklmnop",
@@ -47,14 +50,21 @@ function context(kind, nativeOffscreen = false) {
       },
       onMessage: event(),
       onConnect: event(),
-      getManifest: () => ({ name: "__MSG_name__", version: "1.2", permissions: ["tabs", "https://a.test/*"], options_page: "options.html", background: { service_worker: "background.js" } }),
+      getManifest: () => ({
+        name: "__MSG_name__",
+        version: "1.2",
+        permissions: ["tabs", "https://a.test/*"],
+        options_page: "options.html",
+        background: { service_worker: "background.js" },
+      }),
       getURL: (path) => `chrome-extension://abcdefghijklmnopabcdefghijklmnop/${path}`,
     },
     i18n: { getMessage: (key) => (key === "name" ? "Probe" : "") },
     webRequest: {
       onBeforeRequest: {
         addListener(_listener, filter) {
-          if (filter.urls.some((url) => url.startsWith("ws"))) throw new Error("invalid match pattern");
+          if (filter.urls.some((url) => url.startsWith("ws")))
+            throw new Error("invalid match pattern");
           this.filters.push(filter.urls);
         },
         filters: [],
@@ -63,7 +73,10 @@ function context(kind, nativeOffscreen = false) {
     declarativeNetRequest: {
       updateSessionRules(options) {
         const index = options.addRules.findIndex((rule) => rule.custom);
-        if (index >= 0) throw new Error(`The 'addRules' value is invalid, because an error with rule at index ${index}: bad header.`);
+        if (index >= 0)
+          throw new Error(
+            `The 'addRules' value is invalid, because an error with rule at index ${index}: bad header.`,
+          );
         this.applied = options.addRules.map((rule) => rule.id);
         this.rules = options.addRules;
         return Promise.resolve();
@@ -81,7 +94,8 @@ function context(kind, nativeOffscreen = false) {
     storage: {
       local: {
         set(items) {
-          if (Object.getPrototypeOf(items) !== Object.prototype) throw new Error("The 'items' value is invalid, because an object is expected.");
+          if (Object.getPrototypeOf(items) !== Object.prototype)
+            throw new Error("The 'items' value is invalid, because an object is expected.");
           this.saved = items;
           return Promise.resolve();
         },
@@ -93,18 +107,27 @@ function context(kind, nativeOffscreen = false) {
       updateContentScripts: () => Promise.resolve(),
     },
     webNavigation: { onCommitted: event() },
-    tabs: { onUpdated: event(), onRemoved: event(), sendMessage() {}, query: () => Promise.resolve([{ id: 1 }]) },
+    tabs: {
+      onUpdated: event(),
+      onRemoved: event(),
+      sendMessage() {},
+      query: () => Promise.resolve([{ id: 1 }]),
+    },
   };
-  if (nativeOffscreen) chrome.offscreen = {
-    createDocument: () => Promise.resolve(),
-    closeDocument: () => Promise.resolve(),
-    hasDocument: () => Promise.resolve(false),
-  };
+  if (nativeOffscreen)
+    chrome.offscreen = {
+      createDocument: () => Promise.resolve(),
+      closeDocument: () => Promise.resolve(),
+      hasDocument: () => Promise.resolve(false),
+    };
   const g = {
     chrome,
     browser: { ...chrome },
     // As in WebKit, the user agent lives on Navigator.prototype.
-    navigator: Object.create({ userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15" }),
+    navigator: Object.create({
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15",
+    }),
     addEventListener() {},
     setTimeout: (callback) => (queueMicrotask(callback), 0),
     setInterval: () => 0,
@@ -138,7 +161,11 @@ function context(kind, nativeOffscreen = false) {
     g.location = { protocol: "chrome-extension:", href: "chrome-extension://x/sw.js" };
     g.EventTarget = class {};
   } else if (kind === "page") {
-    g.location = { protocol: "chrome-extension:", pathname: "/popup.html", href: "chrome-extension://x/popup.html" };
+    g.location = {
+      protocol: "chrome-extension:",
+      pathname: "/popup.html",
+      href: "chrome-extension://x/popup.html",
+    };
   } else {
     g.location = { protocol: "https:", pathname: "/", href: "https://example.com/" };
   }
@@ -149,7 +176,12 @@ function context(kind, nativeOffscreen = false) {
 }
 
 test("pages and workers get every API fix", async () => {
-  for (const [kind, nativeOffscreen] of [["page", false], ["worker", false], ["page", true], ["worker", true]]) {
+  for (const [kind, nativeOffscreen] of [
+    ["page", false],
+    ["worker", false],
+    ["page", true],
+    ["worker", true],
+  ]) {
     const { chrome, browser } = context(kind, nativeOffscreen);
     assert.equal(browser, chrome, `${kind}: browser aliases chrome`);
     assert.equal(await chrome.permissions.contains({ permissions: ["privacy"] }), true, kind);
@@ -162,7 +194,10 @@ test("pages and workers get every API fix", async () => {
     await chrome.scripting.registerContentScripts([{ id: "a" }]);
     assert.equal(typeof chrome.webNavigation.onHistoryStateUpdated.addListener, "function", kind);
     assert.equal(typeof chrome.notifications.create, "function", kind);
-    assert.match(chrome.identity.getRedirectURL("cb"), /^https:\/\/abcdefghijklmnopabcdefghijklmnop\.chromiumapp\.org\/cb$/);
+    assert.match(
+      chrome.identity.getRedirectURL("cb"),
+      /^https:\/\/abcdefghijklmnopabcdefghijklmnop\.chromiumapp\.org\/cb$/,
+    );
     const saving = await chrome.privacy.services.passwordSavingEnabled.get({});
     assert.equal(saving.value, false, kind);
     assert.equal(saving.levelOfControl, "controlled_by_this_extension", kind);
@@ -176,20 +211,59 @@ test("pages and workers get every API fix", async () => {
     assert.equal(chrome.webRequest.OnHeadersReceivedOptions.EXTRA_HEADERS, "extraHeaders", kind);
     chrome.webRequest.onBeforeRequest.addListener(() => {}, { urls: ["ws://*/*", "https://*/*"] });
     chrome.webRequest.onBeforeRequest.addListener(() => {}, { urls: ["wss://*/*"] });
-    assert.equal(JSON.stringify(chrome.webRequest.onBeforeRequest.filters.at(-1)), JSON.stringify(["https://*/*"]), kind);
+    assert.equal(
+      JSON.stringify(chrome.webRequest.onBeforeRequest.filters.at(-1)),
+      JSON.stringify(["https://*/*"]),
+      kind,
+    );
 
-    await chrome.declarativeNetRequest.updateSessionRules({ addRules: [{ id: 1 }, { id: 2, custom: true }, { id: 3 }] });
-    assert.equal(JSON.stringify(chrome.declarativeNetRequest.applied), JSON.stringify([1, 3]), kind);
+    await chrome.declarativeNetRequest.updateSessionRules({
+      addRules: [{ id: 1 }, { id: 2, custom: true }, { id: 3 }],
+    });
+    assert.equal(
+      JSON.stringify(chrome.declarativeNetRequest.applied),
+      JSON.stringify([1, 3]),
+      kind,
+    );
     const dnr = chrome.declarativeNetRequest;
-    await dnr.updateSessionRules({ addRules: [{ id: 4, action: {
-      type: dnr.RuleActionType.MODIFY_HEADERS,
-      requestHeaders: [{ header: "origin", operation: dnr.HeaderOperation.SET, value: "https://example.test" }],
-    }, condition: { resourceTypes: [dnr.ResourceType.XMLHTTPREQUEST] } }] });
-    assert.deepEqual(JSON.parse(JSON.stringify(dnr.rules)), [{ id: 4, action: {
-      type: "modifyHeaders", requestHeaders: [{ header: "origin", operation: "set", value: "https://example.test" }],
-    }, condition: { resourceTypes: ["xmlhttprequest"] } }], kind);
+    await dnr.updateSessionRules({
+      addRules: [
+        {
+          id: 4,
+          action: {
+            type: dnr.RuleActionType.MODIFY_HEADERS,
+            requestHeaders: [
+              {
+                header: "origin",
+                operation: dnr.HeaderOperation.SET,
+                value: "https://example.test",
+              },
+            ],
+          },
+          condition: { resourceTypes: [dnr.ResourceType.XMLHTTPREQUEST] },
+        },
+      ],
+    });
+    assert.deepEqual(
+      JSON.parse(JSON.stringify(dnr.rules)),
+      [
+        {
+          id: 4,
+          action: {
+            type: "modifyHeaders",
+            requestHeaders: [{ header: "origin", operation: "set", value: "https://example.test" }],
+          },
+          condition: { resourceTypes: ["xmlhttprequest"] },
+        },
+      ],
+      kind,
+    );
 
-    assert.equal(JSON.stringify(await chrome.tabs.query({ windowType: "app" })), JSON.stringify([]), kind);
+    assert.equal(
+      JSON.stringify(await chrome.tabs.query({ windowType: "app" })),
+      JSON.stringify([]),
+      kind,
+    );
     assert.equal((await chrome.tabs.query({ active: true })).length, 1, kind);
 
     class State {
@@ -198,7 +272,11 @@ test("pages and workers get every API fix", async () => {
       }
     }
     await chrome.storage.local.set(new State());
-    assert.equal(JSON.stringify(chrome.storage.local.saved), JSON.stringify({ vault: { locked: true } }), kind);
+    assert.equal(
+      JSON.stringify(chrome.storage.local.saved),
+      JSON.stringify({ vault: { locked: true } }),
+      kind,
+    );
 
     // A worker's first word to the browser is that it started.
     assert.equal(chrome.runtime.sent[0] === "worker.started", kind === "worker", kind);
@@ -210,7 +288,11 @@ test("pages and workers get every API fix", async () => {
     assert.equal(self.name, "Probe", kind);
     assert.equal(self.installType, "normal", kind);
     assert.equal(JSON.stringify(self.permissions), JSON.stringify(["tabs"]), kind);
-    assert.equal(self.optionsUrl, "chrome-extension://abcdefghijklmnopabcdefghijklmnop/options.html", kind);
+    assert.equal(
+      self.optionsUrl,
+      "chrome-extension://abcdefghijklmnopabcdefghijklmnop/options.html",
+      kind,
+    );
   }
 });
 
@@ -219,14 +301,20 @@ test("silent authentication fails without a native call in promise and callback 
     const { chrome } = context(kind);
     const before = chrome.runtime.sent.length;
     for (const details of [undefined, {}, { interactive: false }, { interactive: "true" }]) {
-      await assert.rejects(chrome.identity.launchWebAuthFlow(details), /Non-interactive authentication is not supported/);
+      await assert.rejects(
+        chrome.identity.launchWebAuthFlow(details),
+        /Non-interactive authentication is not supported/,
+      );
     }
     let callbackError;
     let callbackResult;
-    assert.equal(chrome.identity.launchWebAuthFlow({ interactive: false }, result => {
-      callbackResult = result;
-      callbackError = chrome.runtime.lastError?.message;
-    }), undefined);
+    assert.equal(
+      chrome.identity.launchWebAuthFlow({ interactive: false }, (result) => {
+        callbackResult = result;
+        callbackError = chrome.runtime.lastError?.message;
+      }),
+      undefined,
+    );
     await Promise.resolve();
     await Promise.resolve();
     assert.equal(callbackResult, undefined);
@@ -245,7 +333,13 @@ test("interactive authentication retains the complete native redirect result", a
     request = message;
     return { url: redirect };
   };
-  assert.equal(await chrome.identity.launchWebAuthFlow({ interactive: true, url: "https://accounts.example/login" }), redirect);
+  assert.equal(
+    await chrome.identity.launchWebAuthFlow({
+      interactive: true,
+      url: "https://accounts.example/login",
+    }),
+    redirect,
+  );
   assert.equal(request.api, "identity.launch");
   assert.equal(request.interactive, true);
   assert.equal(request.url, "https://accounts.example/login");
@@ -280,7 +374,8 @@ test("worker messages carry the manifest URL without changing page or content-sc
     { ...worker, id: "another-extension" },
     { ...worker, url: "https://example.test" },
     { ...worker, url: chrome.runtime.getURL("popup.html") },
-  ]) assert.equal(chrome.runtime.onMessage.dispatch({}, sender)[0], sender);
+  ])
+    assert.equal(chrome.runtime.onMessage.dispatch({}, sender)[0], sender);
   chrome.runtime.onMessage.removeListener(received);
   assert.equal(chrome.runtime.onMessage.hasListener(received), false);
   assert.deepEqual(chrome.runtime.onMessage.dispatch({}, worker), []);

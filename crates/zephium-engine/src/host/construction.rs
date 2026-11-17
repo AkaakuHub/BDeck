@@ -64,7 +64,7 @@ impl NativeViewPurpose {
     }
 }
 
-#[cfg(any(target_os = "windows", test))]
+#[cfg(target_os = "windows")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct WindowsConstructionSettlement {
     built_view_exists: bool,
@@ -75,7 +75,7 @@ struct WindowsConstructionSettlement {
     profile_is_quarantined: bool,
 }
 
-#[cfg(any(target_os = "windows", test))]
+#[cfg(target_os = "windows")]
 impl WindowsConstructionSettlement {
     /// A constructed controller is publishable only when the same native
     /// construction attempt produced no competing cleanup obligation and no
@@ -1687,12 +1687,12 @@ impl EngineHost {
                     },
                 );
             })
-            .with_initialization_script(&format!(
+            .with_initialization_script(format!(
                 "(() => {{ const composerOverlay = {}; {} }})();",
                 include_str!("deck/composer-overlay.js"),
                 include_str!("deck/shortcuts.js"),
             ))
-            .with_initialization_script(&format!(
+            .with_initialization_script(format!(
                 "(() => {{ const createMediaGallery = {}; {} }})();",
                 include_str!("deck/media-gallery.js"),
                 include_str!("deck/media.js"),

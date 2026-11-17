@@ -3,9 +3,7 @@
   "name": "Shared storage verification",
   "description": "Verifies shared extension settings with isolated native profiles.",
   "version": "1.0.0",
-  "permissions": [
-    "storage"
-  ],
+  "permissions": ["storage"],
   "action": {
     "default_popup": "page.html"
   }

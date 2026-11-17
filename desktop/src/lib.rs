@@ -1,7 +1,6 @@
 //! Composition root: the only crate that knows Tauri. Wires the dependency graph
 //! (window -> chrome positioning, engine, shell) and the command surface.
 
-mod updater;
 mod deck;
 mod diagnostics;
 #[cfg(any(target_os = "macos", target_os = "windows"))]
@@ -15,6 +14,7 @@ mod profiles;
 #[cfg(any(target_os = "macos", target_os = "windows", test))]
 mod renderer_recovery;
 mod startup_alert;
+mod updater;
 mod webext;
 mod windows_privacy;
 
@@ -66,7 +66,7 @@ const PRE_SHELL_CLEANUP_TIMEOUT: std::time::Duration = std::time::Duration::from
 
 const PRIVILEGED_PERMISSIONS_POLICY: &str = "accelerometer=(), attribution-reporting=(), autoplay=(), browsing-topics=(), camera=(), clipboard-read=(), clipboard-write=(self), compute-pressure=(), display-capture=(), document-domain=(), encrypted-media=(), fullscreen=(), gamepad=(), geolocation=(), gyroscope=(), hid=(), idle-detection=(), join-ad-interest-group=(), local-fonts=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), private-state-token-issuance=(), private-state-token-redemption=(), publickey-credentials-get=(), run-ad-auction=(), screen-wake-lock=(), serial=(), speaker-selection=(), storage-access=(), sync-xhr=(), unload=(), usb=(), web-share=(), window-management=(), xr-spatial-tracking=()";
 const PRIVILEGED_BOOTSTRAP_URL: &str = "about:blank";
-#[cfg(any(target_os = "windows", test))]
+#[cfg(target_os = "windows")]
 const PRIVILEGED_WEBVIEW2_BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI";
 
 #[derive(Clone)]
@@ -819,9 +819,7 @@ fn request_classified_startup_failure(
     cause: &str,
     detail: &str,
 ) {
-    write_diagnostic(format_args!(
-        "startup: failed to initialize BDeck: {cause}"
-    ));
+    write_diagnostic(format_args!("startup: failed to initialize BDeck: {cause}"));
     startup_alert::show_then(app, problem, detail, request_orderly_terminal_failure);
 }
 
@@ -916,9 +914,7 @@ fn request_pre_shell_startup_failure_with_store(
     error: impl std::fmt::Display,
     store: Arc<SqliteStore>,
 ) {
-    write_diagnostic(format_args!(
-        "startup: failed to initialize BDeck: {error}"
-    ));
+    write_diagnostic(format_args!("startup: failed to initialize BDeck: {error}"));
     let store_owner = app
         .try_state::<StartupStore>()
         .map(|owner| owner.inner().clone());
@@ -1307,13 +1303,13 @@ fn shutdown_started(app: &tauri::AppHandle) -> bool {
 }
 
 const MAIN_LABEL: &str = "main";
-#[cfg(any(target_os = "windows", test))]
+#[cfg(target_os = "windows")]
 const PRIVILEGED_MAIN_ENVIRONMENT: u8 = 1 << 0;
-#[cfg(any(target_os = "windows", test))]
+#[cfg(target_os = "windows")]
 const PRIVILEGED_COLUMN_ENVIRONMENT: u8 = 1 << 1;
 const MAX_ITEM_ID_BYTES: usize = 64;
 
-#[cfg(any(target_os = "windows", test))]
+#[cfg(target_os = "windows")]
 fn expected_privileged_environment_labels(bits: u8) -> Vec<&'static str> {
     let mut labels = Vec::with_capacity(2);
     if bits & PRIVILEGED_MAIN_ENVIRONMENT != 0 {
@@ -1560,7 +1556,9 @@ fn ui_ready(caller: WebviewWindow, gate: State<'_, UiStartupGate>) -> bool {
         return false;
     }
     let ready = gate.mark_frontend_ready(&caller);
-    if ready { updater::startup(caller.app_handle()); }
+    if ready {
+        updater::startup(caller.app_handle());
+    }
     ready
 }
 
@@ -1725,9 +1723,7 @@ fn install_async_runtime() {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     if cfg!(all(unix, not(target_os = "macos"))) {
-        diagnostic!(
-            "BDeck supports macOS and Windows. Linux is not supported."
-        );
+        diagnostic!("BDeck supports macOS and Windows. Linux is not supported.");
         std::process::exit(1);
     }
     install_async_runtime();
@@ -2439,9 +2435,6 @@ pub fn run() {
     #[cfg(not(target_os = "windows"))]
     app.run(handle_run_event);
 }
-
-#[cfg(test)]
-mod frame_sources;
 
 #[cfg(test)]
 mod binding_export {

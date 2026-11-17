@@ -1,0 +1,9 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    "frame": {
+      "entry": ["src/entries/*.ts", "tests/**/*.mjs"],
+      "project": ["src/**/*.{ts,svelte,css}", "tests/**/*.mjs", "vite*.ts"]
+    }
+  }
+}

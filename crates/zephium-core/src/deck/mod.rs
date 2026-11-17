@@ -17,8 +17,8 @@ pub mod avatars;
 pub mod layout;
 pub mod links;
 pub mod portable;
-mod removal;
 mod profile;
+mod removal;
 pub use appearance::DeckAppearance;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

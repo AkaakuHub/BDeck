@@ -10,9 +10,15 @@ import { profiles } from "$domain/profiles";
 import { commands } from "$shared/ipc/bindings";
 import { normalizeColumnRows, repositionColumn } from "./columns";
 import {
-  DECK_SETTING, DEFAULT_ROW_RATIO, DECK_APPEARANCE_SETTING,
-  type ColumnTarget, type Deck, type DeckColumn, type DeckState,
-  isDeckState, newUlid,
+  DECK_SETTING,
+  DEFAULT_ROW_RATIO,
+  DECK_APPEARANCE_SETTING,
+  type ColumnTarget,
+  type Deck,
+  type DeckColumn,
+  type DeckState,
+  isDeckState,
+  newUlid,
 } from "./deck-types";
 
 let deckState = $state<DeckState | null>(null);
@@ -23,7 +29,14 @@ let hideAdvertisements = $state(false);
 const HIDE_ADVERTISEMENTS_SETTING = "deck.hide-advertisements";
 
 let activeDeck = $derived(deckState?.decks.find((deck) => deck.id === deckState?.active) ?? null);
-let readyAccounts = $derived((deckState?.accounts ?? []).filter((account) => account.identity !== null && accountSessions.status(account.id) === "logged_in" && !accountSessions.deleting()));
+let readyAccounts = $derived(
+  (deckState?.accounts ?? []).filter(
+    (account) =>
+      account.identity !== null &&
+      accountSessions.status(account.id) === "logged_in" &&
+      !accountSessions.deleting(),
+  ),
+);
 function parseStored(value: string | null): DeckState | null {
   if (!value) return null;
   try {
@@ -47,7 +60,9 @@ function parseAppearance(value: string | null): DeckAppearance {
       scrollbars: parsed.scrollbars,
       hide_navigation: parsed.hide_navigation,
     };
-  } catch { return DEFAULT_APPEARANCE; }
+  } catch {
+    return DEFAULT_APPEARANCE;
+  }
 }
 
 function defaultState(): DeckState | null {
@@ -70,7 +85,9 @@ function defaultState(): DeckState | null {
 async function save(next: DeckState): Promise<boolean> {
   next = { ...next, decks: next.decks.map(normalizeColumnRows) };
   try {
-    const result = await runOperation(() => commands.settingSet(DECK_SETTING, JSON.stringify(next)));
+    const result = await runOperation(() =>
+      commands.settingSet(DECK_SETTING, JSON.stringify(next)),
+    );
     if (!accepted(result)) {
       saveError = true;
       return false;
@@ -92,7 +109,10 @@ async function load() {
       commands.settingGet(HIDE_ADVERTISEMENTS_SETTING),
     ]);
     const stored = parseStored(storedDeck);
-    if (storedDeck !== null && !stored) { saveError = true; return; }
+    if (storedDeck !== null && !stored) {
+      saveError = true;
+      return;
+    }
     appearance = parseAppearance(storedAppearance);
     hideAdvertisements = storedAdvertisements === "true";
     if (stateRevision !== revision) return;
@@ -109,18 +129,26 @@ async function load() {
 async function setAppearance(update: Partial<DeckAppearance>) {
   const next = { ...appearance, ...update };
   try {
-    const result = await runOperation(() => commands.settingSet(DECK_APPEARANCE_SETTING, JSON.stringify(next)));
+    const result = await runOperation(() =>
+      commands.settingSet(DECK_APPEARANCE_SETTING, JSON.stringify(next)),
+    );
     saveError = !accepted(result);
     if (accepted(result)) appearance = next;
-  } catch { saveError = true; }
+  } catch {
+    saveError = true;
+  }
 }
 
 async function setHideAdvertisements(hidden: boolean) {
   try {
-    const result = await runOperation(() => commands.settingSet(HIDE_ADVERTISEMENTS_SETTING, String(hidden)));
+    const result = await runOperation(() =>
+      commands.settingSet(HIDE_ADVERTISEMENTS_SETTING, String(hidden)),
+    );
     saveError = !accepted(result);
     if (accepted(result)) hideAdvertisements = hidden;
-  } catch { saveError = true; }
+  } catch {
+    saveError = true;
+  }
 }
 
 function activeState(change: (deck: Deck) => Deck): DeckState | null {
@@ -148,7 +176,7 @@ async function addColumn(target: ColumnTarget, account: string, width: number, r
       },
     ],
   }));
-  return next && await save(next) ? id : null;
+  return next && (await save(next)) ? id : null;
 }
 
 async function updateColumn(id: string, update: (column: DeckColumn) => DeckColumn) {
@@ -225,9 +253,11 @@ async function setColumnRow(id: string, row: 0 | 1) {
 async function openComposer(): Promise<boolean> {
   if (readyAccounts.length === 0) return false;
   try {
-    if (!await surface.close()) return false;
+    if (!(await surface.close())) return false;
     return accepted(await runOperation(() => commands.runCommand("composer.open")));
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
 async function createAccount() {
@@ -250,12 +280,18 @@ async function init() {
   stopState = await events.uiCommand.listen(({ payload }) => {
     if (!payload.startsWith("deck.state=")) return;
     const next = parseStored(payload.slice("deck.state=".length));
-    if (next) { stateRevision += 1; deckState = next; saveError = false; }
+    if (next) {
+      stateRevision += 1;
+      deckState = next;
+      saveError = false;
+    }
   });
   await profiles.retain();
   await load();
   const metadata = await Promise.allSettled([accountSessions.init(), accountAvatars.init()]);
-  for (const result of metadata) if (result.status === "rejected") console.error("account metadata initialization failed", result.reason);
+  for (const result of metadata)
+    if (result.status === "rejected")
+      console.error("account metadata initialization failed", result.reason);
 }
 
 function dispose() {
@@ -270,11 +306,20 @@ function dispose() {
 }
 
 export const deck = {
-  init, dispose,
+  init,
+  dispose,
   state: () => deckState,
   active: () => activeDeck,
   readyAccounts: () => readyAccounts,
-  loginRequired: () => deckState !== null && (deckState.accounts.length === 0 || deckState.accounts.every((account) => account.identity === null || accountSessions.status(account.id) === "logged_out" || accountSessions.status(account.id) === "account_changed")),
+  loginRequired: () =>
+    deckState !== null &&
+    (deckState.accounts.length === 0 ||
+      deckState.accounts.every(
+        (account) =>
+          account.identity === null ||
+          accountSessions.status(account.id) === "logged_out" ||
+          accountSessions.status(account.id) === "account_changed",
+      )),
   appearance: () => appearance,
   hideAdvertisements: () => hideAdvertisements,
   setHideAdvertisements,
@@ -283,6 +328,19 @@ export const deck = {
     const account = deckState?.accounts.find((account) => account.id === id);
     return account?.identity?.display_name ?? "";
   },
-  save, setAppearance, addColumn, updateColumn, removeColumn, duplicateColumn, moveColumn, reorderColumn,
-  toggleSuspended, toggleSecret, columnAction, setRowRatio, setColumnRow, createAccount, openComposer,
+  save,
+  setAppearance,
+  addColumn,
+  updateColumn,
+  removeColumn,
+  duplicateColumn,
+  moveColumn,
+  reorderColumn,
+  toggleSuspended,
+  toggleSecret,
+  columnAction,
+  setRowRatio,
+  setColumnRow,
+  createAccount,
+  openComposer,
 };

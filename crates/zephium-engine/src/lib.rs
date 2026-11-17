@@ -2199,7 +2199,7 @@ impl Engine for WebviewEngine {
         NativeDispatch::from_scheduled(self.run(move || {
             let _ = host::try_with(move |host| {
                 let profile = request.runtime().profile();
-                let settlement = host.invoke_extension_action(request.clone());
+                let settlement = host.invoke_extension_action(request);
                 host.sink.emit(EngineEvent::ExtensionActionSettled {
                     profile,
                     request: request.id(),
@@ -2395,20 +2395,6 @@ mod tests {
 
     fn test_layout_updates() -> Arc<layout_queue::LatestLayouts<PendingLayout>> {
         Arc::new(layout_queue::LatestLayouts::new(MAX_PENDING_LAYOUT_WINDOWS))
-    }
-
-    #[cfg(target_os = "macos")]
-    fn test_engine() -> WebviewEngine {
-        WebviewEngine {
-            dispatch: Arc::new(|_| false),
-            sink: Arc::new(|_| {}),
-            retirement: Arc::new(Mutex::new(RetirementGate::default())),
-            event_delivery: Arc::new(EventDeliveryGate::default()),
-            fatal_security_failure: Arc::new(|_| {}),
-            runtime_security_advisories: RuntimeSecurityAdvisories::new(),
-            layout_updates: test_layout_updates(),
-            stage_motion: StageMotionHints::default(),
-        }
     }
 
     #[test]

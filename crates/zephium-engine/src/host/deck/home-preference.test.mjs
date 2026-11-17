@@ -3,19 +3,29 @@ import { runInNewContext } from "node:vm";
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const create = runInNewContext(`(${readFileSync(new URL("./home-preference.js", import.meta.url), "utf8")})`);
+const source = readFileSync(new URL("./home-preference.js", import.meta.url), "utf8")
+  .trim()
+  .replace(/;$/, "");
+const create = runInNewContext(`(${source})`);
 function store(initial) {
   const values = new Map(initial === undefined ? [] : [["bdeck.home-timeline", initial]]);
   let writes = 0;
   return {
-    getItem: key => values.get(key) ?? null,
-    setItem(key, value) { values.set(key, value); writes++; },
-    removeItem: key => values.delete(key),
-    get writes() { return writes; },
-    get size() { return values.size; },
+    getItem: (key) => values.get(key) ?? null,
+    setItem(key, value) {
+      values.set(key, value);
+      writes++;
+    },
+    removeItem: (key) => values.delete(key),
+    get writes() {
+      return writes;
+    },
+    get size() {
+      return values.size;
+    },
   };
 }
-const plain = value => JSON.parse(JSON.stringify(value));
+const plain = (value) => JSON.parse(JSON.stringify(value));
 test("an unconfigured account starts with Following in chronological order", () => {
   assert.deepEqual(plain(create(store()).get()), { tab: "react:home_latest", sort: "mostRecent" });
 });
@@ -47,7 +57,13 @@ test("accounts do not share their timeline preferences", () => {
   assert.equal(create(second).get().tab, "react:home_latest");
 });
 test("malformed or oversized records are cleared without accepting an invalid selection", () => {
-  for (const encoded of ["null", "not JSON", "x".repeat(1025), JSON.stringify({ tab: "", sort: "popular" }), JSON.stringify({ tab: "react:home", sort: "unsupported" })]) {
+  for (const encoded of [
+    "null",
+    "not JSON",
+    "x".repeat(1025),
+    JSON.stringify({ tab: "", sort: "popular" }),
+    JSON.stringify({ tab: "react:home", sort: "unsupported" }),
+  ]) {
     const storage = store(encoded);
     assert.equal(create(storage).get().tab, "react:home_latest");
     assert.equal(storage.size, 0);
@@ -56,7 +72,8 @@ test("malformed or oversized records are cleared without accepting an invalid se
 test("invalid new selections never overwrite the current preference", () => {
   const storage = store();
   const preference = create(storage);
-  for (const tab of ["", "x".repeat(257), "react:home\n"]) assert.throws(() => preference.save(tab));
+  for (const tab of ["", "x".repeat(257), "react:home\n"])
+    assert.throws(() => preference.save(tab));
   assert.throws(() => preference.save("react:home", "unsupported"));
   assert.equal(storage.writes, 0);
 });

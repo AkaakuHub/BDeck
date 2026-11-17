@@ -1223,8 +1223,6 @@ mod tests {
     use std::sync::atomic::AtomicBool;
     use std::sync::Arc;
 
-    use crate::navigation_epoch::NavigationTransition;
-
     use super::*;
 
     #[test]

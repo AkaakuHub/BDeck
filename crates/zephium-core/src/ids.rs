@@ -95,8 +95,3 @@ impl ExtensionInstallId {
         high_water.0 .0.checked_add(1).map(Self::from)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-}

@@ -34,30 +34,18 @@ mod window_layout;
 use effects::{mutation_result, operation_result, NativeWork};
 use extension_actions::ExtensionActionState;
 use extension_browser_surface::ExtensionBrowserSurfaceState;
-#[cfg(test)]
-use favicons::ICON_CACHE_CAPACITY;
 use favicons::{origin_of, FaviconState};
 use page_permissions::PagePermissionPromptState;
-#[cfg(test)]
-use presentation::PendingPresentation;
 use presentation::PresentationState;
-#[cfg(test)]
-use presentation::MAX_PRESENTATION_ADMISSION_REJECTIONS;
 use profile_deletion::{
     ProfileDeletionCoordinator, ProfileDeletionPhase, ProfileDeletionState,
     PROFILE_DELETION_STORE_TIMEOUT,
 };
 use view_lifecycle::{CrashState, PendingDiscardProbe, ResidencyState, LIVE_VIEW_ABSOLUTE_LIMIT};
-#[cfg(test)]
-use view_lifecycle::{LIVE_VIEW_PRESSURE_LIMIT, MAX_CONCURRENT_DISCARD_PROBES};
 use window_layout::GrabbedDivider;
 
 use persistence::PersistenceState;
-#[cfg(test)]
-use persistence::{PERSIST_DEBOUNCE, PERSIST_MAX_AGE, URL_CHECKPOINT_DELAY};
 
-#[cfg(test)]
-use crate::actor::{spawn, Handle, TryPushError};
 use crate::actor::{CallbackHandle, CommandQueue};
 use crate::api::PagePermissionPromptDecision;
 use crate::api::TabAction;
@@ -65,14 +53,8 @@ use crate::api::{
     ChromePresentation, ChromePresentationDispatch, Command, EmitFn, SharedChrome, SharedEngine,
     SharedStore, ShellTerminalFailure, ShellTerminalFailureCallback, ShutdownOutcome,
 };
-#[cfg(test)]
-use crate::api::{ChromePresentationCallback, PresentationChrome};
-#[cfg(test)]
-use crate::store_reads::FAVICON_CACHE_MAX_AGE_SECONDS;
 use crate::store_reads::{StoreReadQueue, StoreReadResult};
 
-#[cfg(test)]
-use std::collections::VecDeque;
 use std::sync::mpsc::{sync_channel, SyncSender};
 use std::sync::{Arc, Mutex};
 
@@ -87,17 +69,11 @@ use zephium_core::item::{ItemKind, Lifecycle, Placement, SpaceSection, TabState}
 use zephium_core::items::{Effect, Items};
 use zephium_core::layout;
 use zephium_core::navigation;
-#[cfg(test)]
-use zephium_core::ports::chrome::Chrome as GeometryChrome;
 use zephium_core::ports::chrome::ChromeFrame;
-#[cfg(test)]
-use zephium_core::ports::engine::Engine;
 use zephium_core::ports::engine::{
     DiscardProbeId, EngineEvent, NativeAction, NativeDispatch, NavigationPresentationId, Partition,
     ProfileDataErasureOutcome, StageMotion,
 };
-#[cfg(test)]
-use zephium_core::ports::store::Store;
 use zephium_core::ports::store::{
     PendingProfileDeletion, ProfileDeletionAuthorizeOutcome, ProfileDeletionFinalizeOutcome,
     ProfileDeletionLoad, SessionLoad, StoreShutdownOutcome, MAX_FAVICON_BATCH_ORIGINS,
@@ -255,20 +231,6 @@ impl Shell {
         )
     }
 
-    #[cfg(test)]
-    pub(super) fn new_with_failure(
-        engine: SharedEngine,
-        store: SharedStore,
-        terminal_failure: ShellTerminalFailureCallback,
-        chrome: SharedChrome,
-        emit: EmitFn,
-    ) -> Self {
-        Self::with_store_reads(
-            ShellPorts::new(engine, store, terminal_failure, chrome, emit),
-            None,
-        )
-    }
-
     pub(super) fn with_store_reads(
         ports: ShellPorts,
         store_reads: impl Into<Option<StoreReadQueue>>,
@@ -382,13 +344,16 @@ impl Shell {
                 }
                 let command = *command;
                 if self.deck.pending_import.is_some() {
-                    let mut completion = operation_result(OperationOutcome::Rejected, OperationReason::StorePending);
+                    let mut completion =
+                        operation_result(OperationOutcome::Rejected, OperationReason::StorePending);
                     completion.operation_id = operation_id;
                     (self.emit)(Projection::OperationProcessed(completion));
                     return;
                 }
                 if let Command::ImportDeck(archive) = &command {
-                    if let Some(mut completion) = self.begin_deck_import(archive, operation_id.clone()) {
+                    if let Some(mut completion) =
+                        self.begin_deck_import(archive, operation_id.clone())
+                    {
                         completion.operation_id = operation_id;
                         (self.emit)(Projection::OperationProcessed(completion));
                     }

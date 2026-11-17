@@ -18,7 +18,7 @@
     document.documentElement.removeAttribute("data-bdeck-media");
     document.documentElement.style.removeProperty("--bdeck-media-column-width");
   };
-  const stopMediaClick = event => {
+  const stopMediaClick = (event) => {
     event.stopPropagation();
     if (active?.video) return;
     event.preventDefault();
@@ -28,10 +28,13 @@
     const scale = Math.min(bounds.width / image.naturalWidth, bounds.height / image.naturalHeight);
     const width = image.naturalWidth * scale;
     const height = image.naturalHeight * scale;
-    if (Math.abs(event.clientX - bounds.left - bounds.width / 2) > width / 2 ||
-        Math.abs(event.clientY - bounds.top - bounds.height / 2) > height / 2) close();
+    if (
+      Math.abs(event.clientX - bounds.left - bounds.width / 2) > width / 2 ||
+      Math.abs(event.clientY - bounds.top - bounds.height / 2) > height / 2
+    )
+      close();
   };
-  const release = element => {
+  const release = (element) => {
     element.removeEventListener("click", stopMediaClick);
     element.hidePopover();
     element.removeAttribute("popover");
@@ -59,7 +62,7 @@
     window.ipc.postMessage("media.close");
     restoreColumn();
   };
-  const present = element => {
+  const present = (element) => {
     element.setAttribute("popover", "manual");
     element.setAttribute("data-bdeck-media-content", "");
     element.addEventListener("click", stopMediaClick);
@@ -68,7 +71,7 @@
     closeButton.hidePopover();
     closeButton.showPopover();
   };
-  const play = video => {
+  const play = (video) => {
     video.controls = true;
     video.play().catch(() => {});
   };
@@ -103,73 +106,101 @@
     if (opening) window.ipc.postMessage("media.open");
     if (video) play(video);
   };
-  const activate = event => {
+  const activate = (event) => {
     if (!event.isTrusted || active || (event.type === "pointerdown" && event.button !== 0)) return;
     const path = event.composedPath();
-    const player = path.find(node => node instanceof HTMLElement && node.matches('[data-testid="videoPlayer"]'));
-    const photo = path.find(node => node instanceof HTMLElement && node.matches('[data-testid="tweetPhoto"]'));
+    const player = path.find(
+      (node) => node instanceof HTMLElement && node.matches('[data-testid="videoPlayer"]'),
+    );
+    const photo = path.find(
+      (node) => node instanceof HTMLElement && node.matches('[data-testid="tweetPhoto"]'),
+    );
     const video = player?.querySelector("video");
     if (photo?.querySelector('[data-testid="playButton"]') || (player && !video)) {
       const tweet = (photo || player).closest('[data-testid="tweet"]');
       if (!tweet) return;
       stopPendingVideo();
-      pendingVideo = new MutationObserver(records => {
-        for (const record of records) for (const node of record.addedNodes) {
-          const added = node instanceof HTMLVideoElement ? node : node instanceof Element ? node.querySelector("video") : null;
-          if (!(added instanceof HTMLVideoElement) || !added.isConnected) continue;
-          open(added.parentElement, added);
-          return;
-        }
+      pendingVideo = new MutationObserver((records) => {
+        for (const record of records)
+          for (const node of record.addedNodes) {
+            const added =
+              node instanceof HTMLVideoElement
+                ? node
+                : node instanceof Element
+                  ? node.querySelector("video")
+                  : null;
+            if (!(added instanceof HTMLVideoElement) || !added.isConnected) continue;
+            open(added.parentElement, added);
+            return;
+          }
       });
       pendingVideo.observe(tweet, { childList: true, subtree: true });
       return;
     }
-    const element = video ? video.parentElement : photo?.querySelector('[style*="background-image"]');
+    const element = video
+      ? video.parentElement
+      : photo?.querySelector('[style*="background-image"]');
     if (!(element instanceof HTMLElement)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     consumeClick = event.type === "pointerdown";
     open(element, video);
   };
-  window.addEventListener("pointerdown", event => {
-    consumeClick = false;
-    stopPendingVideo();
-    activate(event);
-  }, true);
-  window.addEventListener("click", event => {
-    if (!event.isTrusted) return;
-    if (consumeClick) {
+  window.addEventListener(
+    "pointerdown",
+    (event) => {
       consumeClick = false;
+      stopPendingVideo();
+      activate(event);
+    },
+    true,
+  );
+  window.addEventListener(
+    "click",
+    (event) => {
+      if (!event.isTrusted) return;
+      if (consumeClick) {
+        consumeClick = false;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+      if (active && event.composedPath().includes(active.element)) return;
+      activate(event);
+    },
+    true,
+  );
+  window.addEventListener(
+    "keydown",
+    (event) => {
+      if (!event.isTrusted || !active || document.fullscreenElement) return;
+      const direction = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
+      if (event.key !== "Escape" && !(gallery && direction)) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      return;
-    }
-    if (active && event.composedPath().includes(active.element)) return;
-    activate(event);
-  }, true);
-  window.addEventListener("keydown", event => {
-    if (!event.isTrusted || !active || document.fullscreenElement) return;
-    const direction = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
-    if (event.key !== "Escape" && !(gallery && direction)) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    if (direction) gallery.move(direction);
-    else close();
-  }, true);
-  window.addEventListener("wheel", event => {
-    if (!active && event.timeStamp >= wheelBlockedUntil) return;
-    event.preventDefault();
-    if (event.timeStamp >= wheelBlockedUntil) {
-      swipeDistance = 0;
-      swipeHandled = false;
-    }
-    wheelBlockedUntil = event.timeStamp + 180;
-    if (!active || swipeHandled || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
-    swipeDistance += event.deltaX;
-    if (Math.abs(swipeDistance) < 60) return;
-    swipeHandled = true;
-    if (gallery) gallery.move(Math.sign(swipeDistance));
-    else close();
-  }, { capture: true, passive: false });
+      if (direction) gallery.move(direction);
+      else close();
+    },
+    true,
+  );
+  window.addEventListener(
+    "wheel",
+    (event) => {
+      if (!active && event.timeStamp >= wheelBlockedUntil) return;
+      event.preventDefault();
+      if (event.timeStamp >= wheelBlockedUntil) {
+        swipeDistance = 0;
+        swipeHandled = false;
+      }
+      wheelBlockedUntil = event.timeStamp + 180;
+      if (!active || swipeHandled || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
+      swipeDistance += event.deltaX;
+      if (Math.abs(swipeDistance) < 60) return;
+      swipeHandled = true;
+      if (gallery) gallery.move(Math.sign(swipeDistance));
+      else close();
+    },
+    { capture: true, passive: false },
+  );
   window.addEventListener("resize", restoreColumn);
 })();

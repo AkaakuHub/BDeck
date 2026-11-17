@@ -222,7 +222,7 @@ pub(crate) fn close_extension(shared: &Shared, extension: &str) {
             .borrow()
             .values()
             .filter(|connection| {
-                connection.owner.as_ptr() == shared as *const _
+                std::ptr::eq(connection.owner.as_ptr(), shared)
                     && connection.client.installation.extension.as_str() == extension
             })
             .cloned()

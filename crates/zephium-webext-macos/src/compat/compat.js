@@ -26,11 +26,16 @@
   // WebKit prefixes the browser's errors with its own; extensions compare
   // against Chrome's text.
   const native = (api, fields) =>
-    runtime.sendNativeMessage("net.akaaku.bdeck.webext", Object.assign({ api }, fields)).catch((error) => {
-      const message = String((error && error.message) || error).replace(/^Invalid call to runtime\.sendNativeMessage\(\)\. /, "");
-      if (api !== "log" && Z.report) Z.report("error", `${api}: ${message}`);
-      throw new Error(message);
-    });
+    runtime
+      .sendNativeMessage("net.akaaku.bdeck.webext", Object.assign({ api }, fields))
+      .catch((error) => {
+        const message = String((error && error.message) || error).replace(
+          /^Invalid call to runtime\.sendNativeMessage\(\)\. /,
+          "",
+        );
+        if (api !== "log" && Z.report) Z.report("error", `${api}: ${message}`);
+        throw new Error(message);
+      });
 
   // A new worker means the previous one is gone, along with whatever it had
   // open through the browser; this is the first thing it sends.
@@ -74,7 +79,10 @@
     Z.report = report;
     g.addEventListener("error", (event) => {
       const origin = event.filename ? ` @ ${event.filename}:${event.lineno}:${event.colno}` : "";
-      report("error", `${event.message}${origin}${event.error && event.error.stack ? "\n" + event.error.stack : ""}`);
+      report(
+        "error",
+        `${event.message}${origin}${event.error && event.error.stack ? "\n" + event.error.stack : ""}`,
+      );
     });
     g.addEventListener("unhandledrejection", (event) => {
       report("error", `unhandled rejection: ${describe(event.reason)}`);
@@ -120,7 +128,8 @@
       { brand: "Google Chrome", version: major },
       { brand: "Not=A?Brand", version: "24" },
     ];
-    const platformVersion = (/Mac OS X (\d+)[_.](\d+)/.exec(navigator.userAgent) || []).slice(1).join(".") || "15.0";
+    const platformVersion =
+      (/Mac OS X (\d+)[_.](\d+)/.exec(navigator.userAgent) || []).slice(1).join(".") || "15.0";
     const agentData = {
       brands,
       mobile: false,
@@ -135,7 +144,10 @@
           model: "",
           platformVersion,
           uaFullVersion: CHROME_VERSION,
-          fullVersionList: brands.map((b) => ({ brand: b.brand, version: b.brand === "Not=A?Brand" ? "24.0.0.0" : CHROME_VERSION })),
+          fullVersionList: brands.map((b) => ({
+            brand: b.brand,
+            version: b.brand === "Not=A?Brand" ? "24.0.0.0" : CHROME_VERSION,
+          })),
         };
         const result = { brands, mobile: false, platform: "macOS" };
         for (const hint of hints || []) if (hint in values) result[hint] = values[hint];
@@ -164,7 +176,12 @@
   const kept = [];
   const pin = (target, key, value) => {
     try {
-      Object.defineProperty(target, key, { value, configurable: true, enumerable: true, writable: true });
+      Object.defineProperty(target, key, {
+        value,
+        configurable: true,
+        enumerable: true,
+        writable: true,
+      });
       return true;
     } catch {
       return false;
@@ -305,7 +322,9 @@
         const requested = Array.isArray(current.permissions) ? current.permissions : [];
         let unknown = requested.some((name) => unknownNames.has(name));
         const onlyEmulated = requested.some((name) => emulated.has(name));
-        current.permissions = requested.filter((name) => !unknownNames.has(name) && !emulated.has(name));
+        current.permissions = requested.filter(
+          (name) => !unknownNames.has(name) && !emulated.has(name),
+        );
         let result;
         for (;;) {
           const listed = Array.isArray(current.permissions) ? current.permissions : [];
@@ -348,31 +367,46 @@
     const identity = namespace("identity");
     const target = identity || {};
     if (typeof target.launchWebAuthFlow !== "function") {
-      pin(target, "getRedirectURL", (path) =>
-        `https://${runtime.id}.chromiumapp.org/${String(path || "").replace(/^\//, "")}`,
+      pin(
+        target,
+        "getRedirectURL",
+        (path) => `https://${runtime.id}.chromiumapp.org/${String(path || "").replace(/^\//, "")}`,
       );
       pin(target, "launchWebAuthFlow", (details, callback) =>
         withCallback(
           !(details && details.interactive === true)
             ? Promise.reject(new Error("Non-interactive authentication is not supported."))
             : native("identity.launch", {
-            url: String((details && details.url) || ""),
-            interactive: Boolean(details && details.interactive),
-          }).then((result) => {
-            if (!result || typeof result.url !== "string") throw new Error("The user did not approve access.");
-            return result.url;
-          }),
+                url: String((details && details.url) || ""),
+                interactive: Boolean(details && details.interactive),
+              }).then((result) => {
+                if (!result || typeof result.url !== "string")
+                  throw new Error("The user did not approve access.");
+                return result.url;
+              }),
           callback,
         ),
       );
       if (typeof target.getAuthToken !== "function") {
         pin(target, "getAuthToken", (_details, callback) =>
-          withCallback(Promise.reject(new Error("The user is not signed in to a Google account in this browser.")), callback),
+          withCallback(
+            Promise.reject(
+              new Error("The user is not signed in to a Google account in this browser."),
+            ),
+            callback,
+          ),
         );
-        pin(target, "removeCachedAuthToken", (_details, callback) => withCallback(Promise.resolve(), callback));
-        pin(target, "clearAllCachedAuthTokens", (callback) => withCallback(Promise.resolve(), callback));
+        pin(target, "removeCachedAuthToken", (_details, callback) =>
+          withCallback(Promise.resolve(), callback),
+        );
+        pin(target, "clearAllCachedAuthTokens", (callback) =>
+          withCallback(Promise.resolve(), callback),
+        );
         pin(target, "getProfileUserInfo", (_details, callback) =>
-          withCallback(Promise.resolve({ email: "", id: "" }), typeof _details === "function" ? _details : callback),
+          withCallback(
+            Promise.resolve({ email: "", id: "" }),
+            typeof _details === "function" ? _details : callback,
+          ),
         );
         if (!target.onSignInChanged) pin(target, "onSignInChanged", makeEvent());
       }
@@ -434,8 +468,10 @@
   const storage = namespace("storage");
   if (storage && !storage.managed) {
     pin(storage, "managed", {
-      get: (keys, callback) => withCallback(Promise.resolve({}), typeof keys === "function" ? keys : callback),
-      getBytesInUse: (keys, callback) => withCallback(Promise.resolve(0), typeof keys === "function" ? keys : callback),
+      get: (keys, callback) =>
+        withCallback(Promise.resolve({}), typeof keys === "function" ? keys : callback),
+      getBytesInUse: (keys, callback) =>
+        withCallback(Promise.resolve(0), typeof keys === "function" ? keys : callback),
       set: () => Promise.reject(new Error("storage.managed is read-only")),
       remove: () => Promise.reject(new Error("storage.managed is read-only")),
       clear: () => Promise.reject(new Error("storage.managed is read-only")),
@@ -473,7 +509,11 @@
   }
   // WebKit keeps dynamically registered scripts across restarts, which Chrome
   // extensions registering at every startup don't expect.
-  if (scripting && typeof scripting.registerContentScripts === "function" && typeof scripting.updateContentScripts === "function") {
+  if (
+    scripting &&
+    typeof scripting.registerContentScripts === "function" &&
+    typeof scripting.updateContentScripts === "function"
+  ) {
     const register = scripting.registerContentScripts;
     pin(scripting, "registerContentScripts", function (scripts, callback) {
       const attempt = register.call(scripting, scripts).catch((error) => {
@@ -489,7 +529,12 @@
   const webNavigation = namespace("webNavigation");
   if (webNavigation) {
     const added = {};
-    for (const name of ["onHistoryStateUpdated", "onReferenceFragmentUpdated", "onCreatedNavigationTarget", "onTabReplaced"]) {
+    for (const name of [
+      "onHistoryStateUpdated",
+      "onReferenceFragmentUpdated",
+      "onCreatedNavigationTarget",
+      "onTabReplaced",
+    ]) {
       if (!webNavigation[name]) {
         added[name] = makeEvent();
         pin(webNavigation, name, added[name]);
@@ -537,7 +582,12 @@
     const event = makeEvent;
     let created = 0;
     pin(chromeApi, "notifications", {
-      TemplateType: Object.freeze({ BASIC: "basic", IMAGE: "image", LIST: "list", PROGRESS: "progress" }),
+      TemplateType: Object.freeze({
+        BASIC: "basic",
+        IMAGE: "image",
+        LIST: "list",
+        PROGRESS: "progress",
+      }),
       PermissionLevel: Object.freeze({ GRANTED: "granted", DENIED: "denied" }),
       create(id, options, callback) {
         if (typeof id === "object" && id !== null) {
@@ -577,13 +627,55 @@
   };
   const chromeRuntime = namespace("runtime");
   constants(chromeRuntime, {
-    OnInstalledReason: { INSTALL: "install", UPDATE: "update", CHROME_UPDATE: "chrome_update", SHARED_MODULE_UPDATE: "shared_module_update" },
-    OnRestartRequiredReason: { APP_UPDATE: "app_update", OS_UPDATE: "os_update", PERIODIC: "periodic" },
-    PlatformOs: { MAC: "mac", WIN: "win", ANDROID: "android", CROS: "cros", LINUX: "linux", OPENBSD: "openbsd", FUCHSIA: "fuchsia" },
-    PlatformArch: { ARM: "arm", ARM64: "arm64", X86_32: "x86-32", X86_64: "x86-64", MIPS: "mips", MIPS64: "mips64", RISCV64: "riscv64" },
-    PlatformNaclArch: { ARM: "arm", X86_32: "x86-32", X86_64: "x86-64", MIPS: "mips", MIPS64: "mips64" },
-    RequestUpdateCheckStatus: { THROTTLED: "throttled", NO_UPDATE: "no_update", UPDATE_AVAILABLE: "update_available" },
-    ContextType: { TAB: "TAB", POPUP: "POPUP", BACKGROUND: "BACKGROUND", OFFSCREEN_DOCUMENT: "OFFSCREEN_DOCUMENT", SIDE_PANEL: "SIDE_PANEL", DEVELOPER_TOOLS: "DEVELOPER_TOOLS" },
+    OnInstalledReason: {
+      INSTALL: "install",
+      UPDATE: "update",
+      CHROME_UPDATE: "chrome_update",
+      SHARED_MODULE_UPDATE: "shared_module_update",
+    },
+    OnRestartRequiredReason: {
+      APP_UPDATE: "app_update",
+      OS_UPDATE: "os_update",
+      PERIODIC: "periodic",
+    },
+    PlatformOs: {
+      MAC: "mac",
+      WIN: "win",
+      ANDROID: "android",
+      CROS: "cros",
+      LINUX: "linux",
+      OPENBSD: "openbsd",
+      FUCHSIA: "fuchsia",
+    },
+    PlatformArch: {
+      ARM: "arm",
+      ARM64: "arm64",
+      X86_32: "x86-32",
+      X86_64: "x86-64",
+      MIPS: "mips",
+      MIPS64: "mips64",
+      RISCV64: "riscv64",
+    },
+    PlatformNaclArch: {
+      ARM: "arm",
+      X86_32: "x86-32",
+      X86_64: "x86-64",
+      MIPS: "mips",
+      MIPS64: "mips64",
+    },
+    RequestUpdateCheckStatus: {
+      THROTTLED: "throttled",
+      NO_UPDATE: "no_update",
+      UPDATE_AVAILABLE: "update_available",
+    },
+    ContextType: {
+      TAB: "TAB",
+      POPUP: "POPUP",
+      BACKGROUND: "BACKGROUND",
+      OFFSCREEN_DOCUMENT: "OFFSCREEN_DOCUMENT",
+      SIDE_PANEL: "SIDE_PANEL",
+      DEVELOPER_TOOLS: "DEVELOPER_TOOLS",
+    },
   });
   if (chromeRuntime && !isContent) {
     // Updates are applied by the browser, which reloads the extension.
@@ -591,7 +683,9 @@
       if (!chromeRuntime[name]) pin(chromeRuntime, name, makeEvent());
     }
     if (typeof chromeRuntime.requestUpdateCheck !== "function") {
-      pin(chromeRuntime, "requestUpdateCheck", (callback) => withCallback(Promise.resolve({ status: "no_update" }), callback));
+      pin(chromeRuntime, "requestUpdateCheck", (callback) =>
+        withCallback(Promise.resolve({ status: "no_update" }), callback),
+      );
     }
   }
 
@@ -602,18 +696,42 @@
     const EXTRA_HEADERS = "extraHeaders";
     constants(webRequest, {
       OnBeforeRequestOptions: { BLOCKING, REQUEST_BODY: "requestBody", EXTRA_HEADERS },
-      OnBeforeSendHeadersOptions: { REQUEST_HEADERS: headers.REQUEST_HEADERS, BLOCKING, EXTRA_HEADERS },
+      OnBeforeSendHeadersOptions: {
+        REQUEST_HEADERS: headers.REQUEST_HEADERS,
+        BLOCKING,
+        EXTRA_HEADERS,
+      },
       OnSendHeadersOptions: { REQUEST_HEADERS: headers.REQUEST_HEADERS, EXTRA_HEADERS },
-      OnHeadersReceivedOptions: { BLOCKING, RESPONSE_HEADERS: headers.RESPONSE_HEADERS, EXTRA_HEADERS },
-      OnAuthRequiredOptions: { RESPONSE_HEADERS: headers.RESPONSE_HEADERS, BLOCKING, ASYNC_BLOCKING: "asyncBlocking", EXTRA_HEADERS },
+      OnHeadersReceivedOptions: {
+        BLOCKING,
+        RESPONSE_HEADERS: headers.RESPONSE_HEADERS,
+        EXTRA_HEADERS,
+      },
+      OnAuthRequiredOptions: {
+        RESPONSE_HEADERS: headers.RESPONSE_HEADERS,
+        BLOCKING,
+        ASYNC_BLOCKING: "asyncBlocking",
+        EXTRA_HEADERS,
+      },
       OnResponseStartedOptions: { RESPONSE_HEADERS: headers.RESPONSE_HEADERS, EXTRA_HEADERS },
       OnBeforeRedirectOptions: { RESPONSE_HEADERS: headers.RESPONSE_HEADERS, EXTRA_HEADERS },
       OnCompletedOptions: { RESPONSE_HEADERS: headers.RESPONSE_HEADERS, EXTRA_HEADERS },
       OnErrorOccurredOptions: { EXTRA_HEADERS },
       ResourceType: {
-        MAIN_FRAME: "main_frame", SUB_FRAME: "sub_frame", STYLESHEET: "stylesheet", SCRIPT: "script", IMAGE: "image",
-        FONT: "font", OBJECT: "object", XMLHTTPREQUEST: "xmlhttprequest", PING: "ping", CSP_REPORT: "csp_report",
-        MEDIA: "media", WEBSOCKET: "websocket", WEBBUNDLE: "webbundle", OTHER: "other",
+        MAIN_FRAME: "main_frame",
+        SUB_FRAME: "sub_frame",
+        STYLESHEET: "stylesheet",
+        SCRIPT: "script",
+        IMAGE: "image",
+        FONT: "font",
+        OBJECT: "object",
+        XMLHTTPREQUEST: "xmlhttprequest",
+        PING: "ping",
+        CSP_REPORT: "csp_report",
+        MEDIA: "media",
+        WEBSOCKET: "websocket",
+        WEBBUNDLE: "webbundle",
+        OTHER: "other",
       },
     });
     // WebKit doesn't parse ws:// and wss:// patterns and rejects the whole
@@ -626,7 +744,8 @@
       const add = event.addListener;
       pin(event, "addListener", function (listener, filter, ...rest) {
         const urls = filter && Array.isArray(filter.urls) ? filter.urls : null;
-        if (!urls || !urls.some((url) => socket.test(url))) return add.call(this, listener, filter, ...rest);
+        if (!urls || !urls.some((url) => socket.test(url)))
+          return add.call(this, listener, filter, ...rest);
         const usable = urls.filter((url) => !socket.test(url));
         if (usable.length === 0) return undefined;
         return add.call(this, listener, Object.assign({}, filter, { urls: usable }), ...rest);
@@ -640,8 +759,31 @@
   if (netRequest) {
     constants(netRequest, {
       HeaderOperation: { APPEND: "append", SET: "set", REMOVE: "remove" },
-      ResourceType: { MAIN_FRAME: "main_frame", SUB_FRAME: "sub_frame", STYLESHEET: "stylesheet", SCRIPT: "script", IMAGE: "image", FONT: "font", OBJECT: "object", XMLHTTPREQUEST: "xmlhttprequest", PING: "ping", CSP_REPORT: "csp_report", MEDIA: "media", WEBSOCKET: "websocket", WEBTRANSPORT: "webtransport", WEBBUNDLE: "webbundle", OTHER: "other" },
-      RuleActionType: { ALLOW: "allow", ALLOW_ALL_REQUESTS: "allowAllRequests", BLOCK: "block", MODIFY_HEADERS: "modifyHeaders", REDIRECT: "redirect", UPGRADE_SCHEME: "upgradeScheme" },
+      ResourceType: {
+        MAIN_FRAME: "main_frame",
+        SUB_FRAME: "sub_frame",
+        STYLESHEET: "stylesheet",
+        SCRIPT: "script",
+        IMAGE: "image",
+        FONT: "font",
+        OBJECT: "object",
+        XMLHTTPREQUEST: "xmlhttprequest",
+        PING: "ping",
+        CSP_REPORT: "csp_report",
+        MEDIA: "media",
+        WEBSOCKET: "websocket",
+        WEBTRANSPORT: "webtransport",
+        WEBBUNDLE: "webbundle",
+        OTHER: "other",
+      },
+      RuleActionType: {
+        ALLOW: "allow",
+        ALLOW_ALL_REQUESTS: "allowAllRequests",
+        BLOCK: "block",
+        MODIFY_HEADERS: "modifyHeaders",
+        REDIRECT: "redirect",
+        UPGRADE_SCHEME: "upgradeScheme",
+      },
     });
     const rejected = /rule at index (\d+)/;
     for (const method of ["updateSessionRules", "updateDynamicRules"]) {
@@ -663,7 +805,8 @@
               if (Z.report) Z.report("error", `declarativeNetRequest.${method}: ${error.message}`);
               throw error;
             }
-            if (Z.report) Z.report("warning", `skipped a network rule WebKit can't apply: ${error.message}`);
+            if (Z.report)
+              Z.report("warning", `skipped a network rule WebKit can't apply: ${error.message}`);
             current = Object.assign({}, current, { addRules: rules.filter((_, i) => i !== index) });
             return run(attempts - 1);
           });
@@ -680,7 +823,8 @@
     const query = tabsApi.query;
     pin(tabsApi, "query", function (info, callback) {
       const type = info && info.windowType;
-      if (type !== undefined && type !== "normal" && type !== "popup") return withCallback(Promise.resolve([]), callback);
+      if (type !== undefined && type !== "normal" && type !== "popup")
+        return withCallback(Promise.resolve([]), callback);
       return query.apply(this, arguments);
     });
   }
@@ -695,14 +839,22 @@
       }
       const [frame] = await chromeApi.scripting.executeScript({
         target: { tabId },
-        func: () => document.documentElement.lang || (document.querySelector('meta[http-equiv="content-language" i]') || {}).content || "",
+        func: () =>
+          document.documentElement.lang ||
+          (document.querySelector('meta[http-equiv="content-language" i]') || {}).content ||
+          "",
       });
-      const tag = String((frame && frame.result) || "").split(",")[0].trim();
+      const tag = String((frame && frame.result) || "")
+        .split(",")[0]
+        .trim();
       return tag ? tag.split(/[-_]/)[0].toLowerCase() : "und";
     };
     pin(tabsApi, "detectLanguage", function (tabId, callback) {
       if (typeof tabId === "function") [tabId, callback] = [undefined, tabId];
-      return withCallback(detect(tabId).catch(() => "und"), callback);
+      return withCallback(
+        detect(tabId).catch(() => "und"),
+        callback,
+      );
     });
   }
 
@@ -714,10 +866,15 @@
         const manifest = chromeRuntime.getManifest();
         const text = (value) => {
           const key = /^__MSG_(\w+)__$/.exec(String(value || ""));
-          return key && chromeApi.i18n ? chromeApi.i18n.getMessage(key[1]) || "" : String(value || "");
+          return key && chromeApi.i18n
+            ? chromeApi.i18n.getMessage(key[1]) || ""
+            : String(value || "");
         };
         const options = (manifest.options_ui && manifest.options_ui.page) || manifest.options_page;
-        const icons = Object.entries(manifest.icons || {}).map(([size, path]) => ({ size: Number(size), url: chromeRuntime.getURL(path) }));
+        const icons = Object.entries(manifest.icons || {}).map(([size, path]) => ({
+          size: Number(size),
+          url: chromeRuntime.getURL(path),
+        }));
         return {
           id: chromeRuntime.id,
           name: text(manifest.name),
@@ -735,16 +892,36 @@
           homepageUrl: manifest.homepage_url || "",
           updateUrl: manifest.update_url || "",
           optionsUrl: options ? chromeRuntime.getURL(options) : "",
-          permissions: (manifest.permissions || []).filter((name) => !name.includes("://") && name !== "<all_urls>"),
+          permissions: (manifest.permissions || []).filter(
+            (name) => !name.includes("://") && name !== "<all_urls>",
+          ),
           hostPermissions: manifest.host_permissions || [],
           icons,
         };
       };
-      pin(management, "getSelf", (callback) => withCallback(Promise.resolve().then(self), callback));
+      pin(management, "getSelf", (callback) =>
+        withCallback(Promise.resolve().then(self), callback),
+      );
       constants(management, {
-        ExtensionInstallType: { ADMIN: "admin", DEVELOPMENT: "development", NORMAL: "normal", SIDELOAD: "sideload", OTHER: "other" },
-        ExtensionType: { EXTENSION: "extension", HOSTED_APP: "hosted_app", PACKAGED_APP: "packaged_app", LEGACY_PACKAGED_APP: "legacy_packaged_app", THEME: "theme", LOGIN_SCREEN_EXTENSION: "login_screen_extension" },
-        ExtensionDisabledReason: { UNKNOWN: "unknown", PERMISSIONS_INCREASE: "permissions_increase" },
+        ExtensionInstallType: {
+          ADMIN: "admin",
+          DEVELOPMENT: "development",
+          NORMAL: "normal",
+          SIDELOAD: "sideload",
+          OTHER: "other",
+        },
+        ExtensionType: {
+          EXTENSION: "extension",
+          HOSTED_APP: "hosted_app",
+          PACKAGED_APP: "packaged_app",
+          LEGACY_PACKAGED_APP: "legacy_packaged_app",
+          THEME: "theme",
+          LOGIN_SCREEN_EXTENSION: "login_screen_extension",
+        },
+        ExtensionDisabledReason: {
+          UNKNOWN: "unknown",
+          PERMISSIONS_INCREASE: "permissions_increase",
+        },
       });
       if (!chromeApi.management) pin(chromeApi, "management", management);
     }
@@ -755,7 +932,9 @@
   // streaming compilers require.
   if (typeof WebAssembly === "object" && typeof WebAssembly.instantiateStreaming === "function") {
     const packaged = (response) =>
-      response && typeof response.url === "string" && /^(chrome|webkit)-extension:/.test(response.url);
+      response &&
+      typeof response.url === "string" &&
+      /^(chrome|webkit)-extension:/.test(response.url);
     const instantiate = WebAssembly.instantiateStreaming;
     const compile = WebAssembly.compileStreaming;
     WebAssembly.instantiateStreaming = async function (source, imports) {
@@ -783,7 +962,9 @@
       .catch(() => {});
     const label = (message) =>
       message && typeof message === "object"
-        ? String(message.command || message.type || message.name || Object.keys(message)[0] || "?").slice(0, 60)
+        ? String(
+            message.command || message.type || message.name || Object.keys(message)[0] || "?",
+          ).slice(0, 60)
         : typeof message;
     const origin = (sender) =>
       sender && sender.tab
@@ -799,12 +980,16 @@
       setTimeout(() => (lastReported = ""), 0);
       Z.report("info", text);
     };
-    const traced = (event, describe) => wrapListeners(event, (listener, receiver, args) => {
-      if (tracing) reportOnce(describe(...args));
-      return listener.apply(receiver, args);
-    });
+    const traced = (event, describe) =>
+      wrapListeners(event, (listener, receiver, args) => {
+        if (tracing) reportOnce(describe(...args));
+        return listener.apply(receiver, args);
+      });
     namespace("runtime");
-    traced(runtime.onMessage, (message, sender) => `message ${label(message)} from ${origin(sender)}`);
+    traced(
+      runtime.onMessage,
+      (message, sender) => `message ${label(message)} from ${origin(sender)}`,
+    );
     const watched = new WeakSet();
     traced(runtime.onConnect, (port) => {
       if (port && !watched.has(port)) {
@@ -831,36 +1016,56 @@
   // ---- Offscreen documents and the clipboard -------------------------------
   if (!isContent) {
     const reasons = [
-      "TESTING", "AUDIO_PLAYBACK", "IFRAME_SCRIPTING", "DOM_SCRAPING", "BLOBS", "DOM_PARSER", "USER_MEDIA",
-      "DISPLAY_MEDIA", "WEB_RTC", "CLIPBOARD", "LOCAL_STORAGE", "WORKERS", "BATTERY_STATUS", "MATCH_MEDIA",
+      "TESTING",
+      "AUDIO_PLAYBACK",
+      "IFRAME_SCRIPTING",
+      "DOM_SCRAPING",
+      "BLOBS",
+      "DOM_PARSER",
+      "USER_MEDIA",
+      "DISPLAY_MEDIA",
+      "WEB_RTC",
+      "CLIPBOARD",
+      "LOCAL_STORAGE",
+      "WORKERS",
+      "BATTERY_STATUS",
+      "MATCH_MEDIA",
       "GEOLOCATION",
     ];
-    if (!chromeApi.offscreen) pin(chromeApi, "offscreen", {
-      createDocument: (parameters, callback) =>
-        withCallback(
-          native("offscreen.create", { url: String((parameters && parameters.url) || "") }).then(() => undefined),
-          callback,
-        ),
-      closeDocument: (callback) =>
-        withCallback(
-          native("offscreen.close", {}).then((closed) => {
-            if (!closed) throw new Error("No current offscreen document.");
-          }),
-          callback,
-        ),
-      hasDocument: (callback) => withCallback(native("offscreen.has", {}).then(Boolean), callback),
+    if (!chromeApi.offscreen)
+      pin(chromeApi, "offscreen", {
+        createDocument: (parameters, callback) =>
+          withCallback(
+            native("offscreen.create", { url: String((parameters && parameters.url) || "") }).then(
+              () => undefined,
+            ),
+            callback,
+          ),
+        closeDocument: (callback) =>
+          withCallback(
+            native("offscreen.close", {}).then((closed) => {
+              if (!closed) throw new Error("No current offscreen document.");
+            }),
+            callback,
+          ),
+        hasDocument: (callback) =>
+          withCallback(native("offscreen.has", {}).then(Boolean), callback),
+      });
+    constants(chromeApi.offscreen, {
+      Reason: Object.fromEntries(reasons.map((reason) => [reason, reason])),
     });
-    constants(chromeApi.offscreen, { Reason: Object.fromEntries(reasons.map((reason) => [reason, reason])) });
     if (Z.report) {
       const offscreen = chromeApi.offscreen;
       for (const method of ["hasDocument", "createDocument", "closeDocument"]) {
         const original = offscreen[method];
         pin(offscreen, method, function (...args) {
           const callback = typeof args.at(-1) === "function" ? args.pop() : undefined;
-          const pending = Promise.resolve().then(() => original.apply(offscreen, args)).catch((error) => {
-            Z.report("error", `offscreen.${method}: ${error.message}`);
-            throw error;
-          });
+          const pending = Promise.resolve()
+            .then(() => original.apply(offscreen, args))
+            .catch((error) => {
+              Z.report("error", `offscreen.${method}: ${error.message}`);
+              throw error;
+            });
           return withCallback(pending, callback);
         });
       }
@@ -875,15 +1080,18 @@
     const canRead = declared.includes("clipboardRead");
     const clipboard = typeof navigator !== "undefined" ? navigator.clipboard : undefined;
     if (clipboard && canWrite) {
-      clipboard.writeText = (text) => native("clipboard.write", { text: String(text) }).then(() => undefined);
+      clipboard.writeText = (text) =>
+        native("clipboard.write", { text: String(text) }).then(() => undefined);
     }
     if (clipboard && canRead) {
-      clipboard.readText = () => native("clipboard.read", {}).then((text) => (typeof text === "string" ? text : ""));
+      clipboard.readText = () =>
+        native("clipboard.read", {}).then((text) => (typeof text === "string" ? text : ""));
     }
     if (canWrite && typeof Document === "function") {
       const execCommand = Document.prototype.execCommand;
       Document.prototype.execCommand = function (command, ...rest) {
-        if (String(command).toLowerCase() !== "copy") return execCommand.call(this, command, ...rest);
+        if (String(command).toLowerCase() !== "copy")
+          return execCommand.call(this, command, ...rest);
         const field = this.activeElement;
         const text =
           field && typeof field.value === "string" && typeof field.selectionStart === "number"
@@ -973,7 +1181,10 @@
             data.arrayBuffer().then((buffer) => post({ op: "send", base64: encode(buffer) })),
           );
         } else if (data instanceof ArrayBuffer || ArrayBuffer.isView(data)) {
-          const view = data instanceof ArrayBuffer ? data : data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+          const view =
+            data instanceof ArrayBuffer
+              ? data
+              : data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
           this.#sending = this.#sending.then(() => post({ op: "send", base64: encode(view) }));
         } else {
           this.#sending = this.#sending.then(() => post({ op: "send", text: String(data) }));
@@ -1036,7 +1247,13 @@
         if (this.readyState === states.CLOSED) return;
         clearInterval(this.#hello);
         this.readyState = states.CLOSED;
-        this.#fire(new CloseEvent("close", { code: code || 1006, reason: reason || "", wasClean: code === 1000 }));
+        this.#fire(
+          new CloseEvent("close", {
+            code: code || 1006,
+            reason: reason || "",
+            wasClean: code === 1000,
+          }),
+        );
         try {
           this.#port.disconnect();
         } catch {}

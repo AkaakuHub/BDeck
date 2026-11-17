@@ -51,18 +51,28 @@ impl Shell {
 
     pub(in crate::shell) fn visible_deck_panes(&self, region: Rect) -> Option<Pane> {
         let viewport = self.deck_viewport(region)?;
-        let panes = viewport.columns.into_iter().filter_map(|(id, rect)| {
-            (rect.x < region.x + region.width && rect.x + rect.width > region.x)
-                .then(|| ItemId::parse(&id.to_string()).map(|id| (id, rect))).flatten()
-        }).collect::<Vec<_>>();
+        let panes = viewport
+            .columns
+            .into_iter()
+            .filter_map(|(id, rect)| {
+                (rect.x < region.x + region.width && rect.x + rect.width > region.x)
+                    .then(|| ItemId::parse(&id.to_string()).map(|id| (id, rect)))
+                    .flatten()
+            })
+            .collect::<Vec<_>>();
         (!panes.is_empty()).then_some(Pane::Positioned(panes))
     }
 
     pub(in crate::shell) fn ensure_visible_deck_views(&mut self) -> Vec<Effect> {
         let region = self.content_region();
-        let Some(panes) = self.visible_deck_panes(Rect::new(0.0, 0.0, region.width, region.height)) else {
+        let Some(panes) = self.visible_deck_panes(Rect::new(0.0, 0.0, region.width, region.height))
+        else {
             return Vec::new();
         };
-        panes.tabs().into_iter().flat_map(|id| self.items.ensure_view(id)).collect()
+        panes
+            .tabs()
+            .into_iter()
+            .flat_map(|id| self.items.ensure_view(id))
+            .collect()
     }
 }

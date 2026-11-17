@@ -15,24 +15,79 @@ function composer(text, focused = true) {
   editor.removeEventListener = () => {};
   editor.textContent = text;
   editor.closest = () => ({});
-  editor.focus = () => { calls.push("focus"); document.activeElement = editor; };
+  editor.focus = () => {
+    calls.push("focus");
+    document.activeElement = editor;
+  };
   let selected = 0;
-  const selection = { removeAllRanges() {}, addRange(range) { selected = range.end; } };
+  const selection = {
+    removeAllRanges() {},
+    addRange(range) {
+      selected = range.end;
+    },
+  };
   const document = {
     hasFocus: () => focused,
     querySelectorAll: () => [editor],
-    createRange: () => ({ end: 0, selectNodeContents(value) { assert.equal(value, editor); }, collapse(value) { assert.equal(value, true); }, setEnd(node, offset) { this.end = offset; } }),
-    createTreeWalker: () => { let next = { textContent: editor.textContent }; return { nextNode() { const current = next; next = null; return current; } }; },
-    execCommand(command, ui, value) { assert.equal(command, "insertText"); assert.equal(ui, false); calls.push(value); editor.textContent = value + editor.textContent.slice(selected); return true; },
+    createRange: () => ({
+      end: 0,
+      selectNodeContents(value) {
+        assert.equal(value, editor);
+      },
+      collapse(value) {
+        assert.equal(value, true);
+      },
+      setEnd(node, offset) {
+        this.end = offset;
+      },
+    }),
+    createTreeWalker: () => {
+      let next = { textContent: editor.textContent };
+      return {
+        nextNode() {
+          const current = next;
+          next = null;
+          return current;
+        },
+      };
+    },
+    execCommand(command, ui, value) {
+      assert.equal(command, "insertText");
+      assert.equal(ui, false);
+      calls.push(value);
+      editor.textContent = value + editor.textContent.slice(selected);
+      return true;
+    },
   };
-  const window = { getSelection: () => selection, addEventListener: (_, listener) => listeners.add(listener), removeEventListener: (_, listener) => listeners.delete(listener) };
+  const window = {
+    getSelection: () => selection,
+    addEventListener: (_, listener) => listeners.add(listener),
+    removeEventListener: (_, listener) => listeners.delete(listener),
+  };
   return {
     calls,
     overlayDismissals,
-    get text() { return editor.textContent; },
-    edit(value) { editor.textContent = value; },
-    focus(mention) { runInNewContext(source, { mention, composerOverlay: dismiss => overlayDismissals.push(dismiss), HTMLElement, NodeFilter: { SHOW_TEXT: 4 }, document, window, location: { hostname: "x.com", pathname: "/compose/post" } }); },
-    activate() { focused = true; for (const listener of listeners) listener(); },
+    get text() {
+      return editor.textContent;
+    },
+    edit(value) {
+      editor.textContent = value;
+    },
+    focus(mention) {
+      runInNewContext(source, {
+        mention,
+        composerOverlay: (dismiss) => overlayDismissals.push(dismiss),
+        HTMLElement,
+        NodeFilter: { SHOW_TEXT: 4 },
+        document,
+        window,
+        location: { hostname: "x.com", pathname: "/compose/post" },
+      });
+    },
+    activate() {
+      focused = true;
+      for (const listener of listeners) listener();
+    },
   };
 }
 test("inserts the recipient at the start while preserving the draft", () => {

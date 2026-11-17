@@ -1,1 +1,6 @@
-{"manifest_version":3,"name":"Native admission fixture","version":"1.0","permissions":["nativeMessaging"]}
+{
+  "manifest_version": 3,
+  "name": "Native admission fixture",
+  "version": "1.0",
+  "permissions": ["nativeMessaging"]
+}

@@ -1,10 +1,14 @@
 (storage) => {
   const key = "bdeck.home-timeline";
-  const valid = value => value && typeof value === "object"
-    && Object.keys(value).length === 2
-    && typeof value.tab === "string" && value.tab.length > 0 && value.tab.length <= 256
-    && !/[\u0000-\u001f\u007f]/.test(value.tab)
-    && ["mostRecent", "popular"].includes(value.sort);
+  const valid = (value) =>
+    value &&
+    typeof value === "object" &&
+    Object.keys(value).length === 2 &&
+    typeof value.tab === "string" &&
+    value.tab.length > 0 &&
+    value.tab.length <= 256 &&
+    !/[\u0000-\u001f\u007f]/.test(value.tab) &&
+    ["mostRecent", "popular"].includes(value.sort);
   let current = { tab: "react:home_latest", sort: "mostRecent" };
   const encoded = storage.getItem(key);
   if (encoded !== null) {
@@ -27,4 +31,4 @@
       current = next;
     },
   };
-}
+};

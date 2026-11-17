@@ -3,9 +3,7 @@
     "load": "crates/zephium-webext-macos/fixtures/access-extension",
     "compat": true,
     "sites": [],
-    "permissions": [
-      "storage"
-    ]
+    "permissions": ["storage"]
   },
   {
     "background": true
@@ -19,10 +17,7 @@
   },
   {
     "grant_access": {
-      "permissions": [
-        "storage",
-        "unlimitedStorage"
-      ],
+      "permissions": ["storage", "unlimitedStorage"],
       "patterns": []
     }
   },

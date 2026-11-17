@@ -26,8 +26,20 @@ test("the exact installed patch survives hostile pattern and AST regressions", (
 
 test("the exception cannot hide another advisory or runtime dependency", () => {
   assert.throws(() => inspect(report({ github_advisory_id: "GHSA-unrelated" })));
-  assert.throws(() => inspect(report({ findings: [{ version: "3.0.3", dev: false, paths: ["frame>stylelint>micromatch>braces"] }] })));
-  assert.throws(() => inspect(report({ findings: [{ version: "3.0.2", dev: true, paths: ["frame>stylelint>micromatch>braces"] }] })));
+  assert.throws(() =>
+    inspect(
+      report({
+        findings: [{ version: "3.0.3", dev: false, paths: ["frame>stylelint>micromatch>braces"] }],
+      }),
+    ),
+  );
+  assert.throws(() =>
+    inspect(
+      report({
+        findings: [{ version: "3.0.2", dev: true, paths: ["frame>stylelint>micromatch>braces"] }],
+      }),
+    ),
+  );
 });
 
 test("incomplete or failed registry results cannot produce a passing audit", () => {
@@ -48,13 +60,19 @@ test("altered patch bytes are rejected before package code executes", () => {
   }
 });
 
-
 test("new moderate advisories confined to development warn without breaking main", () => {
   for (const id of ["GHSA-qxg6-89mg-rqv8", "GHSA-xp26-3454-mjgp", "GHSA-new-upstream"]) {
-    const audit = report({ severity: "moderate", github_advisory_id: id, module_name: "@vitest/mocker" });
+    const audit = report({
+      severity: "moderate",
+      github_advisory_id: id,
+      module_name: "@vitest/mocker",
+    });
     audit.metadata.vulnerabilities = { high: 0, critical: 0, moderate: 1 };
     const warnings = [];
-    assert.equal(inspect(audit, undefined, (message) => warnings.push(message)), 0);
+    assert.equal(
+      inspect(audit, undefined, (message) => warnings.push(message)),
+      0,
+    );
     assert.equal(warnings.length, 1);
     assert.match(warnings[0], new RegExp(id));
     assert.match(warnings[0], /moderate advisory.*review/i);
@@ -64,13 +82,21 @@ test("new moderate advisories confined to development warn without breaking main
 test("all moderate runtime, mixed or unclassified findings warn for review", () => {
   for (const findings of [
     [{ dev: false, paths: ["frame>runtime"] }],
-    [{ dev: true, paths: ["frame>tool"] }, { dev: false, paths: ["desktop>runtime"] }],
-    [{ paths: ["frame>unknown"] }], [], [{ dev: true, paths: [] }],
+    [
+      { dev: true, paths: ["frame>tool"] },
+      { dev: false, paths: ["desktop>runtime"] },
+    ],
+    [{ paths: ["frame>unknown"] }],
+    [],
+    [{ dev: true, paths: [] }],
   ]) {
     const audit = report({ severity: "moderate", github_advisory_id: "GHSA-new", findings });
     audit.metadata.vulnerabilities = { moderate: 1 };
     const warnings = [];
-    assert.equal(inspect(audit, undefined, (message) => warnings.push(message)), 0);
+    assert.equal(
+      inspect(audit, undefined, (message) => warnings.push(message)),
+      0,
+    );
     assert.equal(warnings.length, 1);
     assert.match(warnings[0], /moderate advisory.*review/i);
     assert.match(warnings[0], /GHSA-new/);

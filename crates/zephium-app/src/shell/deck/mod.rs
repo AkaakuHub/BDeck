@@ -1,7 +1,7 @@
-mod media;
 pub(super) mod accounts;
 pub(super) mod composer;
 pub(super) mod deletion;
+mod media;
 mod portable;
 mod profile;
 mod shortcuts;
@@ -204,8 +204,8 @@ impl Shell {
         }
         for (item, profile, url) in &active {
             let restore_target = !self.deck.item_profiles.contains_key(item);
-            if self.items.get(*item).is_none() {
-                if !self.items.insert_unloaded_tab(
+            if self.items.get(*item).is_none()
+                && !self.items.insert_unloaded_tab(
                     *item,
                     zephium_core::item::Placement::Space {
                         space: window.1,
@@ -213,9 +213,9 @@ impl Shell {
                     },
                     url::Url::parse(url).ok()?,
                     "X",
-                ) {
-                    return None;
-                }
+                )
+            {
+                return None;
             }
             self.deck.item_profiles.insert(*item, *profile);
             if restore_target

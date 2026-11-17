@@ -95,9 +95,7 @@
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDUzQTAxNTgwMDkxQzlFNkEKUldScW5od0pnQldnVTB5d1RCYng1MG02WUN6MGphNDNwdE5IRUx1bFlVd1lTcEptRFMxR3VTMTIK",
-      "endpoints": [
-        "https://github.com/AkaakuHub/BDeck/releases/latest/download/latest.json"
-      ],
+      "endpoints": ["https://github.com/AkaakuHub/BDeck/releases/latest/download/latest.json"],
       "requireSignedVersion": true,
       "windows": {
         "installMode": "passive"

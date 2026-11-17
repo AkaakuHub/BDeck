@@ -16,11 +16,9 @@ fn horizontal_scroll_never_reserves_space_below_the_columns() {
             Rect::new(0.0, 0.0, expected.width, expected.height),
             1.0,
         );
-        assert!(
-            panes
-                .iter()
-                .all(|(_, rect)| rect.y + rect.height == expected.height)
-        );
+        assert!(panes
+            .iter()
+            .all(|(_, rect)| rect.y + rect.height == expected.height));
         let events = fixture.events.lock().unwrap();
         let layout = events
             .iter()

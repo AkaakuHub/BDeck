@@ -8,20 +8,58 @@ function shortcuts(pathname = "/Viewed_User", overlayOpen = false, source = shor
   const listeners = new Map();
   const frames = [];
   const messages = [];
-  class Element { closest() { return this.editable ? this : null; } }
-  const window = { ipc: { postMessage: value => messages.push(value) } };
+  class Element {
+    closest() {
+      return this.editable ? this : null;
+    }
+  }
+  const window = { ipc: { postMessage: (value) => messages.push(value) } };
   window.top = window;
   const location = { hostname: "x.com", pathname, href: `https://x.com${pathname}` };
-  runInNewContext(source, { composerOverlay: () => overlayOpen, window, document: { addEventListener: (name, callback) => listeners.set(name, callback), body: null }, location, Element, requestAnimationFrame: callback => { frames.push(callback); return frames.length; } });
-  return { messages, navigate(path) { location.href = `https://x.com${path}`; location.pathname = path; }, dispatch(name, values = {}) {
-    const target = new Element();
-    target.editable = values.editable ?? false;
-    let prevented = false;
-    const event = { isTrusted: true, defaultPrevented: false, isComposing: false, metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, deltaX: 0, deltaY: 0, deltaMode: 0, composedPath: () => [target], preventDefault() { prevented = true; }, stopImmediatePropagation() {}, ...values };
-    listeners.get(name)(event);
-    while (frames.length) frames.shift()();
-    return prevented;
-  } };
+  runInNewContext(source, {
+    composerOverlay: () => overlayOpen,
+    window,
+    document: { addEventListener: (name, callback) => listeners.set(name, callback), body: null },
+    location,
+    Element,
+    requestAnimationFrame: (callback) => {
+      frames.push(callback);
+      return frames.length;
+    },
+  });
+  return {
+    messages,
+    navigate(path) {
+      location.href = `https://x.com${path}`;
+      location.pathname = path;
+    },
+    dispatch(name, values = {}) {
+      const target = new Element();
+      target.editable = values.editable ?? false;
+      let prevented = false;
+      const event = {
+        isTrusted: true,
+        defaultPrevented: false,
+        isComposing: false,
+        metaKey: false,
+        ctrlKey: false,
+        altKey: false,
+        shiftKey: false,
+        deltaX: 0,
+        deltaY: 0,
+        deltaMode: 0,
+        composedPath: () => [target],
+        preventDefault() {
+          prevented = true;
+        },
+        stopImmediatePropagation() {},
+        ...values,
+      };
+      listeners.get(name)(event);
+      while (frames.length) frames.shift()();
+      return prevented;
+    },
+  };
 }
 test("ordinary horizontal trackpad input is left to browser navigation", () => {
   const page = shortcuts("/home", false, wheelSource);

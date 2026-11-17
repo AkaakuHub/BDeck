@@ -26,8 +26,12 @@ export function createPointerDrag<T>(options: {
   }
 
   return {
-    get item() { return carrying; },
-    get at() { return at; },
+    get item() {
+      return carrying;
+    },
+    get at() {
+      return at;
+    },
     absorbClick() {
       if (!consumed) return false;
       consumed = false;
@@ -42,7 +46,11 @@ export function createPointerDrag<T>(options: {
     },
     move(event: PointerEvent) {
       if (origin === null || pending === null) return;
-      if (carrying === null && Math.abs(event.clientX - origin.x) + Math.abs(event.clientY - origin.y) <= 4) return;
+      if (
+        carrying === null &&
+        Math.abs(event.clientX - origin.x) + Math.abs(event.clientY - origin.y) <= 4
+      )
+        return;
       if (carrying === null) {
         const target = event.currentTarget;
         if (target instanceof HTMLElement) target.setPointerCapture(event.pointerId);
@@ -50,7 +58,10 @@ export function createPointerDrag<T>(options: {
       }
       queued = { x: event.clientX, y: event.clientY };
       if (frame !== 0) return;
-      frame = requestAnimationFrame(() => { frame = 0; at = queued; });
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        at = queued;
+      });
     },
     end(event: PointerEvent) {
       const item = carrying;
@@ -59,7 +70,8 @@ export function createPointerDrag<T>(options: {
       if (item === null) return;
       consumed = true;
       options.ondrop(item, document.elementFromPoint(event.clientX, event.clientY), {
-        x: event.clientX, y: event.clientY,
+        x: event.clientX,
+        y: event.clientY,
       });
     },
     cancel(event?: PointerEvent) {

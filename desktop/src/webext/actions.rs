@@ -1,16 +1,19 @@
+use crate::{
+    authorize, bounded, dispatch_operation, rejected_operation, shutdown_started, CallerPolicy,
+};
 use tauri::{Manager, State, WebviewWindow};
 use zephium_app::{Command, Handle};
-use zephium_core::ids::{ProfileId, ExtensionInstallId};
-use zephium_core::extensions::{ExtensionRuntimeGeneration, ExtensionActionRevision, ExtensionRuntimeInstance, ExtensionPopupAnchor};
+use zephium_core::extensions::{
+    ExtensionActionRevision, ExtensionPopupAnchor, ExtensionRuntimeGeneration,
+    ExtensionRuntimeInstance,
+};
 use zephium_core::geometry::Rect;
-use crate::{authorize, shutdown_started, bounded, rejected_operation, dispatch_operation, CallerPolicy};
+use zephium_core::ids::{ExtensionInstallId, ProfileId};
 const MAX_WINDOW_COORDINATE: f64 = 1_000_000.0;
 
-#[tauri::command]
-#[specta::specta]
-pub(crate) fn extension_action_invoke(
-    caller: WebviewWindow,
-    shell: State<'_, Handle>,
+#[derive(serde::Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ExtensionActionInvokeRequest {
     profile_id: String,
     install_id: String,
     runtime_generation: String,
@@ -19,7 +22,25 @@ pub(crate) fn extension_action_invoke(
     anchor_y: f64,
     anchor_width: f64,
     anchor_height: f64,
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) fn extension_action_invoke(
+    caller: WebviewWindow,
+    shell: State<'_, Handle>,
+    request: ExtensionActionInvokeRequest,
 ) -> zephium_ipc::OperationAdmission {
+    let ExtensionActionInvokeRequest {
+        profile_id,
+        install_id,
+        runtime_generation,
+        action_revision,
+        anchor_x,
+        anchor_y,
+        anchor_width,
+        anchor_height,
+    } = request;
     if !authorize(&caller, CallerPolicy::Main, "extension_action_invoke")
         || shutdown_started(caller.app_handle())
         || !bounded(&profile_id, 128)
@@ -67,13 +88,17 @@ pub(crate) fn extension_action_invoke(
         },
     );
     if !admission.accepted {
-        crate::write_diagnostic(format_args!("extensions: toolbar action IPC rejected at actor-queue-admission"));
+        crate::write_diagnostic(format_args!(
+            "extensions: toolbar action IPC rejected at actor-queue-admission"
+        ));
     }
     admission
 }
 
 fn rejected_extension_action(stage: &'static str) -> zephium_ipc::OperationAdmission {
-    crate::write_diagnostic(format_args!("extensions: toolbar action IPC rejected at {stage}"));
+    crate::write_diagnostic(format_args!(
+        "extensions: toolbar action IPC rejected at {stage}"
+    ));
     rejected_operation()
 }
 

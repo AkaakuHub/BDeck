@@ -58,12 +58,6 @@ pub(crate) struct ContentPolicyTimeout {
     source: dispatch2::DispatchRetained<dispatch2::DispatchSource>,
 }
 
-impl ContentPolicyTimeout {
-    pub(crate) fn cancel(self) {
-        drop(self);
-    }
-}
-
 impl Drop for ContentPolicyTimeout {
     fn drop(&mut self) {
         self.source.cancel();

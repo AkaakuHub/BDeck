@@ -61,10 +61,7 @@ pub(super) async fn download(id: &ExtensionId) -> Result<Vec<u8>, String> {
 
 pub(super) fn icon_data_url(dir: &Path, manifest: &Manifest) -> Option<String> {
     use base64::Engine as _;
-    let path = manifest
-        .icons()
-        .best(48)
-        .map(str::to_owned)?;
+    let path = manifest.icons().best(48).map(str::to_owned)?;
     let bytes = std::fs::read(dir.join(&path))
         .ok()
         .filter(|bytes| bytes.len() < 512 * 1024)?;
@@ -577,7 +574,7 @@ mod tests {
     fn a_stale_review_cannot_confirm_a_new_review_of_the_same_extension_in_another_profile() {
         let root = tempfile::tempdir().unwrap();
         let signed = include_bytes!("../../../tests/fixtures/webext-native.crx");
-        let stage_review = |profile| {
+        let stage_review = || {
             let verified = crx::verify(signed, None).unwrap();
             stage(
                 root.path(),
@@ -586,8 +583,8 @@ mod tests {
             )
             .unwrap()
         };
-        let first = stage_review(ProfileId::from(1));
-        let second = stage_review(ProfileId::from(2));
+        let first = stage_review();
+        let second = stage_review();
         assert_eq!(first.review.id, second.review.id);
         assert_ne!(first.review.review_id, second.review.review_id);
         let id = second.review.id.clone();
@@ -651,8 +648,6 @@ mod tests {
             std::fs::write(path.join("worker.js"), code).unwrap();
             path
         };
-        let profile_a = ProfileId::generate();
-        let profile_b = ProfileId::generate();
         let first = stage(
             root.path(),
             Source::Store(verified.id, signed.to_vec()),
@@ -732,7 +727,6 @@ mod tests {
                 include_bytes!("../../../tests/fixtures/webext-native.crx")
             };
             let verified = crx::verify(bytes, None).unwrap();
-            let profile = ProfileId::from(1);
             let staged =
                 stage(root.path(), Source::Store(verified.id, bytes.to_vec()), &[]).unwrap();
             let mut entry = staged.pending.entry.clone();
@@ -787,7 +781,6 @@ mod tests {
             root: root.path().to_path_buf(),
             state: Default::default(),
         };
-        let profile = ProfileId::from(1);
         let mut entries = Vec::new();
         for bytes in [
             include_bytes!("../../../tests/fixtures/webext-native.crx").as_slice(),
@@ -859,7 +852,7 @@ mod tests {
 
     #[test]
     fn rebuild_failure_reaches_the_profile_install_status_without_a_native_load() {
-        let (_root, extensions, profile, entry) = installed_fixture();
+        let (_root, extensions, _profile, entry) = installed_fixture();
         std::fs::remove_file(
             extensions
                 .packages(&entry.id)
@@ -890,7 +883,7 @@ mod tests {
 
     #[test]
     fn retry_does_not_prepare_a_replaced_or_disabled_installation() {
-        let (_root, extensions, profile, entry) = installed_fixture();
+        let (_root, extensions, _profile, entry) = installed_fixture();
         let original = std::fs::read(extensions.registry_path()).unwrap();
         let mut registry = crate::webext::Registry::default();
         assert!(extensions
@@ -908,7 +901,7 @@ mod tests {
 
     #[test]
     fn hardening_ordinary_mutations_cannot_recreate_a_deleted_registry() {
-        let (_root, extensions, profile, _entry) = installed_fixture();
+        let (_root, extensions, _profile, _entry) = installed_fixture();
         let mut registry = extensions.registry().unwrap();
         std::fs::remove_file(extensions.registry_path()).unwrap();
         registry.extensions[0].enabled = false;
@@ -1102,7 +1095,6 @@ mod tests {
         };
         let signed = include_bytes!("../../../tests/fixtures/webext-native.crx");
         let verified = crx::verify(signed, None).unwrap();
-        let profile = ProfileId::generate();
         let staged = stage(
             root.path(),
             Source::Store(verified.id, signed.to_vec()),
@@ -1135,7 +1127,6 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         let signed = include_bytes!("../../../tests/fixtures/webext-native.crx");
         let verified = crx::verify(signed, None).unwrap();
-        let profile = ProfileId::generate();
         let fresh = stage(
             root.path(),
             Source::Store(verified.id.clone(), signed.to_vec()),

@@ -9,12 +9,17 @@
   let extensionBody = null;
   let initializedSettings = null;
   let extensionObserver = null;
-  const tabKey = tab => {
+  const tabKey = (tab) => {
     if (tab.closest("#cpftSeparatedTweetsTab")) return "cpft:separated";
-    const property = Object.keys(tab).find(key => key.startsWith("__reactFiber$"));
+    const property = Object.keys(tab).find((key) => key.startsWith("__reactFiber$"));
     let fiber = property && tab[property];
     while (fiber && fiber.stateNode !== nav) {
-      if (typeof fiber.memoizedProps?.isActive === "boolean" && typeof fiber.key === "string" && fiber.key) return `react:${fiber.key}`;
+      if (
+        typeof fiber.memoizedProps?.isActive === "boolean" &&
+        typeof fiber.key === "string" &&
+        fiber.key
+      )
+        return `react:${fiber.key}`;
       fiber = fiber.return;
     }
     return null;
@@ -39,17 +44,33 @@
       extensionBody = document.body;
       extensionObserver.observe(extensionBody, { attributes: true, attributeFilter: ["class"] });
     }
-    if (initializedSettings !== settings && (extensionBody?.classList.contains("Desktop") || extensionBody?.classList.contains("Mobile"))) {
+    if (
+      initializedSettings !== settings &&
+      (extensionBody?.classList.contains("Desktop") || extensionBody?.classList.contains("Mobile"))
+    ) {
       initializedSettings = settings;
       // The extension begins handling navigation after its initial title callback.
-      queueMicrotask(() => { document.title = document.title; refresh(); });
+      queueMicrotask(() => {
+        document.title = document.title;
+        refresh();
+      });
     }
     let config;
-    try { config = JSON.parse(settings.textContent); } catch { return; }
-    if (config.alwaysUseLatestTweets === false && config.sortFollowing === preference.get().sort) return;
-    settings.textContent = JSON.stringify({ alwaysUseLatestTweets: false, sortFollowing: preference.get().sort });
+    try {
+      config = JSON.parse(settings.textContent);
+    } catch {
+      return;
+    }
+    if (config.alwaysUseLatestTweets === false && config.sortFollowing === preference.get().sort)
+      return;
+    settings.textContent = JSON.stringify({
+      alwaysUseLatestTweets: false,
+      sortFollowing: preference.get().sort,
+    });
   };
-  const sortItems = () => [...document.querySelectorAll('[role="menu"] [data-testid="Dropdown"] [role="menuitem"]')];
+  const sortItems = () => [
+    ...document.querySelectorAll('[role="menu"] [data-testid="Dropdown"] [role="menuitem"]'),
+  ];
   const refresh = () => {
     configureExtension();
     if (/\/(photo|video)(?:\/\d+)?$/.test(location.pathname)) return;
@@ -60,7 +81,9 @@
       finishSort();
       return;
     }
-    const currentNav = document.querySelector('[data-testid="primaryColumn"] nav:has([role="tab"])');
+    const currentNav = document.querySelector(
+      '[data-testid="primaryColumn"] nav:has([role="tab"])',
+    );
     if (currentNav !== nav) {
       nav = currentNav;
       restored = false;
@@ -75,7 +98,9 @@
       return;
     }
     if (!restored) {
-      const tab = [...nav.querySelectorAll('[role="tab"]')].find(tab => tabKey(tab) === preference.get().tab);
+      const tab = [...nav.querySelectorAll('[role="tab"]')].find(
+        (tab) => tabKey(tab) === preference.get().tab,
+      );
       if (!tab) return;
       restored = true;
       if (tab.getAttribute("aria-selected") !== "true") {
@@ -94,27 +119,37 @@
       tab.click();
     }
   };
-  document.addEventListener("click", event => {
-    if (!event.isTrusted || location.pathname !== "/home" || !(event.target instanceof Element)) return;
-    if (sorting) finishSort();
-    followingSortPending = false;
-    const tab = event.target.closest('[role="tab"]');
-    if (tab && nav?.contains(tab)) {
-      const key = tabKey(tab);
-      if (!key || tab.getAttribute("aria-disabled") === "true") return;
-      preference.save(key);
-      restored = true;
-      sortMenuArmed = key === "react:home_latest";
-      configureExtension();
-      return;
-    }
-    const item = event.target.closest('[role="menuitem"]');
-    const items = sortMenuArmed && item ? sortItems() : [];
-    if (items.length === 2 && items.includes(item)) {
-      preference.save(preference.get().tab, items.indexOf(item) === 0 ? "popular" : "mostRecent");
-      configureExtension();
-    }
-    sortMenuArmed = false;
-  }, true);
-  return { refresh, refreshMenu: () => { if (sorting) refresh(); } };
-}
+  document.addEventListener(
+    "click",
+    (event) => {
+      if (!event.isTrusted || location.pathname !== "/home" || !(event.target instanceof Element))
+        return;
+      if (sorting) finishSort();
+      followingSortPending = false;
+      const tab = event.target.closest('[role="tab"]');
+      if (tab && nav?.contains(tab)) {
+        const key = tabKey(tab);
+        if (!key || tab.getAttribute("aria-disabled") === "true") return;
+        preference.save(key);
+        restored = true;
+        sortMenuArmed = key === "react:home_latest";
+        configureExtension();
+        return;
+      }
+      const item = event.target.closest('[role="menuitem"]');
+      const items = sortMenuArmed && item ? sortItems() : [];
+      if (items.length === 2 && items.includes(item)) {
+        preference.save(preference.get().tab, items.indexOf(item) === 0 ? "popular" : "mostRecent");
+        configureExtension();
+      }
+      sortMenuArmed = false;
+    },
+    true,
+  );
+  return {
+    refresh,
+    refreshMenu: () => {
+      if (sorting) refresh();
+    },
+  };
+};

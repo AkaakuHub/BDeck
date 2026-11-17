@@ -1,2 +1,4 @@
 [data-testid="primaryColumn"] [data-testid="tweetPhoto"],
-[data-testid="primaryColumn"] [data-testid="videoPlayer"] { display: none !important; }
+[data-testid="primaryColumn"] [data-testid="videoPlayer"] {
+  display: none !important;
+}

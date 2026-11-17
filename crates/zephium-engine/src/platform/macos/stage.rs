@@ -1324,22 +1324,30 @@ impl ContentStage {
             return;
         };
         // SAFETY: the stage remains attached to its native content host.
-        let Some(parent) = (unsafe { self.superview() }) else { return; };
-        let frame = self.convertRect_fromView(NSRect::new(
-            NSPoint::new(zone.x, parent.bounds().size.height - zone.y - zone.height),
-            NSSize::new(zone.width, zone.height),
-        ), Some(&parent));
+        let Some(parent) = (unsafe { self.superview() }) else {
+            return;
+        };
+        let frame = self.convertRect_fromView(
+            NSRect::new(
+                NSPoint::new(zone.x, parent.bounds().size.height - zone.y - zone.height),
+                NSSize::new(zone.width, zone.height),
+            ),
+            Some(&parent),
+        );
         self.preview_view(&self.ivars().indicator, frame, Self::guide);
     }
 
     fn guide(&self, view: &NSView) {
-        let Some(layer) = view.layer() else { return; };
+        let Some(layer) = view.layer() else {
+            return;
+        };
         let paint = block2::RcBlock::new(|| {
             let accent = NSColor::controlAccentColor();
             layer.setBackgroundColor(Some(&accent.colorWithAlphaComponent(0.28).CGColor()));
             layer.setBorderColor(Some(&accent.CGColor()));
         });
-        self.effectiveAppearance().performAsCurrentDrawingAppearance(&paint);
+        self.effectiveAppearance()
+            .performAsCurrentDrawingAppearance(&paint);
         layer.setBorderWidth(1.0);
     }
 

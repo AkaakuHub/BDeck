@@ -1,13 +1,19 @@
 import type { OperationAdmission, OperationDisposition } from "./bindings";
 import { events } from "./native-events";
 
-type Result = { kind: "cancelled" | "rejected" } | { kind: "processed"; disposition: OperationDisposition };
+type Result =
+  | { kind: "cancelled" | "rejected" }
+  | { kind: "processed"; disposition: OperationDisposition };
 
-export async function runOperation(invoke: () => Promise<OperationAdmission | null>): Promise<Result> {
+export async function runOperation(
+  invoke: () => Promise<OperationAdmission | null>,
+): Promise<Result> {
   let id: string | null = null;
   const early = new Map<string, OperationDisposition>();
   let settle: (result: OperationDisposition) => void = () => {};
-  const completion = new Promise<OperationDisposition>((resolve) => { settle = resolve; });
+  const completion = new Promise<OperationDisposition>((resolve) => {
+    settle = resolve;
+  });
   const stop = await events.operationProcessed.listen(({ payload }) => {
     if (id === payload.operation_id) settle(payload);
     else if (id === null) {
@@ -22,12 +28,18 @@ export async function runOperation(invoke: () => Promise<OperationAdmission | nu
     id = admission.operation_id;
     const processed = early.get(id);
     early.clear();
-    return { kind: "processed", disposition: processed ?? await completion };
-  } finally { stop(); }
+    return { kind: "processed", disposition: processed ?? (await completion) };
+  } finally {
+    stop();
+  }
 }
 
 export function accepted(result: Result): boolean {
   if (result.kind !== "processed") return false;
   const { outcome, reason } = result.disposition;
-  return outcome === "applied" || outcome === "no_op" || (outcome === "deferred" && (reason === "store_pending" || reason === "native_pending"));
+  return (
+    outcome === "applied" ||
+    outcome === "no_op" ||
+    (outcome === "deferred" && (reason === "store_pending" || reason === "native_pending"))
+  );
 }

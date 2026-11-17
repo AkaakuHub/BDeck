@@ -3,11 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "vp dev",
+    "build": "vp build",
     "test:ipc": "node --test tests/ipc/operation.test.mjs",
-    "test:deck": "node --test tests/deck/*.test.mjs",
-    "typecheck": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings && tsc6 --project tsconfig.node.json"
+    "test:deck": "node --test tests/deck/*.test.mjs"
   },
   "dependencies": {
     "@hugeicons/svelte": "1.1.5",
@@ -20,9 +19,7 @@
     "@sveltejs/vite-plugin-svelte": "7.3.1",
     "@tailwindcss/vite": "4.3.3",
     "@types/node": "^24.13.4",
-    "svelte-check": "4.7.7",
-    "tailwindcss": "4.3.3",
-    "typescript": "npm:@typescript/typescript6@6.0.2",
-    "vite": "8.3.5"
+    "typescript": "7.0.2",
+    "vite": "catalog:"
   }
 }

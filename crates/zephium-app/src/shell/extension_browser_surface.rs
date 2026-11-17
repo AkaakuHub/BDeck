@@ -100,6 +100,14 @@ impl ExtensionBrowserSurfaceState {
     }
 }
 
+struct ExtensionNodeTabs<'a> {
+    placement: Placement,
+    profile: ProfileId,
+    previous_tabs: &'a [ExtensionBrowserTab],
+    previous_index: &'a mut usize,
+    tabs: &'a mut Vec<ExtensionBrowserTab>,
+}
+
 impl Shell {
     /// Publishes only changed logical routing state and never constructs a
     /// native view. With no active runtime profile this is an allocation-free
@@ -270,12 +278,20 @@ impl Shell {
         profile: ProfileId,
         generation: ExtensionBrowserSurfaceGeneration,
     ) -> Result<ExtensionBrowserSurface, &'static str> {
-        let deck_profile = self.deck.state().is_some_and(|state| state.accounts.iter().any(|account| account.profile == profile));
+        let deck_profile = self.deck.state().is_some_and(|state| {
+            state
+                .accounts
+                .iter()
+                .any(|account| account.profile == profile)
+        });
         let focused = self.windows.focused().map(|window| window.id);
-        let mut windows = self
-            .windows
-            .iter()
-            .filter(|window| if deck_profile { Some(window.id) == focused } else { window.profile == profile });
+        let mut windows = self.windows.iter().filter(|window| {
+            if deck_profile {
+                Some(window.id) == focused
+            } else {
+                window.profile == profile
+            }
+        });
         let first = windows.next();
         if windows.next().is_some() {
             // Items are currently profile/space-owned rather than window-owned.
@@ -287,10 +303,11 @@ impl Shell {
             return ExtensionBrowserSurface::new(profile, generation, None, Vec::new())
                 .map_err(|_| "empty browser surface failed validation");
         };
-        if !deck_profile && self
-            .spaces
-            .get(window.space)
-            .is_none_or(|space| space.profile != profile)
+        if !deck_profile
+            && self
+                .spaces
+                .get(window.space)
+                .is_none_or(|space| space.profile != profile)
         {
             return Err("window space crossed profile ownership");
         }
@@ -306,7 +323,11 @@ impl Shell {
             .and_then(|surface| surface.windows().first())
             .map_or(&[][..], ExtensionBrowserWindow::tabs);
         let mut previous_index = 0_usize;
-        for space in self.spaces.iter().filter(|space| deck_profile || space.profile == profile) {
+        for space in self
+            .spaces
+            .iter()
+            .filter(|space| deck_profile || space.profile == profile)
+        {
             for placement in zephium_core::session::space_placements(space.id) {
                 self.append_extension_placement_tabs(
                     placement,
@@ -346,16 +367,15 @@ impl Shell {
         previous_index: &mut usize,
         tabs: &mut Vec<ExtensionBrowserTab>,
     ) -> Result<(), &'static str> {
+        let mut context = ExtensionNodeTabs {
+            placement,
+            profile,
+            previous_tabs,
+            previous_index,
+            tabs,
+        };
         for &id in self.items.roots(placement) {
-            self.append_extension_node_tabs(
-                id,
-                None,
-                placement,
-                profile,
-                previous_tabs,
-                previous_index,
-                tabs,
-            )?;
+            self.append_extension_node_tabs(id, None, &mut context)?;
         }
         Ok(())
     }
@@ -364,33 +384,30 @@ impl Shell {
         &self,
         id: ItemId,
         parent: Option<ItemId>,
-        placement: Placement,
-        profile: ProfileId,
-        previous_tabs: &[ExtensionBrowserTab],
-        previous_index: &mut usize,
-        tabs: &mut Vec<ExtensionBrowserTab>,
+        context: &mut ExtensionNodeTabs<'_>,
     ) -> Result<(), &'static str> {
         let Some(item) = self
             .items
             .get(id)
-            .filter(|item| item.parent == parent && item.placement == placement)
+            .filter(|item| item.parent == parent && item.placement == context.placement)
         else {
             return Ok(());
         };
         match &item.kind {
             ItemKind::Tab(tab) => {
-                if !self.extension_tab_in_scope(id, profile)
-                {
+                if !self.extension_tab_in_scope(id, context.profile) {
                     return Ok(());
                 }
-                let previous = previous_tabs
-                    .get(*previous_index)
+                let previous = context
+                    .previous_tabs
+                    .get(*context.previous_index)
                     .filter(|previous| previous.id() == id);
-                *previous_index = previous_index
+                let next_index = (*context.previous_index)
                     .checked_add(1)
                     .ok_or("extension browser tab index overflowed")?;
+                *context.previous_index = next_index;
                 let pinned = !matches!(
-                    placement,
+                    context.placement,
                     Placement::Space {
                         section: SpaceSection::Today,
                         ..
@@ -407,7 +424,7 @@ impl Shell {
                     .url
                     .as_ref()
                     .filter(|url| zephium_core::navigation::is_browser_target(url));
-                tabs.push(
+                context.tabs.push(
                     ExtensionBrowserTab::from_snapshot(
                         previous,
                         id,
@@ -422,15 +439,7 @@ impl Shell {
             }
             ItemKind::Folder { .. } => {
                 for &child in self.items.children(id) {
-                    self.append_extension_node_tabs(
-                        child,
-                        Some(id),
-                        placement,
-                        profile,
-                        previous_tabs,
-                        previous_index,
-                        tabs,
-                    )?;
+                    self.append_extension_node_tabs(child, Some(id), context)?;
                 }
             }
         }

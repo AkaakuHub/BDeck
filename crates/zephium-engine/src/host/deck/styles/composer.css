@@ -3,7 +3,9 @@
   max-block-size: 320px !important;
   overflow-y: auto !important;
 }
-[data-bdeck-compose] [data-testid="app-bar-back"] { display: none !important; }
+[data-bdeck-compose] [data-testid="app-bar-back"] {
+  display: none !important;
+}
 [data-testid="toolBar"] {
   min-inline-size: 0 !important;
   max-inline-size: 100% !important;
@@ -31,7 +33,9 @@
   block-size: 20px !important;
   flex-shrink: 0 !important;
 }
-[data-bdeck-compose] .bdeck-compose-background { display: none !important; }
+[data-bdeck-compose] .bdeck-compose-background {
+  display: none !important;
+}
 [data-bdeck-compose] [role="dialog"]:has([data-testid="tweetTextarea_0"]) {
   margin: 0 !important;
   border-radius: 0 !important;

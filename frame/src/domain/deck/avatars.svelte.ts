@@ -19,7 +19,8 @@ async function init() {
       if (typeof url === "string" || url === null) {
         observed.add(profile);
         const next = { ...values };
-        if (url === null) delete next[profile]; else next[profile] = url;
+        if (url === null) delete next[profile];
+        else next[profile] = url;
         values = next;
       }
     } catch {}
@@ -28,12 +29,22 @@ async function init() {
   const decoded: unknown = encoded ? JSON.parse(encoded) : {};
   const stored: Record<string, string> = {};
   if (typeof decoded === "object" && decoded !== null && !Array.isArray(decoded)) {
-    for (const [profile, value] of Object.entries(decoded)) if (typeof value === "string") stored[profile] = value;
+    for (const [profile, value] of Object.entries(decoded))
+      if (typeof value === "string") stored[profile] = value;
   }
   if (generation !== current) return;
   const next = { ...stored, ...values };
   for (const profile of observed) if (!(profile in values)) delete next[profile];
   values = next;
 }
-function dispose() { generation += 1; stop?.(); stop = null; values = {}; }
-export const accountAvatars = { init, dispose, url: (profile: string): string | null => values[profile] ?? null };
+function dispose() {
+  generation += 1;
+  stop?.();
+  stop = null;
+  values = {};
+}
+export const accountAvatars = {
+  init,
+  dispose,
+  url: (profile: string): string | null => values[profile] ?? null,
+};

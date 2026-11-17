@@ -22,9 +22,8 @@ fn main() {
     use objc2::runtime::AnyObject;
     use objc2::{msg_send, sel};
     use objc2_app_kit::{
-        NSApplication, NSApplicationActivationPolicy, NSBackingStoreType, NSEvent,
-        NSEventMask, NSEventModifierFlags, NSEventType, NSTrackingAreaOptions, NSWindow,
-        NSWindowStyleMask,
+        NSApplication, NSApplicationActivationPolicy, NSBackingStoreType, NSEvent, NSEventMask,
+        NSEventModifierFlags, NSEventType, NSTrackingAreaOptions, NSWindow, NSWindowStyleMask,
     };
     use objc2_foundation::{
         MainThreadMarker, NSDate, NSDefaultRunLoopMode, NSPoint, NSRect, NSSize,
@@ -69,10 +68,7 @@ fn main() {
         }
     };
     let size = NSSize::new(600.0, 400.0);
-    let frame = NSRect::new(
-        NSPoint::new(-30_000.0, -30_000.0),
-        size,
-    );
+    let frame = NSRect::new(NSPoint::new(-30_000.0, -30_000.0), size);
     // SAFETY: NSWindow's designated initialiser on a plain subclass.
     let window: Retained<KeyWindow> = unsafe {
         msg_send![

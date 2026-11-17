@@ -333,11 +333,6 @@ impl Hub {
     }
 
     #[cfg(test)]
-    pub(crate) fn fail_next_profile_deletion_commit_as_ambiguous(&mut self) {
-        self.ambiguous_profile_deletion_commit_once = true;
-    }
-
-    #[cfg(test)]
     pub(crate) fn fail_next_profile_deletion_after_local_purge(&mut self) {
         self.fail_profile_deletion_after_local_purge_once = true;
     }

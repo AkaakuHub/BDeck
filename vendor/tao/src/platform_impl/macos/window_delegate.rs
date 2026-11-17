@@ -421,7 +421,7 @@ extern "C" fn dragging_entered(this: &Object, _: Sel, sender: id) -> BOOL {
 
   let pb: Retained<NSPasteboard> = unsafe { msg_send![sender, draggingPasteboard] };
   let filenames =
-    unsafe { NSPasteboard::propertyListForType(&pb, appkit::NSFilenamesPboardType) }.unwrap();
+    unsafe { NSPasteboard::propertyListForType(&pb, appkit::NSPasteboardTypeFileURL) }.unwrap();
 
   for file in unsafe { Retained::cast_unchecked::<NSArray>(filenames) } {
     let file = unsafe { Retained::cast_unchecked::<NSString>(file) };
@@ -455,7 +455,7 @@ extern "C" fn perform_drag_operation(this: &Object, _: Sel, sender: id) -> BOOL 
 
   let pb: Retained<NSPasteboard> = unsafe { msg_send![sender, draggingPasteboard] };
   let filenames =
-    unsafe { NSPasteboard::propertyListForType(&pb, appkit::NSFilenamesPboardType) }.unwrap();
+    unsafe { NSPasteboard::propertyListForType(&pb, appkit::NSPasteboardTypeFileURL) }.unwrap();
 
   for file in unsafe { Retained::cast_unchecked::<NSArray>(filenames) } {
     let file = unsafe { Retained::cast_unchecked::<NSString>(file) };
