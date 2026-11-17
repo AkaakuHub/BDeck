@@ -331,33 +331,6 @@ impl Shell {
         let _ = self.refresh_extension_actions(profile);
     }
 
-    #[cfg(target_os = "windows")]
-    pub(super) fn extension_document_may_close(&self, id: ItemId) -> bool {
-        let Some(profile) = self.profile_of_item(id) else {
-            return false;
-        };
-        let Some(extension) = self
-            .items
-            .tab(id)
-            .and_then(|tab| tab.url.as_ref())
-            .and_then(zephium_core::navigation::extension_document_id)
-        else {
-            return false;
-        };
-        self.web_extensions
-            .loaded
-            .get(&profile)
-            .is_some_and(|installs| {
-                installs.iter().any(|(id, load)| {
-                    load.extension_id == extension
-                        && matches!(
-                            self.web_extensions.status.get(&(profile, *id)),
-                            Some(WebExtensionStatus::Running(_))
-                        )
-                })
-            })
-    }
-
     pub(super) fn shared_web_extension_status(
         &self,
     ) -> Vec<(ExtensionInstallId, WebExtensionStatus)> {

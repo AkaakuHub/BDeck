@@ -169,7 +169,7 @@ impl NativeResourceLedger {
         !self.shared.invariant_failed.get()
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, target_os = "windows"))]
     fn is_empty(&self) -> bool {
         self.shared
             .state

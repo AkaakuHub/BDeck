@@ -34,7 +34,7 @@ mod timeout;
 
 pub(crate) use paint::PaintCover;
 pub use stage::Stage;
-pub(crate) use timeout::{schedule_browser_timeout, schedule_policy_timeout, ContentPolicyTimeout};
+pub(crate) use timeout::{schedule_browser_timeout, ContentPolicyTimeout};
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
