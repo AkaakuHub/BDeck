@@ -1,6 +1,8 @@
 //! Forward-only, versioned migrations tracked by `PRAGMA user_version`.
 //! Never edit a shipped migration; append a new one.
 
+mod settings;
+
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
@@ -1735,6 +1737,10 @@ pub static META: &[Migration] = &[
         version: 30,
         up: |tx| tx.execute_batch("DROP TABLE IF EXISTS focus_sessions;"),
     },
+    Migration {
+        version: 31,
+        up: |tx| settings::apply(tx, settings::DECK_COLUMN_SECRET),
+    },
 ];
 
 // These statements are the exact extension-branch PROFILE v14 artifact. The
@@ -2603,6 +2609,7 @@ mod tests {
         (28, 0xee85397345a475e6),
         (29, 0x025b3754d5f6f6c9),
         (30, 0xb7f9_7bd6_b8b6_5e1d),
+        (31, 0xb7f9_7bd6_b8b6_5e1d),
     ];
     const PROFILE_SCHEMA_FINGERPRINTS: &[(i64, u64)] = &[
         (1, 0x2af43748e4b2d151),
