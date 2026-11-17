@@ -77,8 +77,18 @@
   };
   const ready = () => {
     inspect();
-    new MutationObserver(() => {
-      if (!timer) timer = setTimeout(inspect, 250);
+    new MutationObserver((records) => {
+      const relevant = records.some((record) => {
+        if (
+          record.target instanceof Element &&
+          record.target.closest(
+            '[data-testid="cellInnerDiv"], [data-testid="tweet"], [data-testid="tweetTextarea_0"]',
+          )
+        )
+          return false;
+        return record.addedNodes.length > 0 || record.removedNodes.length > 0;
+      });
+      if (relevant && !timer) timer = setTimeout(inspect, 250);
     }).observe(document.documentElement, { childList: true, subtree: true });
   };
   if (document.documentElement) ready();

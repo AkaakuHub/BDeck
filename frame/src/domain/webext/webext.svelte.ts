@@ -49,7 +49,7 @@ export async function retain(onAccess: () => void) {
     return;
   }
   stop = unlisten;
-  await refresh();
+  void refresh();
 }
 export function release() {
   generation += 1;

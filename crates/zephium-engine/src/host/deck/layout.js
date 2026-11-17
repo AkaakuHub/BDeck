@@ -2,7 +2,8 @@ const primarySelector = '[data-testid="primaryColumn"]';
 const tweetSelector = '[data-testid="tweet"]';
 const applyProfileHeader = () => {
   const primary = document.querySelector(primarySelector);
-  const profile = !!primary?.querySelector('[data-testid="UserName"]');
+  const profile =
+    location.pathname !== "/home" && !!primary?.querySelector('[data-testid="UserName"]');
   document.documentElement.toggleAttribute("data-bdeck-profile", profile);
   if (!profile) return;
   const heading = primary.querySelector("h2");
@@ -119,12 +120,24 @@ const apply = () => {
         break;
       scaffold.observe(child, { childList: true });
     }
+    for (let node = primary; node instanceof Element; node = node.parentElement) {
+      if (
+        (node === primary || node.matches('[role="main"], [role="main"] > div')) &&
+        !node.hasAttribute("data-bdeck-column")
+      )
+        node.setAttribute("data-bdeck-column", "");
+      if (node.matches('[role="main"]')) break;
+    }
+    const tabNav = primary?.querySelector('nav:has([role="tab"])');
+    const tabRow = tabNav?.parentElement?.parentElement;
+    if (tabRow && !tabRow.hasAttribute("data-bdeck-tab-row"))
+      tabRow.setAttribute("data-bdeck-tab-row", "");
     applyChat();
     applyHomeComposer();
     applyNotificationHeader();
     applyProfileHeader();
     homeSelection.refresh();
-    const nav = primary?.querySelector('nav:has([role="tab"])');
+    const nav = tabNav;
     if (nav)
       header.observe(nav, {
         childList: true,

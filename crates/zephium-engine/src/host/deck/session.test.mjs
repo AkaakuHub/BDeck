@@ -36,6 +36,7 @@ function session({ authenticated = false, loggedOut = false } = {}) {
     window,
     document,
     location: { hostname: "x.com", pathname: "/home" },
+    Element: class {},
     MutationObserver: class {
       constructor(callback) {
         this.callback = callback;
@@ -54,7 +55,8 @@ function session({ authenticated = false, loggedOut = false } = {}) {
     state,
     messages,
     mutate() {
-      for (const callback of callbacks) callback();
+      for (const callback of callbacks)
+        callback([{ target: {}, addedNodes: [{}], removedNodes: [] }]);
       while (tasks.length) tasks.shift()();
     },
   };
