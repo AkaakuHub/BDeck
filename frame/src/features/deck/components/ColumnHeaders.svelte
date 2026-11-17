@@ -10,6 +10,9 @@
   import IconButton from "$shared/ui/IconButton";
   import { createPointerDrag } from "$shared/lib/pointer-drag.svelte";
   import { columnDrop } from "$domain/deck/column-drop";
+  import SecretColumn from "./SecretColumn.svelte";
+
+  const COLUMN_HEADER_HEIGHT = 30;
 
   const drag = createPointerDrag<string>({
     ondrop(id, _target, at) {
@@ -52,7 +55,12 @@
     {@const column = deck.active()?.columns.find((item) => item.id === frame.id)}
     {#if column}
       {@const account = deck.state()?.accounts.find((item) => item.id === column.account)}
-      <header class="column-header" data-tauri-drag-region="deep" style:left={`${frame.x}px`} style:top={`${frame.y}px`} style:width={`${frame.width}px`} style:height={`${frame.height}px`}>
+      {@const x = frame.x ?? 0}
+      {@const y = frame.y ?? 0}
+      {@const width = frame.width ?? 0}
+      {@const height = frame.height ?? 0}
+      {#if layout.concealed().includes(column.id)}<SecretColumn {x} y={y + Math.min(height, COLUMN_HEADER_HEIGHT)} {width} height={Math.max(0, height - COLUMN_HEADER_HEIGHT)} />{/if}
+      <header class="column-header" data-tauri-drag-region="deep" style:left={`${x}px`} style:top={`${y}px`} style:width={`${width}px`} style:height={`${Math.min(height, COLUMN_HEADER_HEIGHT)}px`}>
         <button class="column-grip" data-tauri-drag-region="false" aria-label={`${targetName(column.target)}を移動`} title="カラムを移動"
           onpointerdown={(event) => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); drag.begin(event, column.id); }} onpointermove={drag.move} onpointerup={drag.end}
           onpointercancel={drag.cancel} onlostpointercapture={() => drag.cancel()}
@@ -65,7 +73,11 @@
         <IconButton icon={Settings01Icon} label={`${targetName(column.target)}の設定`} buttonSize={26} size={15} onclick={(event) => void columnPanel.open(column.id, event)} />
       </header>
     {:else if tabs.tabs().some((tab) => tab.id === frame.id && tab.content === "extension_owned")}
-      <header class="column-header" data-tauri-drag-region="deep" style:left={`${frame.x}px`} style:top={`${frame.y}px`} style:width={`${frame.width}px`} style:height={`${frame.height}px`}>
+      {@const x = frame.x ?? 0}
+      {@const y = frame.y ?? 0}
+      {@const width = frame.width ?? 0}
+      {@const height = frame.height ?? 0}
+      <header class="column-header" data-tauri-drag-region="deep" style:left={`${x}px`} style:top={`${y}px`} style:width={`${width}px`} style:height={`${Math.min(height, COLUMN_HEADER_HEIGHT)}px`}>
         <span class="column-icon"><Icon icon={PuzzleIcon} size={17} /></span>
         <strong>拡張機能の設定</strong>
         <IconButton icon={Cancel01Icon} label="拡張機能の設定を閉じてカラムに戻る" buttonSize={26} size={15} onclick={() => void commands.runCommand("tab.close")} />

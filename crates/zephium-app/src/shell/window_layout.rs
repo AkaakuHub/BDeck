@@ -157,15 +157,12 @@ impl Shell {
             (Some(tree), Some(region)) if filling.is_none() => {
                 split::layout(tree, region, win.metrics.gap)
                     .into_iter()
-                    .map(|(id, rect)| {
-                        let header = zephium_core::deck::layout::header_rect(rect);
-                        zephium_ipc::DeckColumnFrame {
-                            id: id.to_string(),
-                            x: header.x,
-                            y: header.y,
-                            width: header.width,
-                            height: header.height,
-                        }
+                    .map(|(id, rect)| zephium_ipc::DeckColumnFrame {
+                        id: id.to_string(),
+                        x: rect.x,
+                        y: rect.y,
+                        width: rect.width,
+                        height: rect.height,
                     })
                     .collect()
             }
@@ -184,6 +181,7 @@ impl Shell {
         (self.emit)(Projection::Layout(LayoutState {
             dividers,
             columns,
+            concealed_columns: concealed.iter().map(ToString::to_string).collect(),
             composer: composer.clone(),
             scroll,
         }));

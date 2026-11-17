@@ -605,6 +605,7 @@ pub struct DividerView {
 pub struct LayoutState {
     pub dividers: Vec<DividerView>,
     pub columns: Vec<DeckColumnFrame>,
+    pub concealed_columns: Vec<String>,
     pub composer: Option<ComposerFrame>,
     pub scroll: Option<DeckScrollFrame>,
 }
