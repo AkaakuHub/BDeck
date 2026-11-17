@@ -42,7 +42,7 @@
     element.removeAttribute("data-bdeck-media-video");
   };
   const releaseActive = () => {
-    const { element, video, controls, slot } = active;
+    const { element, video, controls, slot, background } = active;
     slot.removeAttribute("data-bdeck-media-slot");
     slot.style.removeProperty("--bdeck-media-slot-height");
     if (video) {
@@ -50,6 +50,7 @@
       video.controls = controls;
     }
     release(element);
+    if (!video) element.style.backgroundImage = background;
     active = null;
   };
   const close = () => {
@@ -104,7 +105,18 @@
     const slot = element.parentElement;
     slot.style.setProperty("--bdeck-media-slot-height", `${slot.getBoundingClientRect().height}px`);
     slot.setAttribute("data-bdeck-media-slot", "");
-    active = { element, video, slot, controls: video?.controls };
+    const background = element.style.backgroundImage;
+    if (!video) {
+      const image = slot.querySelector("img");
+      if (image?.currentSrc) {
+        const url = new URL(image.currentSrc);
+        if (url.hostname === "pbs.twimg.com" && url.pathname.startsWith("/media/")) {
+          url.searchParams.set("name", "orig");
+          element.style.backgroundImage = `url(${JSON.stringify(url.href)})`;
+        }
+      }
+    }
+    active = { element, video, slot, background, controls: video?.controls };
     if (video) element.setAttribute("data-bdeck-media-video", "");
     present(element);
     if (opening) window.ipc.postMessage("media.open");
