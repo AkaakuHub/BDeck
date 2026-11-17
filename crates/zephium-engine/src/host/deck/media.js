@@ -56,6 +56,7 @@
     stopPendingVideo();
     if (!active) return;
     releaseActive();
+    window.removeEventListener("wheel", onMediaWheel, true);
     gallery?.dispose();
     gallery = null;
     closeButton.hidePopover();
@@ -79,6 +80,9 @@
     stopPendingVideo();
     const opening = !active;
     if (opening) {
+      window.addEventListener("wheel", onMediaWheel, { capture: true, passive: false });
+      wheelBlockedUntil = 0;
+      swipeHandled = false;
       swipeDistance = 0;
       columnWidth = innerWidth;
       document.documentElement.style.setProperty("--bdeck-media-column-width", `${columnWidth}px`);
@@ -183,24 +187,19 @@
     },
     true,
   );
-  window.addEventListener(
-    "wheel",
-    (event) => {
-      if (!active && event.timeStamp >= wheelBlockedUntil) return;
-      event.preventDefault();
-      if (event.timeStamp >= wheelBlockedUntil) {
-        swipeDistance = 0;
-        swipeHandled = false;
-      }
-      wheelBlockedUntil = event.timeStamp + 180;
-      if (!active || swipeHandled || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
-      swipeDistance += event.deltaX;
-      if (Math.abs(swipeDistance) < 60) return;
-      swipeHandled = true;
-      if (gallery) gallery.move(Math.sign(swipeDistance));
-      else close();
-    },
-    { capture: true, passive: false },
-  );
+  const onMediaWheel = (event) => {
+    event.preventDefault();
+    if (event.timeStamp >= wheelBlockedUntil) {
+      swipeDistance = 0;
+      swipeHandled = false;
+    }
+    wheelBlockedUntil = event.timeStamp + 180;
+    if (!active || swipeHandled || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
+    swipeDistance += event.deltaX;
+    if (Math.abs(swipeDistance) < 60) return;
+    swipeHandled = true;
+    if (gallery) gallery.move(Math.sign(swipeDistance));
+    else close();
+  };
   window.addEventListener("resize", restoreColumn);
 })();
