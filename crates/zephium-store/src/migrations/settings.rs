@@ -103,6 +103,36 @@ mod tests {
     }
 
     #[test]
+    fn old_columns_become_readable_by_the_current_runtime() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        apply(&mut conn, &META[..30]).unwrap();
+        let stored = json!({
+            "accounts": [{"id": "00000000000000000000000001", "profile": "00000000000000000000000002", "identity": null}],
+            "decks": [{"id": "00000000000000000000000003", "name": "Main", "layout": "horizontal", "row_ratio": 50,
+                "columns": [{"id": "00000000000000000000000004", "account": "00000000000000000000000001",
+                    "target": {"kind": "home"}, "width": 320, "row": 0, "suspended": false}]}],
+            "active": "00000000000000000000000003"
+        });
+        assert!(serde_json::from_value::<zephium_core::deck::DeckState>(stored.clone()).is_err());
+        conn.execute(
+            "INSERT INTO settings VALUES ('deck.state', ?1)",
+            [stored.to_string()],
+        )
+        .unwrap();
+        apply(&mut conn, META).unwrap();
+        let encoded: String = conn
+            .query_row(
+                "SELECT value FROM settings WHERE key='deck.state'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let restored: zephium_core::deck::DeckState = serde_json::from_str(&encoded).unwrap();
+        assert!(restored.valid());
+        assert!(!restored.decks[0].columns[0].secret);
+    }
+
+    #[test]
     fn invalid_settings_keep_the_previous_version_and_original_bytes() {
         for stored in ["broken", r#"{"decks":[{"columns":[{},null]}]}"#] {
             let mut conn = Connection::open_in_memory().unwrap();
