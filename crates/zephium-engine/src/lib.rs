@@ -2117,6 +2117,7 @@ impl Engine for WebviewEngine {
         NativeDispatch::from_scheduled(dispatched)
     }
 
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     fn load_web_extension(
         &self,
         profile: ProfileId,
@@ -2127,6 +2128,7 @@ impl Engine for WebviewEngine {
         }))
     }
 
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     fn unload_web_extension(
         &self,
         profile: ProfileId,
@@ -2137,6 +2139,7 @@ impl Engine for WebviewEngine {
         }))
     }
 
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     fn open_web_extension_options(
         &self,
         profile: ProfileId,
@@ -2162,6 +2165,7 @@ impl Engine for WebviewEngine {
         }))
     }
 
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     fn remove_web_extension(
         &self,
         profile: ProfileId,
@@ -2172,6 +2176,7 @@ impl Engine for WebviewEngine {
         }))
     }
 
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     fn request_extension_actions(
         &self,
         profile: ProfileId,
@@ -2192,6 +2197,7 @@ impl Engine for WebviewEngine {
         }))
     }
 
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     fn invoke_extension_action(
         &self,
         request: zephium_core::extensions::ExtensionActionRequest,

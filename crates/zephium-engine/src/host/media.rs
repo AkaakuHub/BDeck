@@ -333,16 +333,27 @@ impl super::EngineHost {
 }
 
 impl super::EngineHost {
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     pub(crate) fn set_muted(&self, id: zephium_core::ids::ItemId, muted: bool) {
         let Some(view) = self.views.get(&id) else {
             return;
         };
-        #[cfg(target_os = "macos")]
-        crate::platform::macos::audio::set_muted(view, muted);
-        #[cfg(target_os = "windows")]
-        if let Some(audio) = &view.audio_observer {
-            audio.set_muted(muted);
-        }
+        set_muted_native(view, muted);
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    pub(crate) fn set_muted(&self, _id: zephium_core::ids::ItemId, _muted: bool) {}
+}
+
+#[cfg(target_os = "macos")]
+fn set_muted_native(view: &super::ObservedView, muted: bool) {
+    crate::platform::macos::audio::set_muted(view, muted);
+}
+
+#[cfg(target_os = "windows")]
+fn set_muted_native(view: &super::ObservedView, muted: bool) {
+    if let Some(audio) = &view.audio_observer {
+        audio.set_muted(muted);
     }
 }
 

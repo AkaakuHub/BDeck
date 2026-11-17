@@ -28,6 +28,17 @@ use gtk::glib::signal::{connect_raw, SignalHandlerId};
 use gtk::prelude::WidgetExt as _;
 use webkit2gtk::{DownloadExt, WebContextExt, WebViewExt, WebsiteDataManagerExt};
 use wry::WebViewExtUnix;
+use zephium_core::ports::engine::Partition;
+
+thread_local! {
+    static CONTAINER: RefCell<Option<gtk::Fixed>> = const { RefCell::new(None) };
+}
+
+pub(crate) struct ContentPolicyTimeout {
+    task: gtk::glib::JoinHandle<()>,
+    fired: Rc<std::cell::Cell<bool>>,
+}
+
 impl ContentPolicyTimeout {
     pub(crate) fn cancel(self) {
         drop(self);
