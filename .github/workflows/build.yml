@@ -26,58 +26,94 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        id: source-checks
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: frontend-checks
         with:
           path: |
-            target/ci-checks
+            target/ci-checks/frontend
             frame/dist
-          key: source-checks-v4-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', '.node-version', 'package.json', 'pnpm-lock.yaml', 'vite.config.ts', 'frame/**', 'crates/**', 'desktop/**', 'xtask/**', '.cargo/**', 'vendor/**', 'scripts/ci/**') }}
+          key: frontend-checks-v1-${{ hashFiles('package.json', 'pnpm-lock.yaml', '.node-version', 'vite.config.ts', 'knip.json', 'frame/**', 'scripts/ci/**') }}
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: rust-checks
+        with:
+          path: target/ci-checks/rust
+          key: rust-checks-v1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'crates/**', 'desktop/**', 'xtask/**', '.cargo/**', 'vendor/**') }}
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: test-checks
+        with:
+          path: target/ci-checks/tests
+          key: test-checks-v1-${{ hashFiles('package.json', 'pnpm-lock.yaml', '.node-version', 'frame/**', 'crates/**', 'scripts/ci/**') }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        if: steps.source-checks.outputs.cache-hit != 'true'
+        if: steps.frontend-checks.outputs.cache-hit != 'true' || steps.test-checks.outputs.cache-hit != 'true'
         with:
           node-version-file: .node-version
       - name: Install the pinned pnpm package
-        if: steps.source-checks.outputs.cache-hit != 'true'
+        if: steps.frontend-checks.outputs.cache-hit != 'true' || steps.test-checks.outputs.cache-hit != 'true'
         run: npm install --global "$(node --print 'require("./package.json").packageManager')"
       - name: Locate the pnpm store
         id: pnpm-store
-        if: steps.source-checks.outputs.cache-hit != 'true'
+        if: steps.frontend-checks.outputs.cache-hit != 'true' || steps.test-checks.outputs.cache-hit != 'true'
         run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: steps.source-checks.outputs.cache-hit != 'true'
+        if: steps.frontend-checks.outputs.cache-hit != 'true' || steps.test-checks.outputs.cache-hit != 'true'
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: pnpm-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json', '.node-version') }}
           restore-keys: pnpm-${{ runner.os }}-${{ runner.arch }}-
       - run: pnpm install --frozen-lockfile
-        if: steps.source-checks.outputs.cache-hit != 'true'
+        if: steps.frontend-checks.outputs.cache-hit != 'true' || steps.test-checks.outputs.cache-hit != 'true'
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
-        if: steps.source-checks.outputs.cache-hit != 'true'
+        if: steps.rust-checks.outputs.cache-hit != 'true'
         with:
           shared-key: desktop-aarch64-apple-darwin
           cache-on-failure: true
           save-if: startsWith(github.ref, 'refs/tags/v')
       - run: pnpm --dir frame build
-        if: steps.source-checks.outputs.cache-hit != 'true'
+        if: steps.frontend-checks.outputs.cache-hit != 'true'
       - run: ruby scripts/ci/check_action_pins.rb
       - run: pnpm exec vp -C frame check --deny-warnings
-        if: steps.source-checks.outputs.cache-hit != 'true'
+        if: steps.frontend-checks.outputs.cache-hit != 'true'
       - run: pnpm exec vp fmt --check vite.config.ts package.json frame/package.json
-        if: steps.source-checks.outputs.cache-hit != 'true'
+        if: steps.frontend-checks.outputs.cache-hit != 'true'
       - run: pnpm exec knip --include dependencies --no-progress
-        if: steps.source-checks.outputs.cache-hit != 'true'
+        if: steps.frontend-checks.outputs.cache-hit != 'true'
+      - name: Mark frontend checks as passed
+        if: steps.frontend-checks.outputs.cache-hit != 'true'
+        run: mkdir -p target/ci-checks/frontend && printf '%s\\n' "passed" > target/ci-checks/frontend/passed
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: steps.frontend-checks.outputs.cache-hit != 'true'
+        with:
+          path: |
+            target/ci-checks/frontend
+            frame/dist
+          key: ${{ steps.frontend-checks.outputs.cache-primary-key }}
       - run: cargo fmt --all -- --check
-        if: steps.source-checks.outputs.cache-hit != 'true'
+        if: steps.rust-checks.outputs.cache-hit != 'true'
       - run: cargo clippy --workspace --release --locked -- -D warnings
-        if: steps.source-checks.outputs.cache-hit != 'true'
+        if: steps.rust-checks.outputs.cache-hit != 'true'
+      - name: Mark Rust checks as passed
+        if: steps.rust-checks.outputs.cache-hit != 'true'
+        run: mkdir -p target/ci-checks/rust && printf '%s\\n' "passed" > target/ci-checks/rust/passed
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: steps.rust-checks.outputs.cache-hit != 'true'
+        with:
+          path: target/ci-checks/rust
+          key: ${{ steps.rust-checks.outputs.cache-primary-key }}
       - run: pnpm --dir frame test:ipc
-        if: steps.source-checks.outputs.cache-hit != 'true'
+        if: steps.test-checks.outputs.cache-hit != 'true'
       - run: pnpm --dir frame test:deck
-        if: steps.source-checks.outputs.cache-hit != 'true'
+        if: steps.test-checks.outputs.cache-hit != 'true'
       - name: Extension transport tests
-        if: steps.source-checks.outputs.cache-hit != 'true'
+        if: steps.test-checks.outputs.cache-hit != 'true'
         run: node --test crates/zephium-webext/src/storage/bridge.test.mjs crates/zephium-webext/src/windows/*.test.mjs crates/zephium-webext-macos/tests/compat.test.mjs crates/zephium-engine/src/host/deck/*.test.mjs
+      - name: Mark test checks as passed
+        if: steps.test-checks.outputs.cache-hit != 'true'
+        run: mkdir -p target/ci-checks/tests && printf '%s\\n' "passed" > target/ci-checks/tests/passed
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: steps.test-checks.outputs.cache-hit != 'true'
+        with:
+          path: target/ci-checks/tests
+          key: ${{ steps.test-checks.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: frame-dist
@@ -108,12 +144,6 @@ jobs:
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
           fi
-      - name: Mark source checks as passed
-        if: steps.source-checks.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p target/ci-checks
-          printf '%s\n' "${GITHUB_SHA}" > target/ci-checks/passed
-
   installers:
     name: ${{ matrix.platform }}
     needs: checks
