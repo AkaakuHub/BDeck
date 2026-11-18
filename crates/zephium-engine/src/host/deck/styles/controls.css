@@ -12,6 +12,21 @@
   padding-block: calc(6px * var(--bdeck-scale)) !important;
   padding-inline: calc(16px * var(--bdeck-scale)) !important;
 }
+[data-bdeck-profile]
+  [data-testid="primaryColumn"]
+  :is([data-testid$="-follow"], [data-testid$="-unfollow"])
+  div {
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+[data-bdeck-profile] div:has(> button[data-testid="userActions"]) button:has(svg) {
+  min-inline-size: calc(32px * var(--bdeck-scale)) !important;
+  min-block-size: calc(32px * var(--bdeck-scale)) !important;
+}
+[data-bdeck-profile] div:has(> button[data-testid="userActions"]) button svg {
+  inline-size: calc(20px * var(--bdeck-scale)) !important;
+  block-size: calc(20px * var(--bdeck-scale)) !important;
+}
 [data-testid="primaryColumn"] [data-testid^="tweetTextarea_"] {
   font-size: calc(20px * var(--bdeck-scale)) !important;
   line-height: 1.4 !important;

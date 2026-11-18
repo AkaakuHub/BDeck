@@ -26,9 +26,20 @@
 [data-bdeck-profile] [data-testid="UserDescription"] :is(div, span, a),
 [data-bdeck-profile] [data-testid="UserProfileHeader_Items"],
 [data-bdeck-profile] [data-testid="UserProfileHeader_Items"] :is(div, span, a),
-[data-bdeck-profile] :is([href$="/followers"], [href$="/following"]) {
+[data-bdeck-profile] :is([href$="/followers"], [href$="/following"]),
+[data-bdeck-profile] :is([href$="/followers"], [href$="/following"]) span {
   font-size: var(--bdeck-font-size) !important;
   line-height: 1.4 !important;
+}
+
+[data-bdeck-profile]
+  [data-testid="UserName"]
+  :is([data-testid="userFollowIndicator"], [data-testid="userFollowIndicator"] span) {
+  font-size: calc(13px * var(--bdeck-scale)) !important;
+}
+
+[data-bdeck-profile] [data-testid="userFollowIndicator"] {
+  padding: calc(2px * var(--bdeck-scale)) calc(4px * var(--bdeck-scale)) !important;
 }
 
 [data-testid="notification"] svg,
