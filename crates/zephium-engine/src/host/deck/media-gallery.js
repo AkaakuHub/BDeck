@@ -1,11 +1,20 @@
 (element, select) => {
   const photo = element.closest('[data-testid="tweetPhoto"]');
   const tweet = photo?.closest('[data-testid="tweet"]');
+  const photoPost = (node) => {
+    const link = node.closest('a[href*="/status/"]');
+    return link
+      ? new URL(link.href).pathname.match(/\/status\/(\d+)\/photo\/\d+\/?$/)?.[1]
+      : undefined;
+  };
+  const post = photo ? photoPost(photo) : undefined;
   const images = tweet
     ? [...tweet.querySelectorAll('[data-testid="tweetPhoto"]')]
         .filter(
           (node) =>
             node.closest('[data-testid="tweet"]') === tweet &&
+            post !== undefined &&
+            photoPost(node) === post &&
             !node.querySelector('[data-testid="playButton"], video'),
         )
         .map((node) => node.querySelector('[style*="background-image"]'))
