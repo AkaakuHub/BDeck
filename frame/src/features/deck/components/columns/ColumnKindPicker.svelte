@@ -7,6 +7,7 @@
     { kind: "home", label: "ホーム" },
     { kind: "notifications", label: "通知" },
     { kind: "profile", label: "プロフィール" },
+    { kind: "follower_requests", label: "フォローリクエスト" },
     { kind: "messages", label: "メッセージ" },
     { kind: "explore", label: "トレンド" },
     { kind: "search", label: "検索" },

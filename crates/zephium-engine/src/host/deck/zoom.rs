@@ -1,16 +1,8 @@
 use zephium_core::deck::DeckAppearance;
 
 pub(in crate::host) fn content_scale(appearance: DeckAppearance, address: &str) -> f64 {
-    if cfg!(target_os = "macos") {
-        return 1.0;
-    }
-    let Ok(url) = url::Url::parse(address) else {
-        return 1.0;
-    };
-    if !super::allows_origin(&url) || url.path().starts_with("/compose/") {
-        return 1.0;
-    }
-    f64::from(appearance.font_size) / 14.0
+    let _ = (appearance, address);
+    1.0
 }
 
 pub(in crate::host) fn sync(
@@ -34,7 +26,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn column_density_scales_only_twitter_content() {
+    fn column_density_does_not_apply_native_zoom() {
         let appearance = DeckAppearance {
             font_size: 12,
             ..DeckAppearance::default()
@@ -43,15 +35,6 @@ mod tests {
             "https://x.com/home",
             "https://x.com/notifications",
             "https://twitter.com/example",
-        ] {
-            let expected = if cfg!(target_os = "macos") {
-                1.0
-            } else {
-                12.0 / 14.0
-            };
-            assert_eq!(content_scale(appearance, address), expected);
-        }
-        for address in [
             "https://x.com/compose/post",
             "https://example.com/home",
             "about:blank",

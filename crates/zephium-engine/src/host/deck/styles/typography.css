@@ -1,0 +1,40 @@
+[data-testid="primaryColumn"] {
+  font-size: var(--bdeck-font-size) !important;
+}
+
+[data-testid="primaryColumn"]
+  :is([data-testid="User-Name"], [data-testid="socialContext"], [data-testid="notification"])
+  svg {
+  inline-size: 16px !important;
+  block-size: 16px !important;
+  flex-shrink: 0 !important;
+}
+
+[data-bdeck-settings] main :is(div, span, a, button, label, input, textarea, h1, h2, h3) {
+  font-size: var(--bdeck-font-size) !important;
+  line-height: 1.4 !important;
+}
+
+[data-bdeck-settings] main svg {
+  inline-size: calc(20px * var(--bdeck-scale)) !important;
+  block-size: calc(20px * var(--bdeck-scale)) !important;
+}
+
+[data-testid="notification"],
+[data-testid="notification"] :is(div, span, a, button),
+[data-bdeck-profile] [data-testid="UserName"],
+[data-bdeck-profile] [data-testid="UserName"] :is(div, span, a),
+[data-bdeck-profile] [data-testid="UserDescription"],
+[data-bdeck-profile] [data-testid="UserDescription"] :is(div, span, a),
+[data-bdeck-profile] [data-testid="UserProfileHeader_Items"],
+[data-bdeck-profile] [data-testid="UserProfileHeader_Items"] :is(div, span, a),
+[data-bdeck-profile] :is([href$="/followers"], [href$="/following"]) {
+  font-size: var(--bdeck-font-size) !important;
+  line-height: 1.4 !important;
+}
+
+[data-testid="notification"] svg,
+[data-bdeck-profile] [data-testid="UserProfileHeader_Items"] svg {
+  inline-size: calc(16px * var(--bdeck-scale)) !important;
+  block-size: calc(16px * var(--bdeck-scale)) !important;
+}

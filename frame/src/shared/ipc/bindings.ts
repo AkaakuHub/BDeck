@@ -160,7 +160,7 @@ export type ColumnDraft = {
 	row: number,
 };
 
-export type ColumnKind = "home" | "notifications" | "profile" | "messages" | "explore" | "search" | "list";
+export type ColumnKind = "home" | "notifications" | "profile" | "follower_requests" | "messages" | "explore" | "search" | "list";
 
 export type ComposerFrame = {
 	tab: string,

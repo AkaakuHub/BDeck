@@ -139,6 +139,7 @@ export function targetName(target: ColumnTarget): string {
       return "リスト";
     case "url":
       if (target.url === "https://x.com/messages") return "メッセージ";
+      if (target.url === "https://x.com/follower_requests") return "フォローリクエスト";
       if (target.url === "https://x.com/explore") return "トレンド";
       return target.url;
   }

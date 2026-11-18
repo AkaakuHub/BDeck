@@ -58,6 +58,7 @@ pub(crate) enum ColumnKind {
     Home,
     Notifications,
     Profile,
+    FollowerRequests,
     Messages,
     Explore,
     Search,
@@ -81,6 +82,9 @@ impl ColumnDraft {
             ColumnKind::Home => ColumnTarget::Home,
             ColumnKind::Notifications => ColumnTarget::Notifications,
             ColumnKind::Profile => ColumnTarget::Profile,
+            ColumnKind::FollowerRequests => ColumnTarget::Url {
+                url: "https://x.com/follower_requests".into(),
+            },
             ColumnKind::Messages => ColumnTarget::Url {
                 url: "https://x.com/messages".into(),
             },

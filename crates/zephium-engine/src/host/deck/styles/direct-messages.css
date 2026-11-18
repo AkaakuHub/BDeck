@@ -1,0 +1,17 @@
+[data-testid="primaryColumn"] [data-testid="dm-container"],
+[data-testid="primaryColumn"] [data-testid="dm-inbox-panel"],
+[data-testid="primaryColumn"] [data-testid*="DM"],
+[data-testid="primaryColumn"] [data-testid*="dm"],
+[data-testid="primaryColumn"] [data-testid*="message"] {
+  font-size: var(--bdeck-font-size) !important;
+  line-height: 1.4 !important;
+}
+
+[data-testid="primaryColumn"] [data-testid="dm-container"] :is(div, span, a, button, textarea),
+[data-testid="primaryColumn"] [data-testid="dm-inbox-panel"] :is(div, span, a, button, textarea),
+[data-testid="primaryColumn"] [data-testid*="DM"] :is(div, span, a, button, textarea),
+[data-testid="primaryColumn"] [data-testid*="dm"] :is(div, span, a, button, textarea),
+[data-testid="primaryColumn"] [data-testid*="message"] :is(div, span, a, button, textarea) {
+  font-size: inherit !important;
+  line-height: inherit !important;
+}

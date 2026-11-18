@@ -5,3 +5,13 @@
   max-width: 100% !important;
   box-sizing: border-box;
 }
+[data-testid="dm-container"],
+[data-testid="dm-inbox-panel"] {
+  font-size: var(--bdeck-font-size) !important;
+  line-height: 1.4 !important;
+}
+[data-testid="dm-container"] :is(div, span, a, button, textarea),
+[data-testid="dm-inbox-panel"] :is(div, span, a, button, textarea) {
+  font-size: inherit !important;
+  line-height: inherit !important;
+}

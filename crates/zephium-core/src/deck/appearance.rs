@@ -53,7 +53,7 @@ pub struct DeckAppearance {
 impl Default for DeckAppearance {
     fn default() -> Self {
         Self {
-            font_size: 14,
+            font_size: 15,
             density: Density::Comfortable,
             avatars: AvatarShape::Circle,
             media: MediaSize::Native,
@@ -65,6 +65,6 @@ impl Default for DeckAppearance {
 
 impl DeckAppearance {
     pub fn valid(&self) -> bool {
-        (12..=18).contains(&self.font_size)
+        (13..=17).contains(&self.font_size)
     }
 }

@@ -9,11 +9,12 @@
   import SettingsTransfer from "./SettingsTransfer.svelte";
   import UpdateSection from "./UpdateSection.svelte";
   const active = $derived(deck.active());
+  const fontSizeLabels: Record<number, string> = { 13: "最小", 14: "小", 15: "標準", 16: "大", 17: "最大" };
 </script>
 
 <SettingsGroup title="コンテンツの表示">
   <SettingsRow title="文字サイズ">
-    <div class="range-control"><ResettableRange label="カラム内の文字サイズ" labelHidden value={deck.appearance().font_size} defaultValue={DEFAULT_APPEARANCE.font_size} min={12} max={18} unit="px" onchange={(value) => void deck.setAppearance({ font_size: value })} /></div>
+    <div class="range-control"><ResettableRange label="カラム内の文字サイズ" labelHidden value={deck.appearance().font_size} defaultValue={DEFAULT_APPEARANCE.font_size} min={13} max={17} format={(value) => fontSizeLabels[value]} onchange={(value) => void deck.setAppearance({ font_size: value })} /></div>
   </SettingsRow>
   <SettingsRow title="UIの間隔">
     <SegmentedControl label="UIの間隔" size="compact" value={deck.appearance().density} options={[{ value: "comfortable", label: "標準" }, { value: "compact", label: "狭く" }]} onchange={(value) => { if (value === "comfortable" || value === "compact") void deck.setAppearance({ density: value }); }} />

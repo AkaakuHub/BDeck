@@ -2,14 +2,14 @@
   import { Refresh01Icon } from "@hugeicons/core-free-icons";
   import Slider from "$shared/ui/Slider";
   import IconButton from "$shared/ui/IconButton";
-  let { label, labelHidden = false, value, defaultValue, min, max, step = 1, unit = "", disabled = false, onchange }: {
+  let { label, labelHidden = false, value, defaultValue, min, max, step = 1, unit = "", format = (current: number) => `${current}${unit}`, disabled = false, onchange }: {
     label: string; labelHidden?: boolean; value: number; defaultValue: number; min: number; max: number;
-    step?: number; unit?: string; disabled?: boolean; onchange: (value: number) => void;
+    step?: number; unit?: string; format?: (value: number) => string; disabled?: boolean; onchange: (value: number) => void;
   } = $props();
 </script>
 <div class="range-setting">
   {#if !labelHidden}<span class="caption">{label}</span>{/if}
-  <div class="control"><Slider {label} {min} {max} {step} {value} {disabled} format={(current) => `${current}${unit}`} oncommit={onchange} /><IconButton icon={Refresh01Icon} label={`${label}を初期値(${defaultValue}${unit})に戻す`} disabled={disabled || value === defaultValue} onclick={() => onchange(defaultValue)} /></div>
+  <div class="control"><Slider {label} {min} {max} {step} {value} {disabled} {format} oncommit={onchange} /><IconButton icon={Refresh01Icon} label={`${label}を初期値(${format(defaultValue)})に戻す`} disabled={disabled || value === defaultValue} onclick={() => onchange(defaultValue)} /></div>
 </div>
 <style>
   .range-setting { inline-size: 100%; min-inline-size: 0; }

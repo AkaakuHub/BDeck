@@ -12,7 +12,7 @@ const applyProfileHeader = (primary) => {
   if (!row || row === primary) return;
   for (
     let node = row;
-    node && node !== primary && !node.querySelector('[data-testid="UserName"]');
+    node && node !== primary && !node.querySelector("nav");
     node = node.parentElement
   ) {
     if (!node.hasAttribute("data-bdeck-profile-header"))
@@ -26,22 +26,17 @@ const applyNotificationHeader = (primary) => {
     location.pathname === "/notifications" || location.pathname.startsWith("/notifications/");
   document.documentElement.toggleAttribute("data-bdeck-notifications", notifications);
   if (!notifications) return;
-  const heading = primary?.querySelector("h2");
+  const heading = primary?.querySelector("h1, h2");
+  primary
+    ?.querySelectorAll("[data-bdeck-notification-title]")
+    .forEach((node) => node.removeAttribute("data-bdeck-notification-title"));
+  heading?.setAttribute("data-bdeck-notification-title", "");
   const settings = primary?.querySelector('a[href="/settings/notifications"]');
-  if (!heading || !settings) return;
-  let row = heading.parentElement;
-  while (row && row !== primary && !row.contains(settings)) row = row.parentElement;
-  if (!row || row === primary) return;
-  for (
-    let node = row;
-    node && node !== primary && !node.querySelector("nav");
-    node = node.parentElement
-  ) {
-    if (!node.hasAttribute("data-bdeck-notification-header"))
-      node.setAttribute("data-bdeck-notification-header", "");
-  }
-  if (!heading.hasAttribute("data-bdeck-notification-title"))
-    heading.setAttribute("data-bdeck-notification-title", "");
+  let row = settings?.parentElement;
+  while (row && row.parentElement !== primary && !row.parentElement?.querySelector("nav"))
+    row = row.parentElement;
+  if (row && row !== primary && !row.querySelector("nav"))
+    row.setAttribute("data-bdeck-notification-toolbar", "");
 };
 const applyChat = () => {
   const root = document.querySelector('[data-testid="xchatEmbedRoute"]')?.shadowRoot;
@@ -77,6 +72,10 @@ const apply = () => {
   const refresh = () => {
     frame = 0;
     const primary = document.querySelector(primarySelector);
+    document.documentElement.toggleAttribute(
+      "data-bdeck-settings",
+      location.pathname === "/settings" || location.pathname.startsWith("/settings/"),
+    );
     const content = primary || document.querySelector('[data-testid="xchatEmbedRoute"]');
     scaffold.disconnect();
     header.disconnect();
@@ -110,11 +109,9 @@ const apply = () => {
         attributes: true,
         attributeFilter: ["aria-selected", "aria-haspopup"],
       });
-    primary
-      ?.querySelectorAll("[data-bdeck-profile-header], [data-bdeck-notification-header]")
-      .forEach((node) => {
-        header.observe(node, { childList: true, subtree: true });
-      });
+    primary?.querySelectorAll("[data-bdeck-profile-header]").forEach((node) => {
+      header.observe(node, { childList: true, subtree: true });
+    });
     const currentLayers = document.getElementById("layers");
     if (currentLayers !== layers) {
       menu.disconnect();

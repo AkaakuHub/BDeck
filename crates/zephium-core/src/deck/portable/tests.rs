@@ -203,7 +203,7 @@ fn rejects_invalid_or_unsupported_archives_and_excessive_accounts() {
 #[test]
 fn settings_roundtrip_preserves_display_and_update_preferences() {
     let mut preferences = Preferences::read(|_| None);
-    preferences.appearance.font_size = 18;
+    preferences.appearance.font_size = 17;
     preferences.appearance.density = crate::deck::appearance::Density::Compact;
     preferences.hide_advertisements = true;
     preferences.theme = "dark".into();

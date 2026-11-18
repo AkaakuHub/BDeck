@@ -61,18 +61,12 @@ fn stylesheet(appearance: DeckAppearance, hide_advertisements: bool) -> String {
     } else {
         "50%"
     };
-    let font_size = if cfg!(target_os = "macos") {
-        appearance.font_size
-    } else {
-        14
-    };
-    let scale = if cfg!(target_os = "macos") {
-        f64::from(appearance.font_size) / 14.0
-    } else {
-        1.0
-    };
+    let font_size = appearance.font_size;
+    let scale = f64::from(font_size) / 15.0;
     let mut css = format!(":root{{--bdeck-font-size:{font_size}px;--bdeck-scale:{scale};--bdeck-avatar-radius:{radius};}}");
     css.push_str(include_str!("styles/columns.css"));
+    css.push_str(include_str!("styles/typography.css"));
+    css.push_str(include_str!("styles/direct-messages.css"));
     css.push_str(include_str!("styles/media.css"));
     if appearance.density == Density::Compact {
         css.push_str(include_str!("styles/spacing-compact.css"));

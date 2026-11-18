@@ -2,7 +2,7 @@ import type { DeckAppearance } from "$shared/ipc/bindings";
 import { isRecord } from "./deck-types";
 
 export const DEFAULT_APPEARANCE: DeckAppearance = {
-  font_size: 14,
+  font_size: 15,
   density: "comfortable",
   avatars: "circle",
   media: "native",
@@ -15,8 +15,8 @@ export function isDeckAppearance(value: unknown): value is DeckAppearance {
     isRecord(value) &&
     typeof value.font_size === "number" &&
     Number.isInteger(value.font_size) &&
-    value.font_size >= 12 &&
-    value.font_size <= 18 &&
+    value.font_size >= 13 &&
+    value.font_size <= 17 &&
     (value.density === "comfortable" || value.density === "compact") &&
     (value.avatars === "circle" || value.avatars === "square") &&
     (value.media === "native" || value.media === "compact" || value.media === "hidden") &&

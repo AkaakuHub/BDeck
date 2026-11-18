@@ -53,6 +53,8 @@ function target(draft: ColumnDraft): ColumnTarget {
       return { kind: "notifications" };
     case "profile":
       return { kind: "profile" };
+    case "follower_requests":
+      return { kind: "url", url: "https://x.com/follower_requests" };
     case "messages":
       return { kind: "url", url: "https://x.com/messages" };
     case "explore":
