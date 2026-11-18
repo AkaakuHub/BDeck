@@ -3,6 +3,3 @@
   --bdeck-post-action-gap: calc(2px * var(--bdeck-scale));
   --bdeck-post-action-height: calc(24px * var(--bdeck-scale));
 }
-[data-testid="tweet"] > div > div > div:last-child > div:last-child {
-  padding-block-end: 0 !important;
-}
