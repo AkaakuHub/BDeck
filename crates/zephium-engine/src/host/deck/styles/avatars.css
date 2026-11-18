@@ -7,6 +7,6 @@
 }
 
 [data-testid="tweet"] [data-testid^="UserAvatar-Container"] {
-  width: calc(40px * var(--bdeck-scale)) !important;
-  height: calc(40px * var(--bdeck-scale)) !important;
+  width: calc(40px * var(--bdeck-scale) * var(--bdeck-scale)) !important;
+  height: calc(40px * var(--bdeck-scale) * var(--bdeck-scale)) !important;
 }
