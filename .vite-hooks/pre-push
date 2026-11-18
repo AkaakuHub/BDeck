@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+
+cd "$(git rev-parse --show-toplevel)"
+pnpm exec vp -C frame check --deny-warnings
+pnpm exec vp fmt --check vite.config.ts package.json frame/package.json
+pnpm exec knip --include dependencies --no-progress
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets --locked -- -D warnings
