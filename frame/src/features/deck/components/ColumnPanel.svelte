@@ -129,6 +129,6 @@
   footer { border-block-start: 1px solid var(--color-border); padding-block-start: 10px; }
   .column-actions { display: grid; justify-content: stretch; align-items: stretch; gap: 8px; }
   .action-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); justify-items: center; align-items: center; gap: 8px; }
-  .action-row:last-child { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .action-row:last-child > :global(:last-child) { grid-column: 4; }
   p { margin: 8px 0 0; font-size: 12px; color: var(--color-danger); }
 </style>
