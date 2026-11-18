@@ -18,8 +18,6 @@ const applyProfileHeader = (primary) => {
     if (!node.hasAttribute("data-bdeck-profile-header"))
       node.setAttribute("data-bdeck-profile-header", "");
   }
-  if (back.parentElement && !back.parentElement.hasAttribute("data-bdeck-profile-back"))
-    back.parentElement.setAttribute("data-bdeck-profile-back", "");
 };
 const applyNotificationHeader = (primary) => {
   const notifications =

@@ -8,9 +8,6 @@ body {
   max-block-size: calc(41px * var(--bdeck-scale)) !important;
   box-sizing: border-box !important;
 }
-[data-bdeck-profile] [data-bdeck-profile-back] {
-  display: none !important;
-}
 [data-bdeck-profile] [data-bdeck-profile-header] h2 {
   font-size: calc(15px * var(--bdeck-scale)) !important;
   line-height: calc(18px * var(--bdeck-scale)) !important;
