@@ -2,6 +2,10 @@
   --bdeck-post-action-gap: calc(2px * var(--bdeck-scale));
 }
 
+:root[data-bdeck-notifications] {
+  --bdeck-post-action-gap: calc(6px * var(--bdeck-scale));
+}
+
 [data-testid="tweet"] div:has(> div:last-child > div > [role="group"] [data-testid="reply"]) {
   padding-block-end: var(--bdeck-post-action-gap) !important;
 }
