@@ -20,9 +20,12 @@
   font-size: inherit !important;
   line-height: inherit !important;
 }
-[data-testid="primaryColumn"]
-  :is([data-testid="User-Name"], [data-testid="socialContext"], [data-testid="app-bar-back"])
-  svg {
+[data-testid="primaryColumn"] :is([data-testid="User-Name"], [data-testid="socialContext"]) svg {
+  width: calc(18.75px * var(--bdeck-scale)) !important;
+  height: calc(18.75px * var(--bdeck-scale)) !important;
+  flex-shrink: 0 !important;
+}
+[data-testid="primaryColumn"] [data-testid="app-bar-back"] svg {
   width: calc(20px * var(--bdeck-scale)) !important;
   height: calc(20px * var(--bdeck-scale)) !important;
 }

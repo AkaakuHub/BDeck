@@ -107,8 +107,8 @@ body {
   font-size: calc(11px * var(--bdeck-scale)) !important;
 }
 [data-testid="tweet"] [role="group"]:has([data-testid="reply"]) svg {
-  width: 16px !important;
-  height: 16px !important;
+  width: calc(18.75px * var(--bdeck-scale)) !important;
+  height: calc(18.75px * var(--bdeck-scale)) !important;
 }
 [data-testid="tweet"] [role="group"]:has([data-testid="reply"]) span {
   padding-inline: 0 !important;

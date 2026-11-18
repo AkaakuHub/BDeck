@@ -2,14 +2,6 @@
   font-size: var(--bdeck-font-size) !important;
 }
 
-[data-testid="primaryColumn"]
-  :is([data-testid="User-Name"], [data-testid="socialContext"], [data-testid="notification"])
-  svg {
-  inline-size: 16px !important;
-  block-size: 16px !important;
-  flex-shrink: 0 !important;
-}
-
 [data-bdeck-settings] main :is(div, span, a, button, label, input, textarea, h1, h2, h3) {
   font-size: var(--bdeck-font-size) !important;
   line-height: 1.4 !important;
