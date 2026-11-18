@@ -6,7 +6,9 @@
   border-radius: var(--bdeck-avatar-radius) !important;
 }
 
-:is([data-testid="tweet"], [data-testid="notification"]) [data-testid^="UserAvatar-Container"] {
+[data-testid="tweet"] [data-testid^="UserAvatar-Container"],
+[data-testid="notification"]
+  div:has(> div[style*="calc(100% + 4px)"] > a img[src*="profile_images/"]) {
   width: calc(40px * var(--bdeck-scale) * var(--bdeck-scale)) !important;
   height: calc(40px * var(--bdeck-scale) * var(--bdeck-scale)) !important;
 }
