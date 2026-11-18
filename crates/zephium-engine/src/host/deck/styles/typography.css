@@ -2,6 +2,12 @@
   font-size: var(--bdeck-font-size) !important;
 }
 
+[data-testid="tweet"] div[id][dir]:not([data-testid]):has(> div a[href]),
+[data-testid="tweet"] div[id][dir]:not([data-testid]):has(> div a[href]) :is(div, span, a) {
+  font-size: var(--bdeck-font-size) !important;
+  line-height: 1.4 !important;
+}
+
 [data-bdeck-settings] main :is(div, span, a, button, label, input, textarea, h1, h2, h3) {
   font-size: var(--bdeck-font-size) !important;
   line-height: 1.4 !important;
