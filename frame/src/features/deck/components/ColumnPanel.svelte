@@ -4,7 +4,7 @@
   import "$styles/global.css";
   import { commands, type PanelView, type PanelSnapshot, type PanelAction, type ColumnDraft } from "$shared/ipc/bindings";
   import { events } from "$shared/ipc/native-events";
-  import { Cancel01Icon, ArrowLeft02Icon, ArrowRight02Icon, Copy01Icon, EyeIcon, EyeOffIcon, PauseIcon, PlayIcon } from "@hugeicons/core-free-icons";
+  import { Cancel01Icon, ArrowLeft02Icon, ArrowRight02Icon, ArrowUp02Icon, ArrowDown02Icon, Copy01Icon, EyeIcon, EyeOffIcon, PauseIcon, PlayIcon } from "@hugeicons/core-free-icons";
   import AccountAvatar from "./accounts/AccountAvatar.svelte";
   import ColumnFields from "./ColumnFields.svelte";
   import Icon from "$shared/ui/Icon";
@@ -92,15 +92,20 @@
     <div class="composer-content" style:height={`${view.content_height}px`} aria-hidden="true"></div>
   {:else}
   <form onsubmit={(event) => { event.preventDefault(); if (adding) void action({ kind: "create", value: { ...draft, row: draft.row } }); }}>
-    <ColumnFields accounts={view.accounts} account={adding ? draft.account : view.account} width={adding ? draft.width : view.width} row={adding ? draft.row : view.row} {adding} kind={draft.kind} text={draft.text} onchange={fields} />
-    {#if adding}<footer><Button type="submit" disabled={pending || !draft.account || ((draft.kind === "search" || draft.kind === "list") && !draft.text.trim())}>追加</Button></footer>{:else}
-    <footer>
+    <ColumnFields accounts={view.accounts} account={adding ? draft.account : view.account} width={adding ? draft.width : view.width} {adding} kind={draft.kind} text={draft.text} onchange={fields} />
+    {#if adding}<footer><IconButton icon={draft.row === 0 ? ArrowDown02Icon : ArrowUp02Icon} label={draft.row === 0 ? "下段に追加" : "上段に追加"} disabled={pending} onclick={() => fields({ row: draft.row === 0 ? 1 : 0 })} /><Button type="submit" disabled={pending || !draft.account || ((draft.kind === "search" || draft.kind === "list") && !draft.text.trim())}>追加</Button></footer>{:else}
+    <footer class="column-actions">
+      <div class="action-row" role="group" aria-label="カラムの配置">
       <IconButton icon={ArrowLeft02Icon} label="前へ移動" disabled={view.index === 0 || pending} onclick={() => void action({ kind: "previous" })} />
       <IconButton icon={ArrowRight02Icon} label="次へ移動" disabled={view.index + 1 === view.count || pending} onclick={() => void action({ kind: "next" })} />
+      <IconButton icon={view.row === 0 ? ArrowDown02Icon : ArrowUp02Icon} label={view.row === 0 ? "下段へ移動" : "上段へ移動"} disabled={pending} onclick={() => fields({ row: view.row === 0 ? 1 : 0 })} />
       <IconButton icon={Copy01Icon} label="カラムを複製" disabled={pending} onclick={() => void action({ kind: "duplicate" })} />
+      </div>
+      <div class="action-row" role="group" aria-label="カラムの状態">
       <IconButton icon={view.secret ? EyeIcon : EyeOffIcon} label={view.secret ? "シークレットを解除" : "シークレットにする"} active={view.secret} disabled={pending} onclick={() => void action({ kind: "secret" })} />
       <IconButton icon={view.suspended ? PlayIcon : PauseIcon} label={view.suspended ? "再開" : "休止"} active={view.suspended} disabled={pending} onclick={() => void action({ kind: "suspend" })} />
       <IconButton icon={Cancel01Icon} label="カラムを削除" disabled={pending} onclick={() => void action({ kind: "remove" })} />
+      </div>
     </footer>
     {/if}
   </form>
@@ -122,5 +127,8 @@
   .composer-account:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 1px; }
   form { display: grid; gap: 14px; margin-block-start: 12px; }
   footer { border-block-start: 1px solid var(--color-border); padding-block-start: 10px; }
+  .column-actions { display: grid; gap: 8px; }
+  .action-row { display: grid; grid-template-columns: repeat(4, 1fr); justify-items: center; align-items: center; gap: 8px; }
+  .action-row:last-child > :global(:last-child) { grid-column: 4; }
   p { margin: 8px 0 0; font-size: 12px; color: var(--color-danger); }
 </style>
