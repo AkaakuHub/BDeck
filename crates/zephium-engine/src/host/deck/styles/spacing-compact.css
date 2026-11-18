@@ -1,5 +1,15 @@
 :root {
-  --bdeck-item-padding: calc(4px * var(--bdeck-scale)) calc(8px * var(--bdeck-scale));
   --bdeck-post-action-gap: calc(2px * var(--bdeck-scale));
-  --bdeck-post-action-height: calc(24px * var(--bdeck-scale));
+}
+
+[data-testid="tweet"] div:has(> div:last-child > div > [role="group"] [data-testid="reply"]) {
+  padding-block-end: var(--bdeck-post-action-gap) !important;
+}
+
+[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) {
+  margin-block-start: var(--bdeck-post-action-gap) !important;
+}
+
+[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) :is(button, a) {
+  min-height: calc(24px * var(--bdeck-scale)) !important;
 }

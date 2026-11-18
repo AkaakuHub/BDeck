@@ -1,8 +1,3 @@
-:root {
-  --bdeck-item-padding: calc(8px * var(--bdeck-scale)) calc(10px * var(--bdeck-scale));
-  --bdeck-post-action-gap: calc(8px * var(--bdeck-scale));
-  --bdeck-post-action-height: calc(28px * var(--bdeck-scale));
-}
 html,
 body {
   overflow-x: clip !important;
@@ -100,9 +95,6 @@ body {
   font-size: var(--bdeck-font-size) !important;
   line-height: 1.4 !important;
 }
-[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) {
-  margin-block-start: var(--bdeck-post-action-gap) !important;
-}
 [data-testid="tweet"] [role="group"]:has([data-testid="reply"]) :is(button, a, span) {
   font-size: calc(11px * var(--bdeck-scale)) !important;
 }
@@ -112,10 +104,6 @@ body {
 }
 [data-testid="tweet"] [role="group"]:has([data-testid="reply"]) span {
   padding-inline: 0 !important;
-}
-
-[data-testid="tweet"] [role="group"]:has([data-testid="reply"]) :is(button, a) {
-  min-height: var(--bdeck-post-action-height) !important;
 }
 
 [data-testid="primaryColumn"]
