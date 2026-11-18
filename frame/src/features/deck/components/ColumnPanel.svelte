@@ -127,8 +127,8 @@
   .composer-account:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 1px; }
   form { display: grid; gap: 14px; margin-block-start: 12px; }
   footer { border-block-start: 1px solid var(--color-border); padding-block-start: 10px; }
-  .column-actions { display: grid; gap: 8px; }
-  .action-row { display: grid; grid-template-columns: repeat(4, 1fr); justify-items: center; align-items: center; gap: 8px; }
-  .action-row:last-child > :global(:last-child) { grid-column: 4; }
+  .column-actions { display: grid; justify-content: stretch; align-items: stretch; gap: 8px; }
+  .action-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); justify-items: center; align-items: center; gap: 8px; }
+  .action-row:last-child { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   p { margin: 8px 0 0; font-size: 12px; color: var(--color-danger); }
 </style>
