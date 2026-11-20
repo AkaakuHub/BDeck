@@ -2,7 +2,6 @@
   height: var(--bdeck-media-slot-height) !important;
 }
 html[data-bdeck-media] {
-  --bdeck-media-toolbar-height: 52px;
   --bdeck-media-control-inset: 8px;
 }
 html[data-bdeck-media] body {
@@ -10,9 +9,9 @@ html[data-bdeck-media] body {
 }
 [data-bdeck-media-content]:popover-open {
   position: fixed !important;
-  inset: var(--bdeck-media-toolbar-height) 0 0 !important;
+  inset: 0 !important;
   width: var(--bdeck-media-width) !important;
-  height: calc(var(--bdeck-media-height) - var(--bdeck-media-toolbar-height)) !important;
+  height: var(--bdeck-media-height) !important;
   min-width: 0 !important;
   min-height: 0 !important;
   max-width: none !important;
@@ -106,6 +105,15 @@ html[data-bdeck-media] body {
   pointer-events: none;
 }
 
+@media (hover: hover) and (pointer: fine) {
+  html[data-bdeck-media]:not(
+      :has([data-bdeck-media-button]:hover, [data-bdeck-media-button]:focus-visible)
+    )
+    [data-bdeck-media-button] {
+    opacity: 0;
+  }
+}
+
 [data-bdeck-media-actions] button:active {
   opacity: 0.6;
 }
@@ -117,8 +125,7 @@ html[data-bdeck-media] body {
 [data-bdeck-media-direction]:popover-open {
   --bdeck-media-button-size: 44px;
   position: fixed;
-  inset: calc(50% + var(--bdeck-media-toolbar-height) / 2) auto auto
-    var(--bdeck-media-control-inset);
+  inset: 50% auto auto var(--bdeck-media-control-inset);
   transform: translateY(-50%);
 }
 [data-bdeck-media-direction="1"]:popover-open {
