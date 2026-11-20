@@ -40,11 +40,11 @@
     });
   const move = (direction) => {
     const next = index + direction;
-    if (next >= 0 && next < images.length) {
-      index = next;
-      select(images[index].image);
-      updateButtons();
-    }
+    if (next < 0 || next >= images.length) return false;
+    index = next;
+    select(images[index].image);
+    updateButtons();
+    return true;
   };
   return {
     move,

@@ -1,5 +1,9 @@
 (() => {
-  if (location.pathname.startsWith("/compose/")) return false;
+  if (
+    document.documentElement.hasAttribute("data-bdeck-media") ||
+    location.pathname.startsWith("/compose/")
+  )
+    return false;
   let node = document.elementFromPoint(innerWidth * pointX, innerHeight * pointY);
   if (!node || node.closest("input, textarea, select, [contenteditable]")) return false;
   for (; node; node = node.parentElement) {

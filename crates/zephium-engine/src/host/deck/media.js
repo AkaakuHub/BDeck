@@ -275,8 +275,7 @@
     swipeDistance += event.deltaX;
     if (Math.abs(swipeDistance) < 60) return;
     swipeHandled = true;
-    if (gallery) gallery.move(Math.sign(swipeDistance));
-    else close();
+    if (!gallery?.move(Math.sign(swipeDistance))) close();
   };
   window.addEventListener("resize", () => {
     restoreColumn(true);

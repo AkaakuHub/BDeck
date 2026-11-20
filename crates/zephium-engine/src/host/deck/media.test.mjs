@@ -154,6 +154,9 @@ function fixture() {
         .find((node) => node.getAttribute("data-bdeck-media-direction") === "1")
         .events.get("click")();
     },
+    swipe(deltaX, timeStamp, deltaY = 0) {
+      events.get("wheel")({ deltaX, deltaY, timeStamp, preventDefault() {} });
+    },
     close() {
       body.children
         .find((node) => node.attributes.has("data-bdeck-media-close"))
@@ -188,4 +191,26 @@ test("reopening starts with only the newly selected post’s media", () => {
   page.close();
   page.click(page.main);
   assert.deepEqual(page.display(), ["https://pbs.twimg.com/media/photo-1-1?name=orig"]);
+});
+
+test("a horizontal swipe closes a single photo and returns to the timeline", () => {
+  const page = fixture();
+  page.click(page.main);
+  page.swipe(0, 100, 100);
+  assert.equal(page.display().length, 1);
+  page.swipe(65, 400);
+  assert.deepEqual(page.display(), []);
+  assert.deepEqual(page.messages, ["media.open", "media.close"]);
+});
+
+test("gallery swipes move once per gesture and an outward swipe closes at the edge", () => {
+  const page = fixture();
+  page.click(page.first);
+  page.swipe(35, 100);
+  page.swipe(35, 120);
+  page.swipe(80, 145);
+  assert.deepEqual(page.display(), ["https://pbs.twimg.com/media/photo-2-2?name=orig"]);
+  page.swipe(65, 400);
+  assert.deepEqual(page.display(), []);
+  assert.deepEqual(page.messages, ["media.open", "media.close"]);
 });
