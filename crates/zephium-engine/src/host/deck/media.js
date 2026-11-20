@@ -52,7 +52,7 @@
     event.stopPropagation();
     if (active?.video) return;
     event.preventDefault();
-    const image = active?.element.parentElement.querySelector("img");
+    const image = active?.element;
     if (!image?.naturalWidth || !image.naturalHeight) return;
     const bounds = active.element.getBoundingClientRect();
     const scale = Math.min(bounds.width / image.naturalWidth, bounds.height / image.naturalHeight);
@@ -72,15 +72,15 @@
     element.removeAttribute("data-bdeck-media-video");
   };
   const releaseActive = () => {
-    const { element, video, controls, slot, background } = active;
-    slot.removeAttribute("data-bdeck-media-slot");
-    slot.style.removeProperty("--bdeck-media-slot-height");
+    const { element, video, controls, slot } = active;
     if (video) {
+      slot.removeAttribute("data-bdeck-media-slot");
+      slot.style.removeProperty("--bdeck-media-slot-height");
       video.pause();
       video.controls = controls;
     }
     release(element);
-    if (!video) element.style.backgroundImage = background;
+    if (!video) element.remove();
     active = null;
   };
   const close = () => {
@@ -114,38 +114,48 @@
     video.controls = true;
     video.play().catch(() => {});
   };
-  const open = (element, video = null) => {
+  const imageForPhoto = (photo) => {
+    const image = photo.querySelector("img");
+    if (!image?.currentSrc) return null;
+    const url = new URL(image.currentSrc);
+    if (url.hostname === "pbs.twimg.com" && url.pathname.startsWith("/media/"))
+      url.searchParams.set("name", "orig");
+    return { imageUrl: url.href, alt: image.alt };
+  };
+  const selectImage = ({ imageUrl, alt }) => {
+    const { element } = active;
+    element.alt = alt;
+    element.src = imageUrl;
+    active = { element, imageUrl };
+    mediaActions.show(false);
+  };
+  const open = (source, video, image) => {
     stopPendingVideo();
-    const opening = !active;
-    if (opening) {
-      pointerEvents = new AbortController();
-      const options = { capture: true, signal: pointerEvents.signal };
-      window.addEventListener("pointerover", showControls, options);
-      window.addEventListener("pointermove", showControls, options);
-      window.addEventListener("pointerout", hideControlsOnExit, options);
-      window.addEventListener("blur", () => setPointerInside(false), options);
-      window.addEventListener("wheel", onMediaWheel, { capture: true, passive: false });
-      wheelBlockedUntil = 0;
-      swipeHandled = false;
-      swipeDistance = 0;
-      restoringPosition = null;
-      const tweet = element.closest('[data-testid="tweet"]');
-      timelinePosition = {
-        x: scrollX,
-        y: scrollY,
-        href: tweet?.querySelector('a[href*="/status/"]:has(time)')?.href,
-        top: tweet?.getBoundingClientRect().top,
-      };
-      columnWidth = innerWidth;
-      columnHeight = innerHeight;
-      document.documentElement.style.setProperty("--bdeck-media-width", `${innerWidth}px`);
-      document.documentElement.style.setProperty("--bdeck-media-height", `${innerHeight}px`);
-      document.documentElement.style.setProperty("--bdeck-media-column-width", `${columnWidth}px`);
-      document.documentElement.setAttribute("data-bdeck-media", video ? "video" : "image");
-      gallery = video ? null : createMediaGallery(element, open);
-    } else {
-      releaseActive();
-    }
+    pointerEvents = new AbortController();
+    const options = { capture: true, signal: pointerEvents.signal };
+    window.addEventListener("pointerover", showControls, options);
+    window.addEventListener("pointermove", showControls, options);
+    window.addEventListener("pointerout", hideControlsOnExit, options);
+    window.addEventListener("blur", () => setPointerInside(false), options);
+    window.addEventListener("wheel", onMediaWheel, { capture: true, passive: false });
+    wheelBlockedUntil = 0;
+    swipeHandled = false;
+    swipeDistance = 0;
+    restoringPosition = null;
+    const tweet = source.closest('[data-testid="tweet"]');
+    timelinePosition = {
+      x: scrollX,
+      y: scrollY,
+      href: tweet?.querySelector('a[href*="/status/"]:has(time)')?.href,
+      top: tweet?.getBoundingClientRect().top,
+    };
+    columnWidth = innerWidth;
+    columnHeight = innerHeight;
+    document.documentElement.style.setProperty("--bdeck-media-width", `${innerWidth}px`);
+    document.documentElement.style.setProperty("--bdeck-media-height", `${innerHeight}px`);
+    document.documentElement.style.setProperty("--bdeck-media-column-width", `${columnWidth}px`);
+    document.documentElement.setAttribute("data-bdeck-media", video ? "video" : "image");
+    gallery = video ? null : createMediaGallery(source, imageForPhoto, selectImage);
     if (!closeButton) {
       closeButton = createMediaButton("閉じる", "close");
       closeButton.setAttribute("popover", "manual");
@@ -154,27 +164,24 @@
       document.body.appendChild(closeButton);
       mediaActions = createMediaActions(() => active);
     }
-    const slot = element.parentElement;
-    slot.style.setProperty("--bdeck-media-slot-height", `${slot.getBoundingClientRect().height}px`);
-    slot.setAttribute("data-bdeck-media-slot", "");
-    const background = element.style.backgroundImage;
-    let imageUrl = null;
-    if (!video) {
-      const image = slot.querySelector("img");
-      if (image?.currentSrc) {
-        const url = new URL(image.currentSrc);
-        imageUrl = url.href;
-        if (url.hostname === "pbs.twimg.com" && url.pathname.startsWith("/media/")) {
-          url.searchParams.set("name", "orig");
-          imageUrl = url.href;
-          element.style.backgroundImage = `url(${JSON.stringify(imageUrl)})`;
-        }
-      }
+    if (video) {
+      const slot = source.parentElement;
+      slot.style.setProperty(
+        "--bdeck-media-slot-height",
+        `${slot.getBoundingClientRect().height}px`,
+      );
+      slot.setAttribute("data-bdeck-media-slot", "");
+      source.setAttribute("data-bdeck-media-video", "");
+      active = { element: source, video, slot, controls: video.controls };
+    } else {
+      const element = document.createElement("img");
+      element.alt = image.alt;
+      element.src = image.imageUrl;
+      document.body.appendChild(element);
+      active = { element, imageUrl: image.imageUrl };
     }
-    active = { element, video, imageUrl, slot, background, controls: video?.controls };
-    if (video) element.setAttribute("data-bdeck-media-video", "");
-    present(element);
-    if (opening) window.ipc.postMessage("media.open");
+    present(active.element);
+    window.ipc.postMessage("media.open");
     if (video) play(video);
   };
   const activate = (event) => {
@@ -209,14 +216,14 @@
       pendingVideo.observe(tweet, { childList: true, subtree: true });
       return;
     }
-    const element = video
-      ? video.parentElement
-      : photo?.querySelector('[style*="background-image"]');
-    if (!(element instanceof HTMLElement)) return;
+    const source = video ? video.parentElement : photo;
+    if (!(source instanceof HTMLElement)) return;
+    const image = video ? null : imageForPhoto(source);
+    if (!video && !image) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     setPointerInside(event.detail > 0);
-    open(element, video);
+    open(source, video, image);
   };
   window.addEventListener("click", activate, true);
   const showControls = (event) => {

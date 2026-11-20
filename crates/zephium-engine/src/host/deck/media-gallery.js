@@ -1,26 +1,27 @@
-(element, select) => {
-  const photo = element.closest('[data-testid="tweetPhoto"]');
+(photo, imageForPhoto, select) => {
   const tweet = photo?.closest('[data-testid="tweet"]');
+  const quoteCard = (node) => node.parentElement?.closest('div[role="link"]');
   const photoPost = (node) => {
     const link = node.closest('a[href*="/status/"]');
     return link
       ? new URL(link.href).pathname.match(/\/status\/(\d+)\/photo\/\d+\/?$/)?.[1]
       : undefined;
   };
-  const post = photo ? photoPost(photo) : undefined;
+  const post = photoPost(photo);
+  const quote = quoteCard(photo);
   const images = tweet
     ? [...tweet.querySelectorAll('[data-testid="tweetPhoto"]')]
         .filter(
           (node) =>
             node.closest('[data-testid="tweet"]') === tweet &&
-            post !== undefined &&
+            quoteCard(node) === quote &&
             photoPost(node) === post &&
             !node.querySelector('[data-testid="playButton"], video'),
         )
-        .map((node) => node.querySelector('[style*="background-image"]'))
-        .filter((node) => node instanceof HTMLElement)
+        .map((node) => ({ selected: node === photo, image: imageForPhoto(node) }))
+        .filter(({ image }) => image)
     : [];
-  let index = images.indexOf(element);
+  let index = images.findIndex(({ selected }) => selected);
   if (images.length < 2 || index < 0) return null;
   const buttons = [-1, 1].map((direction) => {
     const button =
@@ -33,18 +34,24 @@
     document.body.appendChild(button);
     return button;
   });
-  const show = () =>
+  const updateButtons = () =>
     buttons.forEach((button, offset) => {
       button.disabled = offset === 0 ? index === 0 : index === images.length - 1;
-      button.hidePopover();
-      button.showPopover();
     });
   const move = (direction) => {
     const next = index + direction;
-    if (next >= 0 && next < images.length && images[next].isConnected) {
+    if (next >= 0 && next < images.length) {
       index = next;
-      select(images[index]);
+      select(images[index].image);
+      updateButtons();
     }
   };
-  return { move, show, dispose: () => buttons.forEach((button) => button.remove()) };
+  return {
+    move,
+    show() {
+      updateButtons();
+      buttons.forEach((button) => button.showPopover());
+    },
+    dispose: () => buttons.forEach((button) => button.remove()),
+  };
 };
