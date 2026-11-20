@@ -21,8 +21,6 @@ pub(crate) use fullscreen::{exit_fullscreen, fullscreen_state};
 pub use fullscreen::{install_fullscreen_observer, FullscreenObserver};
 mod apps;
 mod native_paths;
-mod page_layer;
-mod sidebar_card;
 pub(crate) use apps::{external_app_name, open_external_app, open_external_web};
 mod page_memory;
 mod paint;

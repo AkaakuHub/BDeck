@@ -21,8 +21,7 @@ use objc2_foundation::{
     NSObjectProtocol, NSPoint, NSRect, NSSize, NSString, NSValue,
 };
 use objc2_quartz_core::{
-    kCAFillModeForwards, CABasicAnimation, CALayer, CAMediaTiming, CAMediaTimingFunction,
-    CATransaction,
+    kCAFillModeForwards, CABasicAnimation, CAMediaTiming, CAMediaTimingFunction, CATransaction,
 };
 
 use zephium_core::geometry::Rect;
@@ -32,7 +31,7 @@ use zephium_core::split::{self, Divider, Pane};
 
 use crate::pane_geometry::rounded_native_size;
 
-use super::pointer_cover::{Parked, PointerCover};
+use super::pointer_cover::PointerCover;
 
 /// A page a drop preview slid aside, and how far.
 type Displaced = (ItemId, (f64, f64));
@@ -215,8 +214,6 @@ pub struct StageIvars {
     divider_tracking: RefCell<Vec<(NSRect, Retained<NSTrackingArea>)>>,
     tracking_busy: Cell<bool>,
     pointer_cover: RefCell<Option<PointerCover>>,
-    /// The pages, parked while a hidden sidebar's chrome is over them.
-    under_chrome: RefCell<Option<Parked>>,
     covers: RefCell<HashMap<ItemId, PaintCover>>,
     concealed: RefCell<HashSet<ItemId>>,
     privacy_covers: RefCell<HashMap<ItemId, Retained<NSView>>>,
@@ -550,45 +547,6 @@ impl ContentStage {
             (0.0, frame.origin.x - current.origin.x)
         };
         let animation = translation(from, to, SLIDE_SECONDS);
-        // Travelling right from under a hidden sidebar's card, the stage gives
-        // way to the column the card becomes: it is cut at its new edge,
-        // which stays where it is while the stage slides out past it, so the
-        // page never shows where the column now stands. The cut is a mask
-        // running the other way in the same transaction, so the compositor
-        // keeps the two in step.
-        let cut = (to > from && self.under_chrome()).then(|| {
-            let radius = self
-                .ivars()
-                .views
-                .try_borrow()
-                .ok()
-                .and_then(|views| {
-                    views
-                        .values()
-                        .find_map(|host| host.view.layer().map(|layer| layer.cornerRadius()))
-                })
-                .unwrap_or(0.0);
-            let mask = CALayer::new();
-            mask.setBackgroundColor(Some(&NSColor::blackColor().CGColor()));
-            mask.setCornerRadius(radius);
-            // SAFETY: an immutable framework constant.
-            mask.setCornerCurve(unsafe { objc2_quartz_core::kCACornerCurveContinuous });
-            let bounds = self.bounds();
-            mask.setFrame(NSRect::new(
-                NSPoint::new(to - from, 0.0),
-                NSSize::new(frame.size.width, bounds.size.height),
-            ));
-            (
-                mask,
-                offset_animation(
-                    ns_string!("position.x"),
-                    0.0,
-                    from - to,
-                    SLIDE_SECONDS,
-                    true,
-                ),
-            )
-        });
         let stage = Weak::from_retained(&self.retain());
         let arrived = block2::RcBlock::new(move || {
             if let Some(stage) = stage.load() {
@@ -600,29 +558,8 @@ impl ContentStage {
         CATransaction::begin();
         // SAFETY: the block holds the stage weakly and runs on the main thread.
         unsafe { CATransaction::setCompletionBlock(Some(&arrived)) };
-        if let Some((mask, cut)) = cut {
-            CATransaction::setDisableActions(true);
-            // SAFETY: the mask is a fresh layer no other layer holds.
-            unsafe { layer.setMask(Some(&mask)) };
-            mask.addAnimation_forKey(&cut, Some(ns_string!("zephium.slide")));
-        }
         layer.addAnimation_forKey(&animation, Some(ns_string!("zephium.slide")));
         CATransaction::commit();
-    }
-
-    /// Whether the chrome is stacked over this stage, as it is while a hidden
-    /// sidebar's card is out.
-    fn under_chrome(&self) -> bool {
-        // SAFETY: retained parent access on the AppKit main thread.
-        let Some(parent) = (unsafe { self.superview() }) else {
-            return false;
-        };
-        let order: Vec<Retained<NSView>> = parent.subviews().to_vec();
-        let chrome = order
-            .iter()
-            .position(|view| view.downcast_ref::<wry::WryWebView>().is_some());
-        let stage = order.iter().position(|view| std::ptr::eq(&**view, &**self));
-        matches!((chrome, stage), (Some(chrome), Some(stage)) if chrome > stage)
     }
 
     /// Brings the stage back into view after a browser page covered it: it
@@ -677,8 +614,6 @@ impl ContentStage {
         }
         if let Some(layer) = self.layer() {
             layer.removeAnimationForKey(ns_string!("zephium.slide"));
-            // SAFETY: dropping a mask hands nothing on.
-            unsafe { layer.setMask(None) };
         }
         CATransaction::commit();
     }
@@ -1108,68 +1043,6 @@ impl ContentStage {
         }
         let cover = PointerCover::attach(self);
         *self.ivars().pointer_cover.borrow_mut() = cover;
-    }
-
-    /// Stacks the chrome over this stage while a hidden sidebar is shown, or
-    /// back beneath it. The views are reordered where they are, never taken
-    /// out of the window, so no page sees itself leave it; and the pages stop
-    /// setting the cursor while the chrome is over them.
-    pub fn raise_chrome(&self, raised: bool) {
-        // SAFETY: retained parent access on the AppKit main thread.
-        let Some(parent) = (unsafe { self.superview() }) else {
-            return;
-        };
-        let mut order: Vec<Retained<NSView>> = parent.subviews().to_vec();
-        let Some(chrome) = order
-            .iter()
-            .position(|view| view.downcast_ref::<wry::WryWebView>().is_some())
-        else {
-            return;
-        };
-        let Some(stage) = order.iter().position(|view| std::ptr::eq(&**view, &**self)) else {
-            return;
-        };
-        if (chrome > stage) != raised {
-            let view = order.remove(chrome);
-            let stage = order
-                .iter()
-                .position(|view| std::ptr::eq(&**view, &**self))
-                .unwrap_or(order.len());
-            order.insert(if raised { stage + 1 } else { stage }, view);
-            let ranks: HashMap<usize, usize> = order
-                .iter()
-                .enumerate()
-                .map(|(rank, view)| (std::ptr::from_ref(&**view).addr(), rank))
-                .collect();
-            unsafe extern "C-unwind" fn by_rank(
-                a: NonNull<NSView>,
-                b: NonNull<NSView>,
-                ranks: *mut std::ffi::c_void,
-            ) -> objc2_foundation::NSComparisonResult {
-                // SAFETY: `ranks` is the map below, alive for the whole sort.
-                let ranks = unsafe { &*(ranks as *const HashMap<usize, usize>) };
-                let rank = |view: NonNull<NSView>| ranks.get(&view.addr().get()).copied();
-                rank(a).cmp(&rank(b)).into()
-            }
-            // SAFETY: the comparator reads only `ranks`, which outlives the
-            // call; AppKit sorts the subviews array in place.
-            unsafe {
-                parent.sortSubviewsUsingFunction_context(
-                    by_rank,
-                    std::ptr::from_ref(&ranks) as *mut std::ffi::c_void,
-                );
-            }
-        }
-        let parked = raised.then(|| {
-            let views = self.ivars().views.borrow();
-            Parked::hold(views.values().filter_map(|host| {
-                host.view
-                    .downcast_ref::<wry::WryWebView>()
-                    .map(|page| page.retain())
-            }))
-        });
-        drop(self.ivars().under_chrome.replace(parked));
-        self.sync_pointer_cover();
     }
 
     fn sync_pointer_cover(&self) {

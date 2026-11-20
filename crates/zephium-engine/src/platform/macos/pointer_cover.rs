@@ -132,28 +132,6 @@ fn unhold(canvas: &WryWebView) {
     }
 }
 
-/// Parks canvases for a cover that is not a view laid over them, such as the
-/// chrome stacked above a stage's pages, counted with every other cover's.
-pub(crate) struct Parked(Vec<Retained<WryWebView>>);
-
-impl Parked {
-    pub(crate) fn hold(canvases: impl IntoIterator<Item = Retained<WryWebView>>) -> Self {
-        let canvases: Vec<_> = canvases.into_iter().collect();
-        for canvas in &canvases {
-            hold(canvas);
-        }
-        Self(canvases)
-    }
-}
-
-impl Drop for Parked {
-    fn drop(&mut self) {
-        for canvas in self.0.drain(..) {
-            unhold(&canvas);
-        }
-    }
-}
-
 fn hold(canvas: &WryWebView) {
     let first = HELD.with_borrow_mut(|held| {
         let count = held.entry(std::ptr::from_ref(canvas).addr()).or_default();

@@ -582,30 +582,6 @@ impl Shell {
                 }
                 let _ = self.relayout_with(animate);
             }
-            Command::SetSidebarHidden(hidden) => {
-                let Some(win) = self.windows.focused_mut() else {
-                    return;
-                };
-                if win.metrics.sidebar_hidden == hidden {
-                    return;
-                }
-                win.metrics.sidebar_hidden = hidden;
-                let id = win.id;
-                // A sidebar shown from its card leaves the chrome over the
-                // page until the page has slid out from under the column;
-                // the frame puts it back beneath then.
-                let _ = self.engine.hint_stage_motion(id, StageMotion::Slide);
-                let _ = self.relayout_with(true);
-            }
-            Command::PeekSidebar { peek, slide } => {
-                if let Some(win) = self.windows.focused() {
-                    // Only a hidden sidebar is beneath the page to come over it.
-                    if !peek || (win.metrics.sidebar_hidden && self.deck.overlay.get().is_none()) {
-                        let card = layout::hidden_card(win.size, win.metrics);
-                        let _ = self.engine.raise_chrome(win.id, peek, card, slide);
-                    }
-                }
-            }
             Command::SetPagePermissionCardHost(available) => {
                 self.set_page_permission_card_host(available)
             }

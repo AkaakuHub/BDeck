@@ -1,7 +1,5 @@
 #[cfg(any(target_os = "windows", test))]
 mod caption_keys;
-#[cfg(any(target_os = "windows", test))]
-mod card_geometry;
 mod erasure;
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 mod fullscreen;
@@ -1763,36 +1761,6 @@ impl Engine for WebviewEngine {
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         {
             let _ = (window, zone);
-            NativeDispatch::Unsupported
-        }
-    }
-
-    fn raise_chrome(
-        &self,
-        window: WindowId,
-        raised: bool,
-        card: Rect,
-        slide: bool,
-    ) -> NativeDispatch {
-        #[cfg(any(target_os = "macos", target_os = "windows"))]
-        {
-            let queued_retirement = self.retirement.clone();
-            let queued_delivery = self.event_delivery.clone();
-            let queued_fatal = self.fatal_security_failure.clone();
-            NativeDispatch::from_scheduled(self.run(move || {
-                if !host::try_with(move |host| host.raise_chrome(window, raised, card, slide)) {
-                    fail_native_host_admission(
-                        &queued_delivery,
-                        &queued_retirement,
-                        &queued_fatal,
-                        "chrome stacking was not admitted by the engine host",
-                    );
-                }
-            }))
-        }
-        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-        {
-            let _ = (window, raised, card, slide);
             NativeDispatch::Unsupported
         }
     }
