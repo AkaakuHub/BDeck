@@ -8,6 +8,10 @@ impl Shell {
             return;
         }
         self.deck.overlay.set(Some(item));
+        if let Some(window) = self.windows.focused() {
+            let card = layout::hidden_card(window.size, window.metrics);
+            let _ = self.engine.raise_chrome(window.id, false, card, false);
+        }
         let _ = self.relayout();
     }
 

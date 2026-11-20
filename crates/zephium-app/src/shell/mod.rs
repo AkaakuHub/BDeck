@@ -600,7 +600,7 @@ impl Shell {
             Command::PeekSidebar { peek, slide } => {
                 if let Some(win) = self.windows.focused() {
                     // Only a hidden sidebar is beneath the page to come over it.
-                    if !peek || win.metrics.sidebar_hidden {
+                    if !peek || (win.metrics.sidebar_hidden && self.deck.overlay.get().is_none()) {
                         let card = layout::hidden_card(win.size, win.metrics);
                         let _ = self.engine.raise_chrome(win.id, peek, card, slide);
                     }
