@@ -558,12 +558,13 @@ impl Downloads {
                         source.window.clone(),
                         transfer.record.filename.clone(),
                         transfer.record.source.clone(),
-                        !source.ask_destination && unsafe {
-                            transfer
-                                .native
-                                .respondsToSelector(objc2::sel!(isUserInitiated))
-                                && transfer.native.isUserInitiated()
-                        },
+                        !source.ask_destination
+                            && unsafe {
+                                transfer
+                                    .native
+                                    .respondsToSelector(objc2::sel!(isUserInitiated))
+                                    && transfer.native.isUserInitiated()
+                            },
                     )
                 })
             })
