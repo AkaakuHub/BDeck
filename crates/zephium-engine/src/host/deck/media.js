@@ -10,9 +10,12 @@
   let wheelBlockedUntil = 0;
   let swipeHandled = false;
   let gallery = null;
+  let pointerEvents = null;
   let timelinePosition = null;
   let restoringPosition = null;
   let scrollRemainder = 0;
+  const setPointerInside = (inside) =>
+    document.documentElement.toggleAttribute("data-bdeck-media-pointer", inside);
   const restoreTimelinePosition = () => {
     const saved = restoringPosition;
     if (!saved || active || innerWidth !== columnWidth || innerHeight !== columnHeight) return;
@@ -91,6 +94,9 @@
     gallery = null;
     closeButton.hidePopover();
     mediaActions.hide();
+    pointerEvents.abort();
+    pointerEvents = null;
+    setPointerInside(false);
     window.ipc.postMessage("media.close");
     restoreColumn();
   };
@@ -112,6 +118,12 @@
     stopPendingVideo();
     const opening = !active;
     if (opening) {
+      pointerEvents = new AbortController();
+      const options = { capture: true, signal: pointerEvents.signal };
+      window.addEventListener("pointerover", showControls, options);
+      window.addEventListener("pointermove", showControls, options);
+      window.addEventListener("pointerout", hideControlsOnExit, options);
+      window.addEventListener("blur", () => setPointerInside(false), options);
       window.addEventListener("wheel", onMediaWheel, { capture: true, passive: false });
       wheelBlockedUntil = 0;
       swipeHandled = false;
@@ -189,6 +201,7 @@
                   ? node.querySelector("video")
                   : null;
             if (!(added instanceof HTMLVideoElement) || !added.isConnected) continue;
+            setPointerInside(event.detail > 0);
             open(added.parentElement, added);
             return;
           }
@@ -202,9 +215,16 @@
     if (!(element instanceof HTMLElement)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
+    setPointerInside(event.detail > 0);
     open(element, video);
   };
   window.addEventListener("click", activate, true);
+  const showControls = (event) => {
+    if (event.isTrusted && event.pointerType !== "touch") setPointerInside(true);
+  };
+  const hideControlsOnExit = (event) => {
+    if (event.isTrusted && event.relatedTarget === null) setPointerInside(false);
+  };
   window.addEventListener(
     "contextmenu",
     (event) => {

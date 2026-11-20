@@ -106,7 +106,10 @@ html[data-bdeck-media] body {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  html[data-bdeck-media]:not(:hover, :has([data-bdeck-media-button]:focus-visible))
+  html[data-bdeck-media]:not(
+      [data-bdeck-media-pointer],
+      :has([data-bdeck-media-button]:focus-visible)
+    )
     [data-bdeck-media-button] {
     opacity: 0;
   }
