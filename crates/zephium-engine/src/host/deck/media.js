@@ -135,10 +135,7 @@
       releaseActive();
     }
     if (!closeButton) {
-      closeButton = document.createElement("button");
-      closeButton.type = "button";
-      closeButton.textContent = "×";
-      closeButton.setAttribute("aria-label", "閉じる");
+      closeButton = createMediaButton("閉じる", "close");
       closeButton.setAttribute("popover", "manual");
       closeButton.setAttribute("data-bdeck-media-close", "");
       closeButton.addEventListener("click", close);

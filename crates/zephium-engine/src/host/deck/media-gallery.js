@@ -23,10 +23,10 @@
   let index = images.indexOf(element);
   if (images.length < 2 || index < 0) return null;
   const buttons = [-1, 1].map((direction) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = direction < 0 ? "‹" : "›";
-    button.setAttribute("aria-label", direction < 0 ? "前の画像" : "次の画像");
+    const button =
+      direction < 0
+        ? createMediaButton("前の画像", "previous")
+        : createMediaButton("次の画像", "next");
     button.setAttribute("popover", "manual");
     button.setAttribute("data-bdeck-media-direction", String(direction));
     button.addEventListener("click", () => move(direction));
