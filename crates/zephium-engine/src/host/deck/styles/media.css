@@ -6,9 +6,9 @@ html[data-bdeck-media] body {
 }
 [data-bdeck-media-content]:popover-open {
   position: fixed !important;
-  inset: 0 !important;
+  inset: 52px 0 0 !important;
   width: var(--bdeck-media-width) !important;
-  height: var(--bdeck-media-height) !important;
+  height: calc(var(--bdeck-media-height) - 52px) !important;
   min-width: 0 !important;
   min-height: 0 !important;
   max-width: none !important;
@@ -29,6 +29,7 @@ html[data-bdeck-media] body {
 }
 [data-bdeck-media-content]::backdrop {
   background: black;
+  pointer-events: none;
 }
 [data-bdeck-media-close]:popover-open {
   position: fixed;
@@ -43,11 +44,6 @@ html[data-bdeck-media] body {
   color: white;
   font: 28px/36px sans-serif;
   cursor: pointer;
-}
-
-[data-bdeck-media-video]:popover-open {
-  top: 44px !important;
-  height: calc(var(--bdeck-media-height) - 44px) !important;
 }
 
 [data-bdeck-media-video]:popover-open video {
@@ -68,24 +64,21 @@ html[data-bdeck-media] body {
 
 [data-bdeck-media-actions]:popover-open {
   position: fixed;
-  inset: 8px 8px auto 52px;
+  inset: 8px 8px auto auto;
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  flex-wrap: wrap;
   gap: 6px;
   width: auto;
-  max-width: none;
+  max-width: calc(100% - 60px);
   margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
   color: white;
   font: 13px sans-serif;
-  pointer-events: none;
 }
 
-[data-bdeck-media-actions] button,
 [data-bdeck-media-actions] [role="status"]:not(:empty) {
   padding: 6px 10px;
   border: 0;
@@ -95,10 +88,25 @@ html[data-bdeck-media] body {
 }
 
 [data-bdeck-media-actions] button {
-  min-height: 36px;
-  font: inherit;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border: 0;
+  border-radius: 50%;
+  background: #000b;
+  color: white;
   cursor: pointer;
-  pointer-events: auto;
+}
+
+[data-bdeck-media-actions] svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+[data-bdeck-media-actions] [role="status"] {
+  order: -1;
 }
 
 [data-bdeck-media-actions]::backdrop {

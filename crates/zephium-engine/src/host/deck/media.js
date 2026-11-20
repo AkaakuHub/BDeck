@@ -222,12 +222,18 @@
     "click",
     (event) => {
       if (!event.isTrusted) return;
-      if (consumeClick) {
+      if (
+        consumeClick &&
+        active &&
+        !mediaActions.contains(event.target) &&
+        event.target !== closeButton
+      ) {
         consumeClick = false;
         event.preventDefault();
         event.stopImmediatePropagation();
         return;
       }
+      consumeClick = false;
       if (active && event.composedPath().includes(active.element)) return;
       activate(event);
     },
