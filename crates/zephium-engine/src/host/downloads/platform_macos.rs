@@ -78,6 +78,7 @@ pub(super) fn open(path: &std::path::Path) -> Result<(), DownloadError> {
 }
 
 pub(super) struct Source {
+    ask_destination: bool,
     permit: EventPermit,
     surface_intent: Arc<AtomicBool>,
     navigation: NavigationEpochTracker,
@@ -355,6 +356,7 @@ impl Downloads {
             return;
         };
         let source = Source {
+            ask_destination: scheme.as_deref() == Some("blob"),
             navigation,
             activity,
             permit,
@@ -556,7 +558,7 @@ impl Downloads {
                         source.window.clone(),
                         transfer.record.filename.clone(),
                         transfer.record.source.clone(),
-                        unsafe {
+                        !source.ask_destination && unsafe {
                             transfer
                                 .native
                                 .respondsToSelector(objc2::sel!(isUserInitiated))
@@ -566,7 +568,7 @@ impl Downloads {
                 })
             })
         };
-        let Some((true, window, filename, source, user_initiated)) = context else {
+        let Some((true, window, filename, source, allows_automatic_save)) = context else {
             self.cancel(id, None);
             return;
         };
@@ -576,7 +578,7 @@ impl Downloads {
             .map(PathBuf::from)
             .or_else(dirs::download_dir);
         if !preferences.ask_destination
-            && user_initiated
+            && allows_automatic_save
             && (preferences.directory.is_none() || preferences.directory_identity.is_some())
         {
             let Some(directory) = directory else {

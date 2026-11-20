@@ -105,6 +105,10 @@ html[data-bdeck-media] body {
   height: 100%;
 }
 
+[data-bdeck-media-actions] button:active {
+  opacity: 0.6;
+}
+
 [data-bdeck-media-actions] [role="status"] {
   order: -1;
 }

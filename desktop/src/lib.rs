@@ -2079,6 +2079,9 @@ pub fn run() {
                     std::io::Error::other("startup engine cleanup owner is already armed").into(),
                 );
             }
+            if !engine.initialize_downloads(store.clone(), |_| {}) {
+                return Err(std::io::Error::other("download service initialization failed").into());
+            }
             #[cfg(target_os = "windows")]
             runtime_engine_slot
                 .set(engine.clone())

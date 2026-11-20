@@ -105,7 +105,7 @@
       const media = currentMedia();
       if (!event.isTrusted || !media || pending === media) return;
       pending = media;
-      status.textContent = "";
+      status.textContent = "処理中…";
       try {
         await operation(media);
         if (currentMedia() === media) status.textContent = success;

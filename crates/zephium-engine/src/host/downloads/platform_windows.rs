@@ -397,6 +397,12 @@ impl Downloads {
         if unsafe { controller.ParentWindow(&mut parent) }.is_err() {
             return;
         }
+        let Ok(operation) = (unsafe { args.DownloadOperation() }) else {
+            return;
+        };
+        let Some(uri) = operation_uri(&operation) else {
+            return;
+        };
         let source = Source {
             permit: permit.clone(),
             surface_intent,
@@ -406,17 +412,11 @@ impl Downloads {
             parent,
             root: unsafe { GetAncestor(parent, GA_ROOT) },
             initial_open,
-            ask_destination,
+            ask_destination: ask_destination || uri.starts_with("blob:"),
         };
         if !source.key() {
             return;
         }
-        let Ok(operation) = (unsafe { args.DownloadOperation() }) else {
-            return;
-        };
-        let Some(uri) = operation_uri(&operation) else {
-            return;
-        };
         let Some(origin) = source_origin(&uri, controller) else {
             return;
         };
