@@ -5,6 +5,22 @@
 
   const status = document.createElement("span");
   status.setAttribute("role", "status");
+  let statusFade = null;
+  const setStatus = (message, dismiss = false) => {
+    statusFade?.cancel();
+    statusFade = null;
+    status.textContent = message;
+    if (!message || !dismiss) return;
+    const fade = status.animate([{ opacity: 1 }, { opacity: 0 }], {
+      delay: 3000,
+      duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 250,
+      fill: "forwards",
+    });
+    statusFade = fade;
+    fade.onfinish = () => {
+      if (statusFade === fade) setStatus("");
+    };
+  };
 
   const source = (media) => {
     const url = new URL(media.video ? media.video.currentSrc : media.imageUrl);
@@ -78,12 +94,12 @@
       const media = currentMedia();
       if (!event.isTrusted || !media || pending === media) return;
       pending = media;
-      status.textContent = "処理中…";
+      setStatus("処理中…");
       try {
         await operation(media);
-        if (currentMedia() === media) status.textContent = success;
+        if (currentMedia() === media) setStatus(success, true);
       } catch {
-        if (currentMedia() === media) status.textContent = failure;
+        if (currentMedia() === media) setStatus(failure, true);
       } finally {
         if (pending === media) pending = null;
       }
@@ -103,11 +119,14 @@
   document.body.appendChild(actions);
   return {
     show(video) {
-      status.textContent = "";
+      setStatus("");
       copyButton.hidden = Boolean(video);
       actions.hidePopover();
       actions.showPopover();
     },
-    hide: () => actions.hidePopover(),
+    hide() {
+      setStatus("");
+      actions.hidePopover();
+    },
   };
 };
