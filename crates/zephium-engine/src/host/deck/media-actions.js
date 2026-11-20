@@ -129,7 +129,6 @@
   actions.appendChild(status);
   document.body.appendChild(actions);
   return {
-    contains: (target) => actions.contains(target),
     show(video) {
       status.textContent = "";
       copyButton.hidden = Boolean(video);

@@ -5,7 +5,6 @@
   let columnHeight = 0;
   let closeButton = null;
   let mediaActions = null;
-  let consumeClick = false;
   let pendingVideo = null;
   let swipeDistance = 0;
   let wheelBlockedUntil = 0;
@@ -170,7 +169,8 @@
     if (video) play(video);
   };
   const activate = (event) => {
-    if (!event.isTrusted || active || (event.type === "pointerdown" && event.button !== 0)) return;
+    if (!event.isTrusted || active || event.button !== 0) return;
+    stopPendingVideo();
     const path = event.composedPath();
     const player = path.find(
       (node) => node instanceof HTMLElement && node.matches('[data-testid="videoPlayer"]'),
@@ -182,7 +182,6 @@
     if (photo?.querySelector('[data-testid="playButton"]') || (player && !video)) {
       const tweet = (photo || player).closest('[data-testid="tweet"]');
       if (!tweet) return;
-      stopPendingVideo();
       pendingVideo = new MutationObserver((records) => {
         for (const record of records)
           for (const node of record.addedNodes) {
@@ -206,39 +205,9 @@
     if (!(element instanceof HTMLElement)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    consumeClick = event.type === "pointerdown";
     open(element, video);
   };
-  window.addEventListener(
-    "pointerdown",
-    (event) => {
-      consumeClick = false;
-      stopPendingVideo();
-      activate(event);
-    },
-    true,
-  );
-  window.addEventListener(
-    "click",
-    (event) => {
-      if (!event.isTrusted) return;
-      if (
-        consumeClick &&
-        active &&
-        !mediaActions.contains(event.target) &&
-        event.target !== closeButton
-      ) {
-        consumeClick = false;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        return;
-      }
-      consumeClick = false;
-      if (active && event.composedPath().includes(active.element)) return;
-      activate(event);
-    },
-    true,
-  );
+  window.addEventListener("click", activate, true);
   window.addEventListener(
     "contextmenu",
     (event) => {
