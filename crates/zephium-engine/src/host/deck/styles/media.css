@@ -38,6 +38,17 @@ html[data-bdeck-media] body {
   background: black;
   pointer-events: none;
 }
+html[data-bdeck-media="image"] #react-root {
+  visibility: hidden;
+}
+
+[data-bdeck-media-content]:popover-open > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 [data-bdeck-media-close]:popover-open {
   position: fixed;
   inset: var(--bdeck-media-action-top) auto auto var(--bdeck-media-control-inset);

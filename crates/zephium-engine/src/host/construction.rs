@@ -1671,6 +1671,7 @@ impl EngineHost {
         let shortcut_permit = event_permit.clone();
         let shortcut_sink = self.sink.clone();
         builder = builder
+            .with_accept_first_mouse(true)
             .with_ipc_handler(move |request| {
                 let Ok(origin) = url::Url::parse(&request.uri().to_string()) else {
                     return;

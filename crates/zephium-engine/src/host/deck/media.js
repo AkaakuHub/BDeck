@@ -52,7 +52,7 @@
     event.stopPropagation();
     if (active?.video) return;
     event.preventDefault();
-    const image = active?.element;
+    const image = active?.image;
     if (!image?.naturalWidth || !image.naturalHeight) return;
     const bounds = active.element.getBoundingClientRect();
     const scale = Math.min(bounds.width / image.naturalWidth, bounds.height / image.naturalHeight);
@@ -116,17 +116,18 @@
   };
   const imageForPhoto = (photo) => {
     const image = photo.querySelector("img");
-    if (!image?.currentSrc) return null;
-    const url = new URL(image.currentSrc);
+    const source = image?.currentSrc || image?.getAttribute("src");
+    if (!source) return null;
+    const url = new URL(source, document.baseURI);
     if (url.hostname === "pbs.twimg.com" && url.pathname.startsWith("/media/"))
       url.searchParams.set("name", "orig");
     return { imageUrl: url.href, alt: image.alt };
   };
   const selectImage = ({ imageUrl, alt }) => {
-    const { element } = active;
-    element.alt = alt;
-    element.src = imageUrl;
-    active = { element, imageUrl };
+    const { element, image } = active;
+    image.alt = alt;
+    image.src = imageUrl;
+    active = { element, image, imageUrl };
     mediaActions.show(false);
   };
   const open = (source, video, image) => {
@@ -174,25 +175,34 @@
       source.setAttribute("data-bdeck-media-video", "");
       active = { element: source, video, slot, controls: video.controls };
     } else {
-      const element = document.createElement("img");
-      element.alt = image.alt;
-      element.src = image.imageUrl;
+      const element = document.createElement("div");
+      const expanded = document.createElement("img");
+      expanded.alt = image.alt;
+      expanded.src = image.imageUrl;
+      element.appendChild(expanded);
       document.body.appendChild(element);
-      active = { element, imageUrl: image.imageUrl };
+      active = { element, image: expanded, imageUrl: image.imageUrl };
     }
     present(active.element);
     window.ipc.postMessage("media.open");
     if (video) play(video);
   };
   const activate = (event) => {
-    if (!event.isTrusted || active || event.button !== 0) return;
-    stopPendingVideo();
+    if (!event.isTrusted || event.button !== 0) return;
     const path = event.composedPath();
-    const player = path.find(
-      (node) => node instanceof HTMLElement && node.matches('[data-testid="videoPlayer"]'),
-    );
     const photo = path.find(
       (node) => node instanceof HTMLElement && node.matches('[data-testid="tweetPhoto"]'),
+    );
+    if (active) {
+      if (active.image && photo) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+      return;
+    }
+    stopPendingVideo();
+    const player = path.find(
+      (node) => node instanceof HTMLElement && node.matches('[data-testid="videoPlayer"]'),
     );
     const video = player?.querySelector("video");
     if (photo?.querySelector('[data-testid="playButton"]') || (player && !video)) {
