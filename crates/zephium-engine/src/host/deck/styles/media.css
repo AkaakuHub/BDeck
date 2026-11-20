@@ -1,14 +1,18 @@
 [data-bdeck-media-slot] {
   height: var(--bdeck-media-slot-height) !important;
 }
+html[data-bdeck-media] {
+  --bdeck-media-toolbar-height: 52px;
+  --bdeck-media-control-inset: 8px;
+}
 html[data-bdeck-media] body {
   width: var(--bdeck-media-column-width) !important;
 }
 [data-bdeck-media-content]:popover-open {
   position: fixed !important;
-  inset: 52px 0 0 !important;
+  inset: var(--bdeck-media-toolbar-height) 0 0 !important;
   width: var(--bdeck-media-width) !important;
-  height: calc(var(--bdeck-media-height) - 52px) !important;
+  height: calc(var(--bdeck-media-height) - var(--bdeck-media-toolbar-height)) !important;
   min-width: 0 !important;
   min-height: 0 !important;
   max-width: none !important;
@@ -33,7 +37,7 @@ html[data-bdeck-media] body {
 }
 [data-bdeck-media-close]:popover-open {
   position: fixed;
-  inset: 8px auto auto 8px;
+  inset: var(--bdeck-media-control-inset) auto auto var(--bdeck-media-control-inset);
 }
 
 [data-bdeck-media-video]:popover-open video {
@@ -48,13 +52,14 @@ html[data-bdeck-media] body {
   opacity: 1 !important;
 }
 
-[data-bdeck-media-close]::backdrop {
+[data-bdeck-media-button]::backdrop,
+[data-bdeck-media-actions]::backdrop {
   pointer-events: none;
 }
 
 [data-bdeck-media-actions]:popover-open {
   position: fixed;
-  inset: 8px 8px auto auto;
+  inset: var(--bdeck-media-control-inset) var(--bdeck-media-control-inset) auto auto;
   display: flex;
   justify-content: flex-end;
   align-items: center;
@@ -109,24 +114,18 @@ html[data-bdeck-media] body {
   order: -1;
 }
 
-[data-bdeck-media-actions]::backdrop {
-  pointer-events: none;
-}
-
 [data-bdeck-media-direction]:popover-open {
   --bdeck-media-button-size: 44px;
   position: fixed;
-  inset: calc(50% + 26px) auto auto 8px;
+  inset: calc(50% + var(--bdeck-media-toolbar-height) / 2) auto auto
+    var(--bdeck-media-control-inset);
   transform: translateY(-50%);
 }
 [data-bdeck-media-direction="1"]:popover-open {
   left: auto;
-  right: 8px;
+  right: var(--bdeck-media-control-inset);
 }
 [data-bdeck-media-direction]:disabled {
   opacity: 0.3;
   cursor: default;
-}
-[data-bdeck-media-direction]::backdrop {
-  pointer-events: none;
 }
