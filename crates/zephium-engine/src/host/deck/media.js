@@ -141,7 +141,7 @@
       document.documentElement.style.setProperty("--bdeck-media-width", `${innerWidth}px`);
       document.documentElement.style.setProperty("--bdeck-media-height", `${innerHeight}px`);
       document.documentElement.style.setProperty("--bdeck-media-column-width", `${columnWidth}px`);
-      document.documentElement.setAttribute("data-bdeck-media", "");
+      document.documentElement.setAttribute("data-bdeck-media", video ? "video" : "image");
       gallery = video ? null : createMediaGallery(element, open);
     } else {
       releaseActive();

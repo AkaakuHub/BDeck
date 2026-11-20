@@ -126,7 +126,13 @@ html[data-bdeck-media] body {
 [data-bdeck-media-direction]:popover-open {
   --bdeck-media-button-size: 44px;
   position: fixed;
-  inset: 50% auto auto var(--bdeck-media-control-inset);
+  inset: auto auto auto var(--bdeck-media-control-inset);
+}
+
+[data-bdeck-media-direction]:popover-open,
+html[data-bdeck-media="video"]
+  :is([data-bdeck-media-close], [data-bdeck-media-actions]):popover-open {
+  top: 50%;
   transform: translateY(-50%);
 }
 [data-bdeck-media-direction="1"]:popover-open {
