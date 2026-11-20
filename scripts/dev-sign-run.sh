@@ -3,7 +3,7 @@
 # Keychain after every rebuild, so each one asks for the login password again.
 # Zephium's own dev executables are re-signed with one identifier and the
 # developer's certificate, which the Keychain keeps trusting across rebuilds
-# after one "Always Allow". Without a certificate they run unchanged.
+# after one "Always Allow".
 set -eu
 
 bin=$1
@@ -15,17 +15,23 @@ case $(basename -- "$bin") in
 esac
 
 identifier=net.akaaku.bdeck.dev
-if ! /usr/bin/codesign -dv "$bin" 2>&1 | grep -qx "Identifier=$identifier"; then
-    identity=${APPLE_SIGNING_IDENTITY:-}
-    if [ -z "$identity" ]; then
-        identity=$(security find-identity -v -p codesigning 2>/dev/null |
-            sed -n 's/.*"\(Apple Development:[^"]*\)".*/\1/p' | head -n 1)
-    fi
-    if [ -n "$identity" ]; then
-        /usr/bin/codesign --force --sign "$identity" --identifier "$identifier" \
-            --timestamp=none "$bin" 2>/dev/null ||
-            echo "dev-sign-run: could not sign $bin; the Keychain may ask again" >&2
-    fi
-fi
+bundle="$(dirname -- "$bin")/BDeck Dev.app"
+executable="$bundle/Contents/MacOS/zephium-desktop"
+plist="$bundle/Contents/Info.plist"
+mkdir -p "$bundle/Contents/MacOS"
+cp -f "$bin" "$executable"
+/usr/bin/otool -X -P "$bin" > "$plist"
+# WebKit used the executable name as its data directory before bundling.
+/usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string zephium-desktop" \
+    -c "Add :CFBundleExecutable string zephium-desktop" \
+    -c "Add :CFBundlePackageType string APPL" \
+    -c "Delete :CFBundleURLTypes" "$plist"
 
-exec "$bin" "$@"
+identity=${APPLE_SIGNING_IDENTITY:-}
+if [ -z "$identity" ]; then
+    identity=$(/usr/bin/security find-identity -v -p codesigning 2>/dev/null |
+        sed -n 's/.*"\(Apple Development:[^"]*\)".*/\1/p' | head -n 1)
+fi
+/usr/bin/codesign --force --sign "${identity:--}" --identifier "$identifier" --timestamp=none "$bundle"
+
+exec "$executable" "$@"
