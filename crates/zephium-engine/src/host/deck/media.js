@@ -4,6 +4,7 @@
   let columnWidth = 0;
   let columnHeight = 0;
   let closeButton = null;
+  let mediaActions = null;
   let consumeClick = false;
   let pendingVideo = null;
   let swipeDistance = 0;
@@ -90,6 +91,7 @@
     gallery?.dispose();
     gallery = null;
     closeButton.hidePopover();
+    mediaActions.hide();
     window.ipc.postMessage("media.close");
     restoreColumn();
   };
@@ -101,6 +103,7 @@
     gallery?.show();
     closeButton.hidePopover();
     closeButton.showPopover();
+    mediaActions.show(active.video);
   };
   const play = (video) => {
     video.controls = true;
@@ -141,22 +144,26 @@
       closeButton.setAttribute("data-bdeck-media-close", "");
       closeButton.addEventListener("click", close);
       document.body.appendChild(closeButton);
+      mediaActions = createMediaActions(() => active);
     }
     const slot = element.parentElement;
     slot.style.setProperty("--bdeck-media-slot-height", `${slot.getBoundingClientRect().height}px`);
     slot.setAttribute("data-bdeck-media-slot", "");
     const background = element.style.backgroundImage;
+    let imageUrl = null;
     if (!video) {
       const image = slot.querySelector("img");
       if (image?.currentSrc) {
         const url = new URL(image.currentSrc);
+        imageUrl = url.href;
         if (url.hostname === "pbs.twimg.com" && url.pathname.startsWith("/media/")) {
           url.searchParams.set("name", "orig");
-          element.style.backgroundImage = `url(${JSON.stringify(url.href)})`;
+          imageUrl = url.href;
+          element.style.backgroundImage = `url(${JSON.stringify(imageUrl)})`;
         }
       }
     }
-    active = { element, video, slot, background, controls: video?.controls };
+    active = { element, video, imageUrl, slot, background, controls: video?.controls };
     if (video) element.setAttribute("data-bdeck-media-video", "");
     present(element);
     if (opening) window.ipc.postMessage("media.open");
@@ -223,6 +230,15 @@
       }
       if (active && event.composedPath().includes(active.element)) return;
       activate(event);
+    },
+    true,
+  );
+  window.addEventListener(
+    "contextmenu",
+    (event) => {
+      if (!active) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
     },
     true,
   );

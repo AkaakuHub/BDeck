@@ -1693,8 +1693,9 @@ impl EngineHost {
                 include_str!("deck/shortcuts.js"),
             ))
             .with_initialization_script(format!(
-                "(() => {{ const createMediaGallery = {}; {} }})();",
+                "(() => {{ const createMediaGallery = {}; const createMediaActions = {}; {} }})();",
                 include_str!("deck/media-gallery.js"),
+                include_str!("deck/media-actions.js"),
                 include_str!("deck/media.js"),
             ))
             .with_initialization_script(include_str!("deck/session.js"));

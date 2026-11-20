@@ -66,6 +66,45 @@ html[data-bdeck-media] body {
   pointer-events: none;
 }
 
+[data-bdeck-media-actions]:popover-open {
+  position: fixed;
+  inset: 8px 8px auto 52px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: white;
+  font: 13px sans-serif;
+  pointer-events: none;
+}
+
+[data-bdeck-media-actions] button,
+[data-bdeck-media-actions] [role="status"]:not(:empty) {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: #222;
+  color: inherit;
+}
+
+[data-bdeck-media-actions] button {
+  min-height: 36px;
+  font: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+[data-bdeck-media-actions]::backdrop {
+  pointer-events: none;
+}
+
 [data-bdeck-media-direction]:popover-open {
   position: fixed;
   inset: 50% auto auto 8px;
